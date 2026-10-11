@@ -232,6 +232,8 @@ export function buildPetersburg(scene) {
     if ((x + z) % 2 === 0) propSpawns.push({ type: 'barrel', x: x + 1.0, z: z + 0.8 });
   }
 
+  const perches = [[-30, 28.6, -77], [-10, 28.6, -77], [10, 28.6, -77], [30, 28.6, -77], [-22, 19.4, -24], [22, 19.4, -24], [0, 49.5, -52], [-34, 28.6, -77], [34, 28.6, -77]].map(([x, y, z]) => ({ x, y, z }));
+
   function update(dt, t, camPos) {
     canalM.map.offset.x = river.material.map.offset.x = (t * 0.015) % 1; river.material.map.offset.y = (t * 0.01) % 1;
     for (const r of rostral) r.userData.flame.scale.set(3 + Math.sin(t * 17) * 0.3, 4.6 + Math.sin(t * 13) * 0.4 + Math.random() * 0.2, 1);
@@ -243,7 +245,16 @@ export function buildPetersburg(scene) {
   return {
     boxes, spawnPoints, pickupSpawns, propSpawns, update, fogColor: FOG,
     navBounds: { x0: X0, x1: X1, z0: ZN, z1: ZS },
-    mode: 'waves', waves: [{ grunt: 5 }, { grunt: 4, spitter: 3, drake: 2 }, { grunt: 6, spitter: 4, drake: 3 }, { grunt: 6, spitter: 5, drake: 5 }, { grunt: 8, spitter: 6, drake: 6 }],
+    enemyTypes: ['grunt', 'spitter', 'drake', 'bomber', 'gargoyle', 'shield', 'tsar'],
+    // ledges where gargoyles sit like statues: Winter Palace roofline, General Staff wings, Alexander Column
+    perches,
+    mode: 'waves', waves: [
+      { grunt: 5, shield: 1 },
+      { grunt: 4, spitter: 3, drake: 2, gargoyle: 2 },
+      { grunt: 4, spitter: 3, shield: 3, bomber: 2, gargoyle: 2 },
+      { grunt: 5, spitter: 4, drake: 3, shield: 3, bomber: 3, gargoyle: 3 },
+      { tsar: 1, grunt: 5, spitter: 3, drake: 2, bomber: 2, shield: 2, gargoyle: 2 },
+    ],
     start: { x: 0, z: -22, yaw: 0 }, startWeapons: ['sabre', 'pistol', 'shotgun'],
     spawnRange: [28, 95], maxAlive: 14, range: 400,
     intro: 'ST. PETERSBURG — LAPS AROUND THE BLOCKS ARE ALLOWED',

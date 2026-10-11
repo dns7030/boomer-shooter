@@ -131,7 +131,7 @@ export function decal(kind, w, h, x, y, z, opts = {}) {
   }
   const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), decalCache[key]);
   m.position.set(x, y, z);
-  if (kind === 'window') windowList.push({ mesh: m, broken: false, lit: !!opts.lit });
+  if (kind === 'window' && !opts.fixed) windowList.push({ mesh: m, broken: false, lit: !!opts.lit });
   return m;
 }
 

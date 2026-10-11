@@ -37,6 +37,20 @@ function chimneys(g, w, d, y, n = 3) {
   for (let i = 0; i < n; i++) g.add(place(boxT(0.9, 2.4, 0.9, mat('brick'), 1.5), -w / 2 + ((i + 0.5) * w) / n, y + 1.2, -d / 4));
 }
 
+// windows on the back (and ends) of a big building. These are painted-on and indestructible ({fixed:true}).
+function backWindows(g, { w, d, ys, step = 4.4, sx = 1.4, sy = 2.4, margin = 3, lit = 5 }) {
+  for (let x = -w / 2 + margin; x <= w / 2 - margin + 0.1; x += step) for (const y of ys) {
+    const win = decal('window', sx, sy, x, y, -d / 2 - 0.07, { c: '#fbfaf4', lit: ((x | 0) + y) % lit === 0, fixed: true });
+    win.rotation.y = Math.PI; g.add(win);
+  }
+}
+function endWindows(g, { w, d, ys, step = 4.4, sx = 1.4, sy = 2.4 }) {
+  for (const sd of [-1, 1]) for (let z = -d / 2 + 3; z <= d / 2 - 2.9; z += step) for (const y of ys) {
+    const win = decal('window', sx, sy, sd * (w / 2 + 0.07), y, z, { c: '#fbfaf4', fixed: true });
+    win.rotation.y = sd * Math.PI / 2; g.add(win);
+  }
+}
+
 // ---------- the generic classical street building ----------
 // style: how fancy the front is. roof: 'ironRed' | 'ironGreen' | 'ironGrey'.
 export function classical({ w = 40, d = 14, floors = 4, floorH = 4.2, wall = 'Yellow', roof = 'ironRed', portico = 0, balcony = false, arcade = false, door = '#4a2a18', tower = false, title = null, shopfront = false, awning = false } = {}) {
@@ -146,6 +160,7 @@ export function admiralty() {
   g.add(place(boxT(w + 1, 0.9, d + 1, mat('stuccoWhite'), 2), 0, h + 0.45, 0));
   for (let x = -w / 2 + 3; x <= w / 2 - 2; x += 4.4) g.add(decal('window', 1.4, 2.4, x, 6.5, d / 2 + 0.07, { c: '#fbfaf4', lit: (x | 0) % 3 === 0 }));
   for (let x = -w / 2 + 3; x <= w / 2 - 2; x += 4.4) g.add(decal('window', 1.4, 2.2, x, 11.6, d / 2 + 0.07, { c: '#fbfaf4' }));
+  backWindows(g, { w: w - 24, d, ys: [6.5, 11.6], sy: 2.3 });
   const rf = gableRoof(w + 0.6, d + 0.6, 2.4, 0.4, mat('ironGreen', { double: true }), mat('stuccoWhite', { double: true }), 3); rf.position.y = h + 0.9; g.add(rf);
   for (const sd of [-1, 1]) { g.add(place(slab(16, h + 3, d + 3, mat('plainYellow'), roofM(), 8), sd * (w / 2 - 8), (h + 3) / 2, 1)); columns(g, { n: 4, gap: 3, h: 12, z: d / 2 + 2.2, x0: sd * (w / 2 - 8) - 4.5, r: 0.5 }); }
   // central gate tower
@@ -164,6 +179,9 @@ export function generalStaff({ wing = 34, gap = 14, d = 16 } = {}) {
     g.add(place(slab(wing, h, d, mat('plainYellow'), roofM(), 8), x, h / 2, 0));
     g.add(place(boxT(wing + 0.8, 0.8, d + 0.8, mat('stuccoWhite'), 2), x, h + 0.4, 0));
     for (let i = 0; i < Math.floor(wing / 4.2); i++) for (const y of [5.5, 11]) g.add(decal('window', 1.4, 2.4, x - wing / 2 + 3 + i * 4.2, y, d / 2 + 0.07, { c: '#fbfaf4', lit: (i + y) % 4 === 0 }));
+    // back (street side) and both ends of the wing, incl. the faces inside the archway: painted-on, indestructible windows
+    for (let i = 0; i < Math.floor(wing / 4.2); i++) for (const y of [5.5, 11]) { const win = decal('window', 1.4, 2.4, x - wing / 2 + 3 + i * 4.2, y, -d / 2 - 0.07, { c: '#fbfaf4', lit: (i + y) % 4 === 0, fixed: true }); win.rotation.y = Math.PI; g.add(win); }
+    for (const end of [-1, 1]) for (let z = -d / 2 + 3; z <= d / 2 - 2.9; z += 4.4) for (const y of [5.5, 11]) { const win = decal('window', 1.4, 2.4, x + end * (wing / 2 + 0.07), y, z, { c: '#fbfaf4', fixed: true }); win.rotation.y = end * Math.PI / 2; g.add(win); }
     const rf = gableRoof(wing + 0.6, d + 0.6, 2, 0.4, mat('ironGreen', { double: true }), mat('stuccoWhite', { double: true }), 3); rf.position.set(x, h + 0.8, 0); g.add(rf);
   }
   // triumphal arch over the gap
@@ -196,6 +214,7 @@ export function kunstkamera() {
   g.add(place(boxT(w + 1, 0.9, d + 1, mat('stuccoWhite'), 2), 0, h + 0.45, 0));
   for (let x = -w / 2 + 3; x <= w / 2 - 2; x += 4.4) for (const y of [5.8, 12]) g.add(decal('window', 1.4, 2.5, x, y, d / 2 + 0.07, { c: '#fbfaf4', lit: ((x | 0) + y) % 5 === 0 }));
   const rf = gableRoof(w + 0.6, d + 0.6, 3, 0.4, mat('ironGreen', { double: true }), mat('stuccoWhite', { double: true }), 3); rf.position.y = h + 0.9; g.add(rf);
+  backWindows(g, { w, d, ys: [5.8, 12], sy: 2.5 }); endWindows(g, { w, d, ys: [5.8, 12], sy: 2.5 });
   g.add(place(slab(11, 12, 11, mat('plainBlue'), roofM(), 8), 0, h + 6, 0.5));
   g.add(place(slab(8, 7, 8, mat('stuccoWhite'), roofM(), 8), 0, h + 12 + 3.5, 0.5));
   g.add(place(slab(5, 5, 5, mat('plainBlue'), roofM(), 8), 0, h + 19 + 2.5, 0.5));

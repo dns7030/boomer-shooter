@@ -145,15 +145,20 @@ const run3 = await page.evaluate(() => {
   for (const w of W) p.has[w.id] = true;
   const idx = (id) => W.findIndex((w) => w.id === id);
   let steps = 0;
-  while (g.state === 'playing' && steps < 60 * 500) {
+  while (g.state === 'playing' && steps < 60 * 900) {
     steps++;
     p.health = Math.max(p.health, 50);
     for (const k of Object.keys(p.ammo)) p.ammo[k] = Math.max(p.ammo[k], 60);
-    const alive = g.enemies.filter((e) => ['move', 'attack', 'pain'].includes(e.state) && g.hasLOS(p.x, p.y + 1.6, p.z, e.x, 1.3 + e.y, e.z));
+    const alive = g.enemies.filter((e) => ['move', 'attack', 'pain', 'dive', 'perch'].includes(e.state) && g.hasLOS(p.x, p.y + 1.6, p.z, e.x, e.y + (e.cfg.hitH || 2.3) / 2, e.z));
+    // shield lizards and the Tsar can only be hurt from behind: the bot "circles" them by stepping behind
+    for (const e of g.enemies) if ((e.cfg.shield || e.cfg.boss) && ['move', 'attack', 'pain'].includes(e.state) && steps % 30 === 0) {
+      const bx = e.x - Math.sin(e.face) * 8, bz = e.z - Math.cos(e.face) * 8;
+      if (!g.boxes.some((b) => b.h > 1 && bx > b.x0 - 1 && bx < b.x1 + 1 && bz > b.z0 - 1 && bz < b.z1 + 1)) { p.x = bx; p.z = bz; }
+    }
     if (alive.length) {
       alive.sort((a, b) => Math.hypot(a.x - p.x, a.z - p.z) - Math.hypot(b.x - p.x, b.z - p.z));
       const e = alive[0], dx = e.x - p.x, dz = e.z - p.z, d = Math.hypot(dx, dz);
-      p.yaw = Math.atan2(-dx, -dz); p.pitch = Math.atan2(1.2 + (e.y || 0) - 1.7, d);
+      p.yaw = Math.atan2(-dx, -dz); p.pitch = Math.atan2((e.cfg.hitH || 2.3) / 2 + e.y - 1.7, d);
       p.weapon = d < 3 ? idx('sabre') : d < 12 ? idx('ssg') : idx('chaingun'); p.cd = Math.min(p.cd, 0.05); p.switching = 0;
       g.camera.rotation.set(p.pitch, p.yaw, 0); g.camera.updateMatrixWorld(true);
       g.fire();
@@ -163,6 +168,45 @@ const run3 = await page.evaluate(() => {
   return { state: g.state, steps, kills: g.stats.kills, wave: g.wave.index, left: g.remaining() };
 });
 check('bot holds St. Petersburg through every wave', run3.state === 'won', JSON.stringify(run3));
+
+// --- new enemies: shield, boss weak spot, gargoyle, egg bombs, corpse physics ---
+const nw = await page.evaluate(async () => {
+  const THREE = await import('three');
+  const g = window.__game, out = {};
+  g.loadLevel(2); g.setState('playing'); g.wave.phase = 'idle';
+  const p = g.p; p.x = 0; p.z = -30; p.health = 100;
+  const mk = (t, x, z, face) => { const e = g.spawnEnemy(t); Object.assign(e, { x, z, state: 'move', timer: 0, cool: 99, face, want: face }); e.mesh.visible = true; g.scene.remove(e.beam); return e; };
+  const sh = mk('shield', 0, -40, 0); sh.cfg = { ...sh.cfg, speed: 0 };
+  const dmg = (e, y) => { const h = e.hp; g.damageEnemy(e, 100, new THREE.Vector3(e.x, y, e.z)); return h - e.hp; };
+  out.shieldFront = dmg(sh, 1.2); sh.face = Math.PI; out.shieldBack = dmg(sh, 1.2); sh.face = 0; g.freezeEnemy(sh, 15); out.shieldFrozen = dmg(sh, 1.2);
+  const ts = mk('tsar', 0, -50, 0); ts.cfg = { ...ts.cfg, speed: 0 };
+  out.tsarFront = dmg(ts, 3); ts.face = Math.PI; out.tsarBack = dmg(ts, 3);
+  const gg = g.spawnEnemy('gargoyle'); out.perched = gg.state; Object.assign(gg, { x: -10, y: 28.6, z: -77 });
+  p.x = -10; p.z = -55; for (let t = 0; t < 10; t++) g.step(1 / 60);
+  out.woke = gg.state; let hurt = false; const hp = p.health;
+  for (let t = 0; t < 60 * 6 && !hurt; t++) { g.step(1 / 60); if (p.health < hp) hurt = true; }
+  out.gargoyleHit = hurt;
+  for (const e of g.enemies) e.state = 'dead';
+  p.x = 0; p.z = -30; p.health = 100;
+  const bm = mk('bomber', 4, -26, 0); bm.y = 7; g.dropEgg(bm);
+  let bounces = 0, exploded = false; const egg = g.eggs[0];
+  for (let t = 0; t < 60 * 5 && !exploded; t++) { g.step(1 / 60); if (g.eggs.length === 0) exploded = true; else bounces = Math.max(bounces, egg.bounces); }
+  out.egg = { bounces, exploded };
+  g.reset(); g.setState('playing'); g.wave.phase = 'idle';
+  const c = g.spawnEnemy('grunt'); Object.assign(c, { x: 0, z: -40, state: 'move', timer: 0 }); c.mesh.visible = true; g.scene.remove(c.beam);
+  g.killEnemy(c); for (let t = 0; t < 120; t++) g.step(1 / 60);
+  const x0 = c.x, z0 = c.z; g.explode(x0 + 1.5, 0.3, z0, 5, 100, 'boom', null);
+  let maxCy = 0; for (let t = 0; t < 240; t++) { g.step(1 / 60); maxCy = Math.max(maxCy, c.cy); }
+  const x1 = c.x, z1 = c.z, d = new THREE.Vector3(1, 0, 0);
+  g.corpseHit(c, d, 30, new THREE.Vector3(c.x, 0.3, c.z)); for (let t = 0; t < 120; t++) g.step(1 / 60);
+  out.corpse = { blast: +Math.hypot(x1 - x0, z1 - z0).toFixed(1), hop: +maxCy.toFixed(2), shot: +Math.hypot(c.x - x1, c.z - z1).toFixed(1), settled: c.cy === 0 && c.tumble === 0 };
+  return out;
+});
+check('shield blocks hits from the front, not from behind or when frozen', nw.shieldFront < 10 && nw.shieldBack > 90 && nw.shieldFrozen > 100, JSON.stringify(nw));
+check('Tsar is armoured in front, weak on the back', nw.tsarFront < 20 && nw.tsarBack > 150, JSON.stringify(nw));
+check('gargoyle sits as a statue, then wakes and dives at you', nw.perched === 'perch' && nw.woke === 'dive' && nw.gargoyleHit, JSON.stringify(nw));
+check('bomber egg bounces and explodes', nw.egg.bounces >= 1 && nw.egg.exploded, JSON.stringify(nw.egg));
+check('corpses get flung by blasts and pushed by bullets, then settle', nw.corpse.blast > 2 && nw.corpse.hop > 0.5 && nw.corpse.shot > 0.5 && nw.corpse.settled, JSON.stringify(nw.corpse));
 
 // --- flying fire drake: hovers, throws fireballs, can be shot out of the air ---
 const drake = await page.evaluate(() => {

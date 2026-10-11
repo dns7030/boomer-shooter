@@ -61,7 +61,10 @@ No weapon ever covers the crosshair (the headless test checks that).
    beyond. Palace Square (Winter Palace, General Staff arch, Alexander Column), St. Isaac's, the Bronze Horseman, Rostral columns,
    the Admiralty and Kunstkamera around a garden, Kazan Cathedral, Nevsky frontage, and an industrial yard (ropeworks, porcelain
    works, mint, foundry, sawmill). You can walk around whole blocks; lizards find their way round them (`src/nav.js`).
-   Five waves, with flying **Fire Drakes** that hover over the streets and throw fireballs (shoot them out of the sky).
+   Five waves with new enemies: flying **Fire Drakes** (fireballs), **Gargoyles** (statues on the Palace roofline that dive at you
+   when you pass), **Shield Lizards** (shield blocks everything from the front — go behind it or freeze it), **Egg Bombers**
+   (drop bouncing, rolling explosive eggs) and, in wave 5, the **Great Lizard Tsar** boss (armoured front, glowing weak spot on
+   his back, ground stomp you can jump over). Corpses get flung by blasts and shoved by bullets.
 
 Pick a level from the title screen; clearing one offers the next.
 

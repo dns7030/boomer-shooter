@@ -16,7 +16,12 @@ const PALETTE = {
   grunt: { skin: 0x76874c, belly: 0xc2b98c, dark: 0x3a4529, eye: 0xffc820, claw: 0xe0dac0 },
   spitter: { skin: 0x56777e, belly: 0xb6c0b2, dark: 0x2a3c44, eye: 0xff8a2a, claw: 0xd8dcd0 },
   drake: { skin: 0x8a4632, belly: 0xdcb078, dark: 0x3a1c14, eye: 0xffe040, claw: 0xe8e0c8 },
+  bomber: { skin: 0x8c8a3c, belly: 0xece6a8, dark: 0x3a3a18, eye: 0xff4020, claw: 0xe8e0c8 },
+  gargoyle: { skin: 0x8e9096, belly: 0xa8aab0, dark: 0x4a4c52, eye: 0xff3020, claw: 0x6a6c72 },
+  shield: { skin: 0x7a6c4a, belly: 0xc8b890, dark: 0x3a3220, eye: 0xffc820, claw: 0xe0dac0 },
+  tsar: { skin: 0x3f5a45, belly: 0xc8b890, dark: 0x1e2a22, eye: 0xff2a20, claw: 0xf0e8d0 },
 };
+const WINGED = new Set(['drake', 'bomber', 'gargoyle']);
 
 function scaleTexture(seed) {
   const r = mulberry(seed);
@@ -122,8 +127,8 @@ export function buildLizard(kind) {
 
   // drake: big bat-like wings (membrane stretched between a thick arm bone and three fingers)
   const wings = [];
-  if (kind === 'drake') {
-    const wingMat = new THREE.MeshStandardMaterial({ color: 0x5a2a22, roughness: 0.8, side: THREE.DoubleSide });
+  if (WINGED.has(kind)) {
+    const wingMat = new THREE.MeshStandardMaterial({ color: kind === 'gargoyle' ? 0x70727a : kind === 'bomber' ? 0x6a6a2a : 0x5a2a22, roughness: 0.8, side: THREE.DoubleSide });
     const bone = new THREE.MeshStandardMaterial({ color: 0x3a1c14, roughness: 0.6 });
     for (const sd of [-1, 1]) {
       const wing = new THREE.Group(); wing.position.set(sd * 0.36, 0.62, -0.1); torso.add(wing);
@@ -141,6 +146,33 @@ export function buildLizard(kind) {
     }
   }
 
+  // shield lizard: a big riveted tower shield held out in front
+  if (kind === 'shield') {
+    const sg = new THREE.Group(); sg.position.set(0, 0.34, 0.66); torso.add(sg);
+    const steel = std(0x9aa0aa, { metalness: 0.8, roughness: 0.35 });
+    sg.add(new THREE.Mesh(new THREE.BoxGeometry(1.15, 1.45, 0.09), steel));
+    sg.add(at(new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.16, 0.1), std(0x8a2a24)), 0, 0.2, 0.01));
+    sg.add(at(new THREE.Mesh(new THREE.BoxGeometry(0.16, 1.3, 0.1), std(0x8a2a24)), 0, 0, 0.01));
+    sg.add(at(new THREE.Mesh(new THREE.SphereGeometry(0.13, 10, 8), std(0xd9a62a, { metalness: 0.8, roughness: 0.3 })), 0, 0.2, 0.08));
+    for (const x of [-0.5, 0.5]) for (const y of [-0.62, 0, 0.62]) sg.add(at(new THREE.Mesh(new THREE.SphereGeometry(0.035, 6, 5), std(0x3a3a3e)), x, y, 0.06));
+  }
+  // bomber: a sling of eggs under the belly
+  if (kind === 'bomber') {
+    for (let i = 0; i < 3; i++) torso.add(at(ell(0.12, 0.16, 0.12, M.belly), (i - 1) * 0.2, 0.0, 0.42));
+    torso.add(at(ell(0.34, 0.07, 0.1, M.dark), 0, 0.14, 0.4));
+  }
+  // tsar: crown, gold shoulder plates and a glowing weak spot between the spikes on his back
+  if (kind === 'tsar') {
+    const gold = std(0xd9a62a, { metalness: 0.85, roughness: 0.3 });
+    head.add(at(new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.17, 0.07, 12), gold), 0, 0.15, -0.02));
+    for (let i = 0; i < 7; i++) { const a = (i / 7) * Math.PI * 2, c = cone(0.025, 0.12, gold, 4); head.add(at(c, Math.sin(a) * 0.15, 0.24, Math.cos(a) * 0.15 - 0.02)); }
+    head.add(at(new THREE.Mesh(new THREE.SphereGeometry(0.03, 8, 6), new THREE.MeshBasicMaterial({ color: 0xff3030 })), 0, 0.22, 0.13));
+    for (const a of arms) a.sh.add(at(new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.12, 0.34), gold), 0, 0.15, 0));
+    torso.add(at(new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.1, 0.1), gold), 0, 0.64, 0.3));
+    const weak = at(new THREE.Mesh(new THREE.SphereGeometry(0.17, 12, 10), new THREE.MeshBasicMaterial({ color: 0xff8a20 })), 0, 0.42, -0.4); weak.scale.set(1, 1.25, 0.6); torso.add(weak);
+    for (const [x, y] of [[-0.16, 0.3], [0.16, 0.3], [-0.16, 0.56], [0.16, 0.56], [0, 0.7]]) torso.add(tilt(at(cone(0.05, 0.16, M.dark), x, y, -0.4), 'x', -1.2));
+  }
+
   // spitter extras: armour plate and a plasma gun in the right hand
   let gun = null;
   if (sp) {
@@ -153,7 +185,7 @@ export function buildLizard(kind) {
     gun.add(at(new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.05, 0.3), M.dark), 0, 0.02, 0.62));
     gun.add(at(new THREE.Mesh(new THREE.SphereGeometry(0.045, 8, 6), M.glow), 0, 0.02, 0.8));
   }
-  if (kind === 'drake') root.scale.setScalar(0.72);
+  if (WINGED.has(kind)) root.scale.setScalar(0.72);
   return { root, pelvis, torso, neck, head, jaw, arms, legs, tail, gun, wings, kind };
 }
 
@@ -163,10 +195,11 @@ const rest = () => ({
   armUp: [-0.3, -0.3], armOut: [0.12, -0.12], foreBend: [-0.8, -0.8],
   thigh: [-0.75, -0.75], shin: [1.3, 1.3], fall: 0, fallBack: 0, wing: 0.15,
 });
-function drakePose(id) {
+function drakePose(id, kind) {
   const p = rest();
   p.lean = 0.95; p.headPitch = -0.35; p.armUp = [-0.2, -0.2]; p.armOut = [0.5, -0.5]; p.foreBend = [-1.2, -1.2]; p.thigh = [-1.3, -1.3]; p.shin = [1.9, 1.9]; p.tailPitch = 0.35; p.jaw = 0.12;
-  if (id >= POSE.walk0 && id <= POSE.walk3) { p.wing = [-0.9, -0.1, 0.8, -0.1][id - POSE.walk0]; p.rootY = [0.12, 0.05, -0.05, 0.05][id - POSE.walk0]; }
+  if (id === POSE.idle && kind === 'gargoyle') { p.wing = 1.25; p.lean = 0.55; p.headPitch = 0.1; p.thigh = [-1.0, -1.0]; p.shin = [1.7, 1.7]; p.armUp = [-0.6, -0.6]; p.foreBend = [-1.0, -1.0]; p.jaw = 0.02; p.tailPitch = 0.5; }
+  else if (id >= POSE.walk0 && id <= POSE.walk3) { p.wing = [-0.9, -0.1, 0.8, -0.1][id - POSE.walk0]; p.rootY = [0.12, 0.05, -0.05, 0.05][id - POSE.walk0]; }
   else if (id === POSE.windup) { p.wing = -1.0; p.lean = 0.6; p.headPitch = -0.7; p.jaw = 0.9; }
   else if (id === POSE.strike) { p.wing = 0.6; p.lean = 1.1; p.headPitch = 0.15; p.jaw = 1.0; }
   else if (id === POSE.pain) { p.wing = -0.2; p.lean = 0.3; p.headPitch = -0.7; p.jaw = 0.7; p.armOut = [1.0, -1.0]; }
@@ -174,7 +207,7 @@ function drakePose(id) {
   return p;
 }
 function poseFor(kind, id) {
-  if (kind === 'drake') return drakePose(id);
+  if (WINGED.has(kind)) return drakePose(id, kind);
   const p = rest();
   const walk = (ph) => {
     const s = Math.sin(ph * Math.PI * 2), c = Math.cos(ph * Math.PI * 2);
@@ -222,7 +255,7 @@ export function applyPose(model, id, yaw = 0) {
 }
 
 // ---------- atlas rendering ----------
-export function renderLizardAtlases(renderer) {
+export function renderLizardAtlases(renderer, kinds = ['grunt', 'spitter']) {
   const out = {};
   const scene = new THREE.Scene();
   scene.add(new THREE.HemisphereLight(0xfff6e8, 0x667058, 1.7));
@@ -235,7 +268,7 @@ export function renderLizardAtlases(renderer) {
   const W = FRAME * ANGLES, H = FRAME * POSE_COUNT;
   const prevRT = renderer.getRenderTarget(), prevClear = new THREE.Color(), prevAlpha = renderer.getClearAlpha(), prevAuto = renderer.autoClear;
   renderer.getClearColor(prevClear); renderer.autoClear = false;
-  for (const kind of ['grunt', 'spitter', 'drake']) {
+  for (const kind of kinds) {
     const model = buildLizard(kind); scene.add(model.root);
     const rt = new THREE.WebGLRenderTarget(W, H, { minFilter: THREE.NearestFilter, magFilter: THREE.NearestFilter, generateMipmaps: false, samples: 0 });
     rt.texture.colorSpace = THREE.SRGBColorSpace;

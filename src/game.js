@@ -16,13 +16,19 @@ import { Nav } from './nav.js';
 
 const EYE = 1.7;
 const ENEMY = {
-  grunt: { name: 'Lizard Raider', hp: 70, speed: 4.2, radius: 0.5, melee: 10, w: 2.1, h: 2.62 },
-  spitter: { name: 'Lizard Spitter', hp: 45, speed: 2.6, radius: 0.5, w: 2.1, h: 2.62 },
-  drake: { name: 'Fire Drake', hp: 60, speed: 3.4, radius: 0.6, w: 2.1, h: 2.62, hover: 4.2 },   // flies and throws fireballs
+  grunt: { name: 'Lizard Raider', hp: 70, speed: 4.2, radius: 0.5, melee: 10, w: 2.1, h: 2.62, ai: 'melee', reach: 1.8 },
+  spitter: { name: 'Lizard Spitter', hp: 45, speed: 2.6, radius: 0.5, w: 2.1, h: 2.62, ai: 'ranged', shot: 'spit' },
+  drake: { name: 'Fire Drake', hp: 60, speed: 3.4, radius: 0.6, w: 2.1, h: 2.62, ai: 'ranged', shot: 'fire', hover: 4.2 },       // flies, throws fireballs
+  bomber: { name: 'Egg Bomber', hp: 70, speed: 2.7, radius: 0.7, w: 2.1, h: 2.62, ai: 'bomber', hover: 7.5 },                       // slow flyer dropping bouncing explosive eggs
+  gargoyle: { name: 'Gargoyle', hp: 55, speed: 7.5, radius: 0.55, melee: 14, w: 2.1, h: 2.62, ai: 'melee', reach: 2.0, hover: 2.4, perch: true },   // statue on a ledge until you pass
+  shield: { name: 'Shield Lizard', hp: 120, speed: 3.0, radius: 0.65, melee: 16, w: 2.1, h: 2.62, ai: 'melee', reach: 2.3, shield: true, scale: 1.12, hitR: 0.8, hitH: 2.7 },
+  tsar: { name: 'Great Lizard Tsar', hp: 1600, speed: 2.5, radius: 1.7, melee: 32, w: 2.1, h: 2.62, ai: 'melee', reach: 4.6, boss: true, scale: 2.8, hitR: 1.6, hitH: 6.0 },
 };
-const TURN = { grunt: 3.4, spitter: 2.8, drake: 2.3 };   // rad/s: lizards turn slower than you can run around them
+const TURN = { grunt: 3.4, spitter: 2.8, drake: 2.3, bomber: 1.8, gargoyle: 5, shield: 1.7, tsar: 0.9 };   // rad/s: lizards turn slower than you can run around them
+const hitR = (e) => e.cfg.hitR || 0.6, hitH = (e) => e.cfg.hitH || 2.3;
+
 const angDiff = (a, b) => { const d = a - b; return Math.atan2(Math.sin(d), Math.cos(d)); };
-const ALIVE = new Set(['spawn', 'move', 'attack', 'pain']);
+const ALIVE = new Set(['spawn', 'move', 'attack', 'pain', 'perch', 'dive']);
 
 export class Game {
   constructor({ canvas, ui }) {
@@ -41,13 +47,17 @@ export class Game {
     this.lizStyle = 'sprite3d';   // 'sprite3d' (baked 3D) or 'pixel' (the original hand-drawn pixel lizards)
     try { const ls = localStorage.getItem('lor.lizards'); if (ls === 'pixel' || ls === 'sprite3d') this.lizStyle = ls; } catch (e) { /* no storage */ }
     this.liz = makeLizardTextures();
-    this.atlas = renderLizardAtlases(this.renderer);   // 3D lizards baked into 8-direction sprite sheets
+    this.atlas = {};
+    this.ensureAtlas(['grunt', 'spitter']);   // 3D lizards baked into 8-direction sprite sheets
     this.pickTex = makePickupTextures();
     for (const [id, t] of Object.entries(this.wview.renderIcons(this.renderer))) this.pickTex['w_' + id] = t;
     const spriteMat = (tint) => new THREE.SpriteMaterial({ map: makePlasmaTexture(tint), blending: THREE.AdditiveBlending, depthWrite: false, fog: false });
     this.plasmaMat = spriteMat('green');                       // lizard spit
     this.fireballMat = spriteMat('orange');                    // drake fireballs
     this.shotMats = { rocket: spriteMat('orange'), plasma: spriteMat('blue'), frost: spriteMat('blue'), bfg: spriteMat('green'), boom: spriteMat('orange'), boomBlue: spriteMat('blue'), boomGreen: spriteMat('green') };
+    this.eggGeo = new THREE.SphereGeometry(0.26, 12, 10); this.eggGeo.scale(0.8, 1.15, 0.8);
+    this.eggMat = new THREE.MeshStandardMaterial({ color: 0xf0e6a0, emissive: 0xff7a20, emissiveIntensity: 0.25, roughness: 0.4 });
+    this.eggs = [];
     this.grenadeGeo = new THREE.SphereGeometry(0.13, 10, 8);
     this.grenadeMat = new THREE.MeshLambertMaterial({ color: 0x3a4a2a });
     this.beamMat = new THREE.MeshBasicMaterial({ color: 0x7ae0ff, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false });
@@ -72,6 +82,11 @@ export class Game {
     if (this.post) this.post.setEnabled(q >= 1);
     if (this.sun) this.sun.castShadow = q >= 2;
   }
+  // bake the 3D sprite sheets for the enemy types a level uses (lazily, so startup stays quick)
+  ensureAtlas(types) {
+    const need = [...new Set(types)].filter((t) => !this.atlas[t]);
+    if (need.length) Object.assign(this.atlas, renderLizardAtlases(this.renderer, need));
+  }
   // lizard look: baked 3D models or the original pixel sprites; swaps live lizards too (drakes are always 3D)
   setLizStyle(st) {
     this.lizStyle = st;
@@ -81,10 +96,10 @@ export class Game {
   }
   toggleLizStyle() { return this.setLizStyle(this.lizStyle === 'pixel' ? 'sprite3d' : 'pixel'); }
   styleEnemy(e) {
-    const pix = this.lizStyle === 'pixel' && e.type !== 'drake', cfg = e.cfg;
+    const pix = this.lizStyle === 'pixel' && !!this.liz[e.type], cfg = e.cfg, sc = cfg.scale || 1;
     e.pix = pix;
-    const geo = pix ? new THREE.PlaneGeometry(cfg.w, cfg.h) : new THREE.PlaneGeometry(SPRITE_SIZE, SPRITE_SIZE);
-    geo.translate(0, pix ? cfg.h / 2 : SPRITE_SIZE / 2 - SPRITE_FOOT, 0);
+    const geo = pix ? new THREE.PlaneGeometry(cfg.w * sc, cfg.h * sc) : new THREE.PlaneGeometry(SPRITE_SIZE * sc, SPRITE_SIZE * sc);
+    geo.translate(0, pix ? cfg.h * sc / 2 : (SPRITE_SIZE / 2 - SPRITE_FOOT) * sc, 0);
     e.mesh.geometry.dispose(); e.mesh.geometry = geo; e.uv = geo.attributes.uv;
     e.mesh.material.map = pix ? this.liz[e.type].idle : this.atlas[e.type].texture; e.mesh.material.needsUpdate = true;
     e.mesh.scale.x = 1; e.frameKey = -1;
@@ -120,6 +135,7 @@ export class Game {
     this.scene.add(this.camera);
     this.level = LEVELS[i].build(this.scene);
     this.boxes = this.level.boxes;
+    this.ensureAtlas(this.level.enemyTypes || ['grunt', 'spitter']);
     this.nav = this.level.navBounds ? new Nav(this.boxes, this.level.navBounds) : null;
     this.makeParticlePool();
     this.setupShadows();
@@ -148,6 +164,8 @@ export class Game {
   }
 
   reset() {
+    for (const q of this.eggs || []) { this.scene.remove(q.obj); q.obj.material.dispose(); }
+    this.eggs = [];
     this.clearEntities();
     if (this.decals) this.decals.clear();
     if (this.debris) this.debris.clear();
@@ -563,9 +581,10 @@ export class Game {
         const a = Math.random() * Math.PI * 2, r = Math.sqrt(Math.random()) * w.spread;
         d.addScaledVector(right, Math.cos(a) * r).addScaledVector(up, Math.sin(a) * r).normalize();
       }
-      const hit = this.hitscan(o, d, this.level.range);
+      const hit = this.hitscan(o, d, this.level.range, true);
       const pt = o.clone().addScaledVector(d, hit.t);
-      if (hit.enemy) this.damageEnemy(hit.enemy, w.damage, pt, false, d);
+      if (hit.corpse) this.corpseHit(hit.corpse, d, w.damage, pt);
+      else if (hit.enemy) this.damageEnemy(hit.enemy, w.damage, pt, false, d);
       else if (hit.t < this.level.range) this.impact(pt, hit, d, i < 6, w.damage);
     }
   }
@@ -613,7 +632,7 @@ export class Game {
     for (const p of this.props) { if (!p.dead && p.explosive) { const dx = p.x - eye.x, dz = p.z - eye.z, d = Math.hypot(dx, dz); if (d < reach + 0.5 && (dx * dir.x + dz * dir.z) / (d || 1) > 0.9) this.damageProp(p, 1.4); } }
     for (const e of this.enemies) {
       if (!ALIVE.has(e.state) || e.state === 'spawn') continue;
-      const dx = e.x - eye.x, dz = e.z - eye.z, dy = 1.2 + e.y - eye.y, d = Math.hypot(dx, dz);
+      const dx = e.x - eye.x, dz = e.z - eye.z, dy = hitH(e) / 2 + e.y - eye.y, d = Math.hypot(dx, dz);
       if (d > reach + 0.5) continue;
       if ((dx * dir.x + dy * dir.y + dz * dir.z) / Math.hypot(dx, dy, dz) < 0.93) continue;
       if (e.frozen > 0) this.thaw(e, false);
@@ -628,7 +647,7 @@ export class Game {
     const hits = [];
     for (const e of this.enemies) {
       if (!ALIVE.has(e.state) || e.state === 'spawn') continue;
-      const t = rayCyl(eye, dir, e.x, e.z, 0.7, e.y, e.y + 2.4);
+      const t = rayCyl(eye, dir, e.x, e.z, hitR(e) + 0.1, e.y, e.y + hitH(e) + 0.1);
       if (t < wall) hits.push([t, e]);
     }
     for (const [t, e] of hits) this.damageEnemy(e, w.damage, eye.clone().addScaledVector(dir, t));
@@ -660,11 +679,16 @@ export class Game {
     if (wall && !wall.invisible) this.decals.add('scorch', wall.pt, wall.n, Math.min(6, R * 1.3));
     this.p.kick += Math.max(0, 0.06 * (1 - Math.hypot(x - this.p.x, z - this.p.z) / (R * 5)));
     for (const e of this.enemies) {
+      if (!ALIVE.has(e.state) && (e.state === 'dying' || e.state === 'dead')) {   // corpses get flung about
+        const dc = Math.hypot(e.x - x, e.z - z);
+        if (dc < R + 1.8) { const f = 1 - dc / (R + 1.8); this.knock(e, e.x - x, e.z - z, 5 + 13 * f); e.cvy = 4 + 8 * f; e.spin = (Math.random() < 0.5 ? -1 : 1) * (6 + 10 * f); }
+        continue;
+      }
       if (!ALIVE.has(e.state) || e.state === 'spawn') continue;
-      const d = Math.hypot(e.x - x, (1.2 + e.y - y) * 0.6, e.z - z);
-      if (d > R + 0.6) continue;
-      const f = 1 - d / (R + 0.6);
-      this.damageEnemy(e, dmg * (0.3 + 0.7 * f), new THREE.Vector3(e.x, 1.2 + e.y, e.z), false, null);
+      const d = Math.hypot(e.x - x, (hitH(e) / 2 + e.y - y) * 0.6, e.z - z), RR = R + 0.6 + (e.cfg.hitR ? e.cfg.hitR - 0.6 : 0);
+      if (d > RR) continue;
+      const f = 1 - d / RR;
+      this.damageEnemy(e, dmg * (0.3 + 0.7 * f), new THREE.Vector3(e.x, hitH(e) / 2 + e.y, e.z), false, null, { x, z });
       this.knock(e, e.x - x, e.z - z, tint === 'boomBlue' ? 4 * f : 16 * f + 4);
     }
     this.blastProps(x, y, z, R, dmg);
@@ -688,6 +712,7 @@ export class Game {
   // ---- freezing ----
   freezeEnemy(e, secs) {
     if (!ALIVE.has(e.state) || e.state === 'spawn') return;
+    if (e.cfg.boss) secs = Math.min(secs, 3.5);   // the Tsar shrugs it off quickly
     if (!(e.frozen > 0)) { this.burst(e.x, e.y + 1.2, e.z, 'blue', 10, 3, 0.14); for (let k = 0; k < 6; k++) this.debris.spawn('glass', e.x + (Math.random() - 0.5) * 0.8, e.y + 0.4 + Math.random() * 1.6, e.z + (Math.random() - 0.5) * 0.8, (Math.random() - 0.5) * 3, 1 + Math.random() * 2, (Math.random() - 0.5) * 3, 0.8); }
     e.frozen = secs; e.burn = 0; e.kx = e.kz = 0;
     if (e.state === 'attack' || e.state === 'pain') e.state = 'move';
@@ -717,6 +742,7 @@ export class Game {
   // knock a lizard back (it slides and decays)
   knock(e, dx, dz, power) {
     if (e.frozen > 0) return;   // frozen solid: nothing moves them
+    if (e.cfg.boss) power *= 0.1;
     const l = Math.hypot(dx, dz) || 1;
     e.kx = (e.kx || 0) + (dx / l) * power; e.kz = (e.kz || 0) + (dz / l) * power;
   }
@@ -746,7 +772,7 @@ export class Game {
       let boom = hitWall || q.life <= 0;
       if (!boom) for (const e of this.enemies) {
         if (!ALIVE.has(e.state) || e.state === 'spawn') continue;
-        if (Math.hypot(q.x - e.x, q.z - e.z) < 0.75 && q.y > e.y && q.y < e.y + 2.5) { boom = true; break; }
+        if (Math.hypot(q.x - e.x, q.z - e.z) < hitR(e) + 0.15 && q.y > e.y && q.y < e.y + hitH(e) + 0.2) { boom = true; break; }
       }
       // glow around fast shots
       if (S.type !== 'grenade') {
@@ -781,21 +807,26 @@ export class Game {
     for (const e of this.enemies) {
       if (!ALIVE.has(e.state) || e.state === 'spawn') continue;
       const dx = e.x - p.x, dz = e.z - p.z, d = Math.hypot(dx, dz);
-      if (d > w.range + 0.5 || e.y > 2.0) continue;
+      if (d > w.range + 0.5 + e.cfg.radius || e.y > 2.0) continue;
       if ((dx * fx + dz * fz) / (d || 1) < 0.45) continue;
       this.damageEnemy(e, w.damage, new THREE.Vector3(e.x, 1.3, e.z)); hit = true;
     }
     if (hit) this.p.kick += 0.03;
   }
 
-  hitscan(o, d, range) {
+  hitscan(o, d, range, corpses = false) {
     let best = { t: range, enemy: null, n: null, ground: false, invisible: false };
     for (const b of this.boxes) { const h = rayBoxN(o, d, b); if (h && h.t < best.t) best = { t: h.t, enemy: null, n: { x: h.nx, y: h.ny, z: h.nz }, ground: false, invisible: b.vis === false }; }
     if (d.y < -1e-4) { const tg = -o.y / d.y; if (tg > 0 && tg < best.t) best = { t: tg, enemy: null, n: { x: 0, y: 1, z: 0 }, ground: true, invisible: false }; }
     for (const e of this.enemies) {
       if (!ALIVE.has(e.state) || e.state === 'spawn') continue;
-      const t = rayCyl(o, d, e.x, e.z, 0.6, e.y, e.y + 2.3);
+      const t = rayCyl(o, d, e.x, e.z, hitR(e), e.y, e.y + hitH(e));
       if (t < best.t) best = { t, enemy: e, n: null, ground: false, invisible: false };
+    }
+    if (corpses) for (const e of this.enemies) {
+      if (e.state !== 'dying' && e.state !== 'dead') continue;
+      const t = rayCyl(o, d, e.x, e.z, 0.9, 0, 0.9 + (e.cy || 0));
+      if (t < best.t) best = { t, enemy: null, corpse: e, n: null, ground: false, invisible: false };
     }
     return best;
   }
@@ -811,24 +842,33 @@ export class Game {
   // ---------------- enemies ----------------
   spawnEnemy(type) {
     const cfg = ENEMY[type], p = this.p;
-    const [rMin, rMax] = this.level.spawnRange;
-    const pts = this.level.spawnPoints.filter((s) => Math.hypot(s.x - p.x, s.z - p.z) > rMin && Math.hypot(s.x - p.x, s.z - p.z) < rMax);
-    const pool = pts.length ? pts : this.level.spawnPoints;
-    const sp = pool[(Math.random() * pool.length) | 0];
+    this.ensureAtlas([type]);
+    let sp, perch = null;
+    if (cfg.perch && this.level.perches && this.level.perches.length) {   // gargoyles sit on rooftop ledges
+      const free = this.level.perches.filter((q) => !this.enemies.some((o) => o.state === 'perch' && Math.hypot(o.x - q.x, o.z - q.z) < 1));
+      const pool = free.length ? free : this.level.perches;
+      perch = pool[(Math.random() * pool.length) | 0]; sp = perch;
+    } else {
+      const [rMin, rMax] = this.level.spawnRange;
+      const pts = this.level.spawnPoints.filter((s) => Math.hypot(s.x - p.x, s.z - p.z) > rMin && Math.hypot(s.x - p.x, s.z - p.z) < rMax);
+      const pool = pts.length ? pts : this.level.spawnPoints;
+      sp = pool[(Math.random() * pool.length) | 0];
+    }
     const mat = new THREE.MeshBasicMaterial({ map: this.atlas[type].texture, transparent: true, alphaTest: 0.5, side: THREE.DoubleSide });
-    const geo = new THREE.PlaneGeometry(SPRITE_SIZE, SPRITE_SIZE); geo.translate(0, SPRITE_SIZE / 2 - SPRITE_FOOT, 0);
+    const geo = new THREE.PlaneGeometry(SPRITE_SIZE, SPRITE_SIZE);
     const mesh = new THREE.Mesh(geo, mat);
-    mesh.visible = false;
-    mesh.position.set(sp.x, 0, sp.z);
+    mesh.visible = !!perch;
+    mesh.position.set(sp.x, perch ? perch.y : 0, sp.z);
     this.scene.add(mesh);
     const shadow = new THREE.Mesh(this.shadowGeo, this.shadowMat);
-    shadow.position.set(sp.x, 0.04, sp.z); shadow.visible = false; this.scene.add(shadow);
+    shadow.position.set(sp.x, 0.04, sp.z); shadow.visible = false; shadow.scale.setScalar(cfg.scale || 1); this.scene.add(shadow);
     const beam = new THREE.Mesh(this.beamGeo, new THREE.MeshBasicMaterial({ color: 0x8dff9d, transparent: true, opacity: 0.5, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, fog: false }));
-    beam.position.set(sp.x, 9, sp.z); this.scene.add(beam);
-    const e = { type, cfg, mesh, shadow, beam, hp: cfg.hp, x: sp.x, y: 0, flip: Math.random() < 0.5 ? -1 : 1, z: sp.z, state: 'spawn', timer: 0.9, cool: 0.6 + Math.random() * 0.8, anim: 0, deadT: 0, hit: false, uv: geo.attributes.uv, frameKey: -1, face: Math.atan2(p.x - sp.x, p.z - sp.z), want: Math.atan2(p.x - sp.x, p.z - sp.z), slide: 0, slideT: 0, stuck: 0, strafe: Math.random() < 0.5 ? 1 : -1, strafeT: 1 + Math.random() * 2 };
+    beam.position.set(sp.x, 9, sp.z); if (!perch) this.scene.add(beam);
+    const e = { type, cfg, mesh, shadow, beam, hp: cfg.hp, maxHp: cfg.hp, x: sp.x, y: perch ? perch.y : 0, flip: Math.random() < 0.5 ? -1 : 1, z: sp.z, state: perch ? 'perch' : 'spawn', perchT: 0, timer: 0.9, cool: 0.6 + Math.random() * 0.8, stompCd: 5, anim: 0, deadT: 0, hit: false, uv: geo.attributes.uv, frameKey: -1, face: Math.atan2(p.x - sp.x, p.z - sp.z), want: Math.atan2(p.x - sp.x, p.z - sp.z), slide: 0, slideT: 0, stuck: 0, strafe: Math.random() < 0.5 ? 1 : -1, strafeT: 1 + Math.random() * 2, cy: 0, cvy: 0, tumble: 0, spin: 0, fall: 0 };
     this.styleEnemy(e);
     this.enemies.push(e);
-    sfx.beam();
+    if (cfg.boss) { this.setMessage('THE GREAT LIZARD TSAR! — HIT HIM IN THE BACK', 5); sfx.roar(); }
+    else if (!perch) sfx.beam();
     return e;
   }
   disposeEnemy(e) {
@@ -837,15 +877,35 @@ export class Game {
   }
   aliveCount() { let n = 0; for (const e of this.enemies) if (ALIVE.has(e.state)) n++; return n; }
 
-  damageEnemy(e, dmg, pt, quiet = false, dir = null) {
+  // src = where the hit came from (default: you); used for shields and the boss's weak back. Fire/burn damage passes null.
+  damageEnemy(e, dmg, pt, quiet = false, dir = null, src) {
     if (!ALIVE.has(e.state) || e.state === 'spawn') return;
+    const cfg = e.cfg;
+    if (src === undefined) src = quiet ? null : { x: this.p.x, z: this.p.z };
+    let blocked = false, crit = false;
+    if (src && !(e.frozen > 0)) {
+      const vx = src.x - e.x, vz = src.z - e.z, c = (Math.sin(e.face) * vx + Math.cos(e.face) * vz) / (Math.hypot(vx, vz) || 1);
+      if (cfg.shield && c > 0.38) { dmg *= 0.05; blocked = true; }
+      else if (cfg.boss) { if (c > 0.3) { dmg *= 0.1; blocked = true; } else if (c < -0.3) { dmg *= 1.9; crit = true; } else dmg *= 0.5; }
+    }
+    if (e.frozen > 0) dmg *= 1.3;                                   // frozen lizards are brittle (and a frozen shield lizard has no shield)
     e.hp -= dmg;
-    if (dir) this.knock(e, dir.x, dir.z, Math.min(5, dmg * 0.09));
-    if (!quiet && Math.random() < 0.55) this.decals.add('blood', { x: e.x + (Math.random() - 0.5) * 1.4, y: 0, z: e.z + (Math.random() - 0.5) * 1.4 }, { x: 0, y: 1, z: 0 }, 0.45 + Math.random() * 0.6);
-    this.burst(pt.x, pt.y, pt.z, quiet ? 'fire' : 'green', quiet ? 2 : 5, 3.2, 0.12);
-    if (!quiet) sfx.hit();
+    if (blocked) {
+      sfx.tink(4); this.sparks(pt.x, pt.y, pt.z, 6, 5, 0, 0.4, 0);
+      if (this.time > (this.armourMsgT || 0)) { this.armourMsgT = this.time + 4; this.setMessage(cfg.boss ? 'ARMOURED FRONT — GO AROUND TO HIS BACK' : 'SHIELD — GET BEHIND IT OR FREEZE IT', 2.5); }
+    }
+    if (crit && this.time > (this.critMsgT || 0)) { this.critMsgT = this.time + 3; this.setMessage('WEAK SPOT!', 1.2); }
+    if (dir && !blocked && !cfg.boss) this.knock(e, dir.x, dir.z, Math.min(5, dmg * 0.09));
+    if (!quiet && !blocked && Math.random() < 0.55) this.decals.add('blood', { x: e.x + (Math.random() - 0.5) * 1.4, y: 0, z: e.z + (Math.random() - 0.5) * 1.4 }, { x: 0, y: 1, z: 0 }, 0.45 + Math.random() * 0.6);
+    if (!blocked) this.burst(pt.x, pt.y, pt.z, quiet ? 'fire' : crit ? 'fire' : 'green', quiet ? 2 : 5, 3.2, 0.12);
+    if (!quiet && !blocked) sfx.hit();
+    if (e.state === 'perch') this.wakeGargoyle(e);
     if (e.hp <= 0) this.killEnemy(e);
-    else if (!quiet && e.state !== 'attack' && (Math.random() < 0.45 || dmg >= 40)) { e.state = 'pain'; e.timer = 0.28; sfx.lizardPain(); }
+    else if (!quiet && !blocked && !cfg.boss && e.state !== 'attack' && e.state !== 'dive' && (Math.random() < 0.45 || dmg >= 40)) { e.state = 'pain'; e.timer = 0.28; sfx.lizardPain(); }
+  }
+  wakeGargoyle(e) {
+    const far = Math.hypot(this.p.x - e.x, this.p.z - e.z) > 40;
+    e.state = far ? 'move' : 'dive'; e.diveT = 0; e.cool = 0; e.mesh.material.color.setHex(0xffffff); sfx.hiss(); this.setMessage('THE STATUES MOVE!', 2);
   }
   killEnemy(e) {
     const wasIced = e.frozen > 0;
@@ -855,7 +915,9 @@ export class Game {
     for (let k = 0; k < 3; k++) this.decals.add('blood', { x: e.x + (Math.random() - 0.5) * 2.6, y: 0, z: e.z + (Math.random() - 0.5) * 2.6 }, { x: 0, y: 1, z: 0 }, 0.5 + Math.random() * 0.7);
     this.burst(e.x, 1.2 + e.y, e.z, 'green', 14, 4.5, 0.16);
     e.shadow.visible = false;
-    if (Math.random() < 0.4) {
+    e.cvy = e.cfg.boss ? 0 : 2.8 + Math.random() * 1.5; e.spin = (Math.random() < 0.5 ? -1 : 1) * (4 + Math.random() * 4);
+    if (e.cfg.boss) { this.setMessage('THE TSAR FALLS!', 4); sfx.explosion(); this.flash(e.x, 3, e.z, 0xffd060, 400, 0.8); for (let k = 0; k < 7; k++) this.addPickup(['kvass', 'powder', 'shot', 'rockets', 'cells'][k % 5], e.x, e.z, true); }
+    else if (Math.random() < 0.4) {
       const r = Math.random();
       this.addPickup(r < 0.25 ? 'kvass' : r < 0.7 ? 'powder' : 'shot', e.x, e.z, true);
     }
@@ -875,28 +937,45 @@ export class Game {
     const p = this.p, cam = this.camera.position;
     if (this.nav) this.nav.update(p.x, p.z, dt);
     for (const e of this.enemies) {
-      const dx = p.x - e.x, dz = p.z - e.z, dist = Math.hypot(dx, dz) || 1;
+      const cfg = e.cfg, dx = p.x - e.x, dz = p.z - e.z, dist = Math.hypot(dx, dz) || 1;
       let nx = dx / dist, nz = dz / dist;
+      const alive = ALIVE.has(e.state);
       e.cool -= dt;
-      if (e.state !== 'move') e.want = Math.atan2(nx, nz);
-      if ((e.kx || e.kz) && e.state !== 'spawn') {
-        const kp = { x: e.x + e.kx * dt, z: e.z + e.kz * dt, y: e.y };
-        resolveCircle(kp, e.cfg.radius, this.boxes); e.x = kp.x; e.z = kp.z;
-        const kf = Math.exp(-5 * dt); e.kx *= kf; e.kz *= kf; if (Math.abs(e.kx) + Math.abs(e.kz) < 0.05) e.kx = e.kz = 0;
+      if (e.state !== 'move' && e.state !== 'perch' && e.state !== 'dive') e.want = Math.atan2(nx, nz);
+      let iced = false;
+      if (e.frozen > 0) {
+        if (alive && e.state !== 'spawn') { iced = true; e.frozen -= dt; if (e.frozen <= 0) this.thaw(e, true); }
+        else this.thaw(e, false);
       }
-      if (e.burn > 0 && ALIVE.has(e.state) && e.state !== 'spawn' && !iced) {
+      // knockback (and corpses sliding / bouncing off props)
+      if ((e.kx || e.kz) && e.state !== 'spawn') {
+        const tx = e.x + e.kx * dt, tz = e.z + e.kz * dt, kp = { x: tx, z: tz, y: e.y + (e.cy || 0) };
+        resolveCircle(kp, alive ? cfg.radius : Math.min(cfg.radius, 0.7), this.boxes);
+        if (!alive) { if (Math.abs(kp.x - tx) > 1e-4) e.kx *= -0.45; if (Math.abs(kp.z - tz) > 1e-4) e.kz *= -0.45; }
+        e.x = kp.x; e.z = kp.z;
+        const air = (e.cy || 0) > 0.02, kf = Math.exp(-(alive ? 5 : air ? 0.9 : 3.2) * dt);
+        e.kx *= kf; e.kz *= kf; if (Math.abs(e.kx) + Math.abs(e.kz) < 0.05) e.kx = e.kz = 0;
+      }
+      // corpse hop / tumble
+      if (!alive && (e.cvy || e.cy > 0)) {
+        e.cvy -= 24 * dt; e.cy += e.cvy * dt; e.tumble += (e.spin || 0) * dt;
+        if (e.cy <= 0) {
+          e.cy = 0;
+          if (Math.abs(e.cvy) > 2.2) { e.cvy = -e.cvy * 0.38; e.spin *= 0.5; sfx.tink(1); } else { e.cvy = 0; e.spin = 0; e.tumble = 0; }
+        }
+      }
+      if (e.burn > 0 && alive && e.state !== 'spawn' && !iced) {
         e.burn -= dt; e.burnT = (e.burnT || 0) + dt;
         if (Math.random() < dt * 14) this.emit(e.x + (Math.random() - 0.5) * 0.6, e.y + 0.8 + Math.random() * 1.4, e.z + (Math.random() - 0.5) * 0.6, Math.random() < 0.5 ? 'flameY' : 'flameR', 0, 1.8, 0, 0.4, 0.3, -2);
         if (e.burnT > 0.3) { e.burnT = 0; this.damageEnemy(e, 5, new THREE.Vector3(e.x, 1.2 + e.y, e.z), true); }
       }
-      let iced = false;
-      if (e.frozen > 0) {
-        if (ALIVE.has(e.state) && e.state !== 'spawn') { iced = true; e.frozen -= dt; if (e.frozen <= 0) this.thaw(e, true); }
-        else this.thaw(e, false);
-      }
-      if (e.cfg.hover) { // drakes: rise off the ground, bob in the air, and plummet when killed
-        const tgt = !iced && (e.state === 'move' || e.state === 'attack' || e.state === 'pain') ? e.cfg.hover + Math.sin(this.time * 2.2 + e.x) * 0.45 : 0;
-        if (e.state === 'dying' || e.state === 'dead' || (iced && tgt === 0)) e.y = Math.max(0, e.y - 14 * dt); else e.y += (tgt - e.y) * Math.min(1, dt * 1.6);
+      // flyers: rise off the ground and bob; drop out of the sky when killed or frozen
+      if (cfg.hover && e.state !== 'perch') {
+        if (!alive || iced) { e.fall = Math.min(30, (e.fall || 0) + 26 * dt); e.y = Math.max(0, e.y - e.fall * dt); }
+        else {
+          e.fall = 0;
+          if (e.state !== 'dive') { const tgt = (e.state === 'move' || e.state === 'attack' || e.state === 'pain') ? cfg.hover + Math.sin(this.time * 2.2 + e.x) * 0.45 : 0; e.y += (tgt - e.y) * Math.min(1, dt * 1.6); }
+        }
       }
       switch (iced ? 'iced' : e.state) {
         case 'iced':
@@ -906,25 +985,48 @@ export class Game {
           e.timer -= dt;
           e.beam.material.opacity = Math.max(0, Math.min(0.55, e.timer * 1.2 + (0.9 - e.timer) * 0.2));
           if (e.timer <= 0.35 && !e.mesh.visible) { e.mesh.visible = true; e.shadow.visible = true; this.burst(e.x, 0.5, e.z, 'plasma', 12, 4, 0.14); }
-          if (e.timer <= 0) { e.state = 'move'; this.scene.remove(e.beam); if (e.cfg.hover) sfx.hiss(); }
+          if (e.timer <= 0) { e.state = 'move'; this.scene.remove(e.beam); if (cfg.hover) sfx.hiss(); }
           break;
+        case 'perch':   // a statue until you come near (or hurt it)
+          e.perchT += dt;
+          if (dist < 32 || e.perchT > 30) this.wakeGargoyle(e);
+          break;
+        case 'dive': {  // swoop straight at the player (gives up after a few seconds and flies like the others)
+          e.diveT = (e.diveT || 0) + dt; if (e.diveT > 4) { e.state = 'move'; e.cool = 0.5; break; }
+          const vx = p.x - e.x, vy = p.y + 0.4 - e.y, vz = p.z - e.z, l = Math.hypot(vx, vy, vz) || 1;
+          if (l < 2.1) { this.hurt(cfg.melee); sfx.hiss(); e.state = 'move'; e.cool = 1.4; break; }
+          const pos = { x: e.x + (vx / l) * 17 * dt, z: e.z + (vz / l) * 17 * dt, y: e.y };
+          resolveCircle(pos, cfg.radius, this.boxes);
+          e.x = pos.x; e.z = pos.z; e.y = Math.max(0.3, e.y + (vy / l) * 17 * dt);
+          e.face = e.want = Math.atan2(vx, vz); e.anim += dt * 12;
+          if (Math.random() < dt * 20) this.emit(e.x, e.y + 1, e.z, 'smoke', 0, 0, 0, 0.5, 0.25, 0);
+          break;
+        }
         case 'move': {
-          let mx = 0, mz = 0, speed = e.cfg.speed;
+          let mx = 0, mz = 0, speed = cfg.speed;
           if (this.nav && dist > 3) { // no line of sight: follow the street grid around the buildings
             e.losT = (e.losT || 0) - dt;
             if (e.losT <= 0) { e.losT = 0.25 + Math.random() * 0.15; e.los = this.hasLOS(e.x, e.y + 1.4, e.z, p.x, p.y + 1.4, p.z); }
             if (!e.los) { const nd = this.nav.dir(e.x, e.z); if (nd) { nx = nd.x; nz = nd.z; e.pathing = true; } else e.pathing = false; } else e.pathing = false;
           } else e.pathing = false;
+          const faceErr = Math.abs(angDiff(Math.atan2(nx, nz), e.face));
+          const flyer = !!cfg.hover, dy = Math.abs((e.y + 1) - (p.y + 1));
           if (e.pathing) {
             mx = nx; mz = nz;
-          } else if (e.type === 'grunt') {
+          } else if (cfg.ai === 'melee') {
             mx = nx; mz = nz;
-            if (dist < 1.8 && e.cool <= 0 && Math.abs(angDiff(Math.atan2(nx, nz), e.face)) < 0.7) { e.state = 'attack'; e.timer = 0.55; e.hit = false; sfx.hiss(); }
+            if (cfg.boss) {
+              e.stompCd -= dt;
+              if (e.stompCd <= 0 && dist < 22 && dist > 5.5 && faceErr < 1.2) { e.state = 'attack'; e.atk = 'stomp'; e.timer = 1.1; e.hitAt = 0.25; e.hit = false; e.stompCd = 6 + Math.random() * 3; sfx.roar(); }
+            }
+            if (e.state === 'move' && dist < cfg.reach && e.cool <= 0 && faceErr < 0.7 && (!flyer || dy < 2.6)) { e.state = 'attack'; e.atk = 'melee'; e.timer = cfg.boss ? 0.95 : 0.55; e.hitAt = 0.25; e.hit = false; sfx.hiss(); }
           } else {
             e.strafeT -= dt; if (e.strafeT <= 0) { e.strafe *= -1; e.strafeT = 1 + Math.random() * 2; }
-            const far = e.cfg.hover ? 24 : 15, near = e.cfg.hover ? 13 : 8;
+            const far = cfg.ai === 'bomber' ? 15 : flyer ? 24 : 15, near = cfg.ai === 'bomber' ? 9 : flyer ? 13 : 8;
             if (dist > far) { mx = nx; mz = nz; } else if (dist < near) { mx = -nx; mz = -nz; speed *= 0.8; } else { mx = -nz * e.strafe; mz = nx * e.strafe; speed *= 0.6; }
-            if (e.cool <= 0 && dist < (e.cfg.hover ? 48 : 36) && this.hasLOS(e.x, e.y + 1.5, e.z, p.x, p.y + 1.4, p.z) && Math.abs(angDiff(Math.atan2(nx, nz), e.face)) < 0.5) { e.state = 'attack'; e.timer = 0.5; e.hit = false; sfx.hiss(); }
+            if (cfg.ai === 'bomber') {
+              if (e.cool <= 0 && dist < 17) { e.state = 'attack'; e.atk = 'drop'; e.timer = 0.6; e.hitAt = 0.25; e.hit = false; }
+            } else if (e.cool <= 0 && dist < (flyer ? 48 : 36) && this.hasLOS(e.x, e.y + 1.5, e.z, p.x, p.y + 1.4, p.z) && faceErr < 0.5) { e.state = 'attack'; e.atk = 'shoot'; e.timer = 0.5; e.hitAt = 0.2; e.hit = false; sfx.hiss(); }
           }
           if (e.slideT > 0) { // steer around props we got stuck on
             e.slideT -= dt;
@@ -932,44 +1034,53 @@ export class Game {
             mx = mx * 0.25 + tx; mz = mz * 0.25 + tz;
             const l = Math.hypot(mx, mz) || 1; mx /= l; mz /= l;
           }
-          e.want = e.type === 'grunt' && (mx || mz) ? Math.atan2(mx, mz) : Math.atan2(nx, nz);
-          // slow turning: they only move at full speed while facing where they are going (grunts steer along their facing)
+          const steer = cfg.ai === 'melee';
+          e.want = steer && (mx || mz) ? Math.atan2(mx, mz) : Math.atan2(nx, nz);
+          // slow turning: they only move at full speed while facing where they are going (melee lizards steer along their facing)
           const wantA = Math.atan2(mx, mz), turnErr = Math.abs(angDiff(wantA, e.face));
           if (!(e.slideT > 0)) {   // (when sliding off an obstacle just move, don't wait to turn)
             speed *= Math.max(0.18, Math.cos(Math.min(turnErr, 1.4)));
-            if (e.type === 'grunt' || e.pathing) { mx = Math.sin(e.face); mz = Math.cos(e.face); }
+            if (steer || e.pathing) { mx = Math.sin(e.face); mz = Math.cos(e.face); }
           }
           const pos = { x: e.x + mx * speed * dt, z: e.z + mz * speed * dt, y: e.y };
           for (const o of this.enemies) {
-            if (o === e || !ALIVE.has(o.state)) continue;
-            const ox = pos.x - o.x, oz = pos.z - o.z, od = Math.hypot(ox, oz);
-            if (od < 1.0 && od > 0.001) { pos.x += (ox / od) * (1.0 - od) * 0.5; pos.z += (oz / od) * (1.0 - od) * 0.5; }
+            if (o === e || !ALIVE.has(o.state) || o.state === 'perch') continue;
+            const rr = cfg.radius + o.cfg.radius, ox = pos.x - o.x, oz = pos.z - o.z, od = Math.hypot(ox, oz);
+            if (od < rr && od > 0.001) { pos.x += (ox / od) * (rr - od) * 0.5; pos.z += (oz / od) * (rr - od) * 0.5; }
           }
-          const pd = Math.hypot(pos.x - p.x, pos.z - p.z);
-          if (pd < 0.95) { pos.x = p.x + ((pos.x - p.x) / (pd || 1)) * 0.95; pos.z = p.z + ((pos.z - p.z) / (pd || 1)) * 0.95; }
-          resolveCircle(pos, e.cfg.radius, this.boxes);
-          if (dist > 2.5 && Math.hypot(pos.x - e.x, pos.z - e.z) < speed * dt * 0.35) {
+          const pr = 0.45 + cfg.radius, pd = Math.hypot(pos.x - p.x, pos.z - p.z);
+          if (pd < pr && (!flyer || dy < 2.6)) { pos.x = p.x + ((pos.x - p.x) / (pd || 1)) * pr; pos.z = p.z + ((pos.z - p.z) / (pd || 1)) * pr; }
+          resolveCircle(pos, cfg.radius, this.boxes);
+          if (dist > 2.5 + cfg.radius && Math.hypot(pos.x - e.x, pos.z - e.z) < speed * dt * 0.35) {
             e.stuck += dt;
             if (e.stuck > 0.25) { e.slide = e.slide ? -e.slide : (Math.random() < 0.5 ? 1 : -1); e.slideT = 1.2; e.stuck = 0; }
           } else e.stuck = 0;
           e.x = pos.x; e.z = pos.z;
-          e.anim += dt * (e.type === 'grunt' ? 9 : e.cfg.hover ? 8 : 6);
+          const a0 = Math.floor(e.anim);
+          e.anim += dt * (e.type === 'grunt' || e.type === 'shield' ? 9 : cfg.boss ? 4 : flyer ? 8 : 6);
+          if (cfg.boss && Math.floor(e.anim) !== a0 && Math.floor(e.anim) % 2 === 0) { sfx.thud(); this.p.kick += 0.025 * Math.max(0, 1 - dist / 45); }
           break;
         }
         case 'attack':
           e.timer -= dt;
-          if (e.type === 'grunt') {
-            if (!e.hit && e.timer < 0.25) { e.hit = true; if (dist < 2.3 && Math.abs(angDiff(Math.atan2(nx, nz), e.face)) < 1.0) this.hurt(e.cfg.melee); }
-          } else if (!e.hit && e.timer < 0.2) {
+          if (!e.hit && e.timer < (e.hitAt || 0.25)) {
             e.hit = true;
-            const fire = !!e.cfg.hover, sx = e.x, sy = e.y + 1.5, sz = e.z, spd = fire ? 17 : 14;
-            const tx = p.x - sx, ty = p.y + 1.3 - sy, tz = p.z - sz, l = Math.hypot(tx, ty, tz) || 1;
-            const sprite = new THREE.Sprite(fire ? this.fireballMat : this.plasmaMat); const sc = fire ? 2.0 : 1.1; sprite.scale.set(sc, sc, sc); sprite.position.set(sx, sy, sz);
-            this.scene.add(sprite);
-            this.projectiles.push({ sprite, x: sx, y: sy, z: sz, vx: (tx / l) * spd, vy: (ty / l) * spd, vz: (tz / l) * spd, life: 6, fire, dmg: fire ? 14 : 12 });
-            if (fire) { this.flash(sx, sy, sz, 0xff8a30, 90, 0.2); sfx.fireball(); } else sfx.spit();
+            if (e.atk === 'melee') {
+              const dy = Math.abs((e.y + 1) - (p.y + 1));
+              if (dist < cfg.reach + 0.6 && Math.abs(angDiff(Math.atan2(nx, nz), e.face)) < 1.0 && (!cfg.hover || dy < 2.6)) this.hurt(cfg.melee);
+              if (cfg.boss) { this.p.kick += 0.08; sfx.thud(); }
+            } else if (e.atk === 'stomp') this.stomp(e);
+            else if (e.atk === 'drop') this.dropEgg(e);
+            else {
+              const fire = cfg.shot === 'fire', sx = e.x, sy = e.y + 1.5, sz = e.z, spd = fire ? 17 : 14;
+              const tx = p.x - sx, ty = p.y + 1.3 - sy, tz = p.z - sz, l = Math.hypot(tx, ty, tz) || 1;
+              const sprite = new THREE.Sprite(fire ? this.fireballMat : this.plasmaMat); const sc = fire ? 2.0 : 1.1; sprite.scale.set(sc, sc, sc); sprite.position.set(sx, sy, sz);
+              this.scene.add(sprite);
+              this.projectiles.push({ sprite, x: sx, y: sy, z: sz, vx: (tx / l) * spd, vy: (ty / l) * spd, vz: (tz / l) * spd, life: 6, fire, dmg: fire ? 14 : 12 });
+              if (fire) { this.flash(sx, sy, sz, 0xff8a30, 90, 0.2); sfx.fireball(); } else sfx.spit();
+            }
           }
-          if (e.timer <= 0) { e.state = 'move'; e.cool = e.type === 'grunt' ? 0.8 : e.cfg.hover ? 2.0 + Math.random() * 1.2 : 1.6 + Math.random(); }
+          if (e.timer <= 0) { e.state = 'move'; e.cool = cfg.ai === 'melee' ? (cfg.boss ? 1.4 : 0.8) : cfg.ai === 'bomber' ? 2.4 + Math.random() * 1.2 : cfg.hover ? 2.0 + Math.random() * 1.2 : 1.6 + Math.random(); }
           break;
         case 'pain':
           e.timer -= dt; if (e.timer <= 0) e.state = 'move';
@@ -979,16 +1090,18 @@ export class Game {
           break;
       }
       // visuals: pick the frame of the 3D-lizard sprite sheet that matches pose and viewing angle
-      const m = e.mesh;
-      m.position.set(e.x, e.y, e.z);
+      const m = e.mesh, nowAlive = ALIVE.has(e.state);
+      m.position.set(e.x, e.y + (e.cy || 0), e.z);
+      m.rotation.z = e.tumble || 0;
+      if (nowAlive && e.state !== 'spawn') { e.shadow.visible = e.state !== 'perch' && e.y < 12; e.shadow.scale.setScalar((cfg.scale || 1) * Math.max(0.35, 1 - e.y / 14)); }
       e.shadow.position.set(e.x, 0.04, e.z);
       const toCam = Math.atan2(cam.x - e.x, cam.z - e.z);
       m.rotation.y = toCam;
-      if (ALIVE.has(e.state) && !iced) { const dd = angDiff(e.want, e.face), mx = (TURN[e.type] || 3) * dt * (e.state === 'attack' ? 0.6 : 1); e.face += Math.max(-mx, Math.min(mx, dd)); }
-      m.material.color.setHex(e.frozen > 0 && ALIVE.has(e.state) ? 0x8fd2ff : 0xffffff);
+      if (nowAlive && !iced && e.state !== 'perch' && e.state !== 'dive') { const dd = angDiff(e.want, e.face), mx = (TURN[e.type] || 3) * dt * (e.state === 'attack' ? 0.6 : 1); e.face += Math.max(-mx, Math.min(mx, dd)); }
+      m.material.color.setHex(e.frozen > 0 && nowAlive ? 0x8fd2ff : e.state === 'perch' ? 0xb4b8c4 : 0xffffff);
       let pose = POSE.idle;
-      if (e.state === 'move') pose = POSE.walk0 + (Math.floor(e.anim) % 4);
-      else if (e.state === 'attack') pose = e.timer > (e.type === 'grunt' ? 0.28 : 0.2) ? POSE.windup : POSE.strike;
+      if (e.state === 'move' || e.state === 'dive') pose = POSE.walk0 + (Math.floor(e.anim) % 4);
+      else if (e.state === 'attack') pose = e.timer > (e.hitAt || 0.25) + 0.03 ? POSE.windup : POSE.strike;
       else if (e.state === 'pain') pose = POSE.pain;
       if (iced) pose = e.icePose || 0; else e.icePose = pose;
       if (e.state === 'dying' || e.state === 'dead') pose = POSE.die0 + (e.deadT < 0.09 ? 0 : e.deadT < 0.2 ? 1 : e.deadT < 0.32 ? 2 : e.deadT < 0.44 ? 3 : 4);
@@ -1013,6 +1126,62 @@ export class Game {
     }
   }
 
+  // ---- boss stomp: a shockwave on the ground. Jump to avoid it. ----
+  stomp(e) {
+    const p = this.p, d = Math.hypot(p.x - e.x, p.z - e.z);
+    sfx.explosion(); this.p.kick += 0.18;
+    const sp = new THREE.Sprite(this.shotMats.boom.clone()); sp.position.set(e.x, 0.6, e.z); sp.scale.setScalar(3); this.scene.add(sp);
+    this.fx.push({ obj: sp, t: 0.55, dur: 0.55, kind: 'boom', size: 22 });
+    for (let k = 0; k < 22; k++) { const a = (k / 22) * Math.PI * 2; this.emit(e.x + Math.cos(a) * 2.5, 0.4, e.z + Math.sin(a) * 2.5, 'smoke', Math.cos(a) * 9, 1.2, Math.sin(a) * 9, 0.9, 1.0, -0.5); }
+    this.decals.add('scorch', { x: e.x, y: 0, z: e.z }, { x: 0, y: 1, z: 0 }, 6);
+    this.shatterWindowsNear({ x: e.x, y: 1, z: e.z }, 16);
+    for (const o of this.enemies) if (o !== e && !ALIVE.has(o.state) && Math.hypot(o.x - e.x, o.z - e.z) < 12) { this.knock(o, o.x - e.x, o.z - e.z, 9); o.cvy = 5; o.spin = 8; }
+    if (d < 11 && p.y < 0.9) this.hurt(Math.round(32 * (1 - d / 13)) + 4);
+  }
+
+  // ---- bomber eggs: bouncing, rolling bombs with a fuse ----
+  dropEgg(e) {
+    const p = this.p;
+    const obj = new THREE.Mesh(this.eggGeo, this.eggMat.clone());
+    obj.position.set(e.x, e.y + 0.6, e.z); this.scene.add(obj);
+    this.eggs.push({ obj, x: e.x, y: e.y + 0.6, z: e.z, vx: (p.x - e.x) * 0.3, vy: -1, vz: (p.z - e.z) * 0.3, fuse: 2.8, age: 0, bounces: 0 });
+    sfx.tink(2);
+  }
+  updateEggs(dt) {
+    const p = this.p;
+    for (let i = this.eggs.length - 1; i >= 0; i--) {
+      const q = this.eggs[i];
+      q.age += dt; q.fuse -= dt; q.vy -= 18 * dt;
+      const inBox = (x, y, z) => this.boxes.some((b) => x > b.x0 && x < b.x1 && z > b.z0 && z < b.z1 && y < b.h);
+      const nx = q.x + q.vx * dt, nz = q.z + q.vz * dt, ny = q.y + q.vy * dt;
+      if (inBox(nx, q.y, q.z)) { q.vx *= -0.45; q.bounces++; } else q.x = nx;
+      if (inBox(q.x, q.y, nz)) { q.vz *= -0.45; q.bounces++; } else q.z = nz;
+      if (ny < 0.26) {
+        q.y = 0.26;
+        if (q.vy < -1.5) { q.vy = -q.vy * 0.5; q.bounces++; sfx.tink(2); } else q.vy = 0;
+        const f = Math.exp(-1.6 * dt); q.vx *= f; q.vz *= f;
+      } else if (inBox(q.x, ny, q.z)) { q.vy = Math.abs(q.vy) * 0.3; } else q.y = ny;
+      q.obj.position.set(q.x, q.y, q.z);
+      q.obj.rotation.x += q.vz * dt * 3; q.obj.rotation.z -= q.vx * dt * 3;            // rolls as it moves
+      const rate = 6 + (1 - q.fuse / 2.8) * 26;
+      q.obj.material.emissiveIntensity = 0.25 + 0.75 * (0.5 + 0.5 * Math.sin(q.age * rate));
+      q.obj.scale.setScalar(1 + 0.08 * Math.sin(q.age * rate));
+      if (Math.random() < dt * 14) this.emit(q.x, q.y + 0.2, q.z, 'smoke', 0, 0.6, 0, 0.35, 0.18, 0);
+      const near = Math.hypot(q.x - p.x, q.z - p.z) < 1.5 && Math.abs(q.y - (p.y + 0.9)) < 1.6;
+      if (q.fuse <= 0 || (near && q.age > 0.7)) {
+        this.scene.remove(q.obj); q.obj.material.dispose(); this.eggs.splice(i, 1);
+        this.explode(q.x, q.y, q.z, 4.8, 85, 'boom', null);
+      }
+    }
+  }
+
+  // shooting a corpse shoves it along and makes it hop
+  corpseHit(e, d, dmg, pt) {
+    this.knock(e, d.x, d.z, Math.min(7, 1.0 + dmg * 0.12));
+    e.cvy = Math.max(e.cvy || 0, 1.2 + Math.random() * 1.6); e.spin = (Math.random() < 0.5 ? -1 : 1) * (3 + Math.random() * 4);
+    this.burst(pt.x, pt.y, pt.z, 'green', 2, 2.2, 0.1);
+  }
+
   updateProjectiles(dt) {
     const p = this.p;
     for (let i = this.projectiles.length - 1; i >= 0; i--) {
@@ -1033,6 +1202,7 @@ export class Game {
     const w = this.wave;
     for (const [type, n] of Object.entries(def)) for (let k = 0; k < n; k++) w.toSpawn.push(type);
     for (let k = w.toSpawn.length - 1; k > 0; k--) { const j = (Math.random() * (k + 1)) | 0; [w.toSpawn[k], w.toSpawn[j]] = [w.toSpawn[j], w.toSpawn[k]]; }
+    w.toSpawn.sort((a, b) => (a === 'tsar') - (b === 'tsar'));   // the boss comes in first (spawn takes from the end)
   }
   startWave(i) {
     const w = this.wave;
@@ -1089,6 +1259,7 @@ export class Game {
     this.updateWaves(dt);
     this.updateEnemies(dt);
     this.updateProjectiles(dt);
+    this.updateEggs(dt);
     this.updatePShots(dt);
     this.updateFx(dt);
     this.updateLights(dt);
@@ -1142,6 +1313,11 @@ export class Game {
       ? `GOAL ${Math.max(0, Math.round(p.z - L.goalZ))} m · LIZARDS ${this.remaining()}`
       : this.wave.index < 0 ? 'GET READY' : `WAVE ${this.wave.index + 1}/${L.waves.length} · LIZARDS ${this.remaining()}`;
     set(u.wave, wv);
+    if (u.boss) {
+      const boss = this.enemies.find((e) => e.cfg.boss && ALIVE.has(e.state));
+      u.boss.style.display = boss ? 'block' : 'none';
+      if (boss) u.bossBar.style.width = `${Math.max(0, (boss.hp / boss.maxHp) * 100)}%`;
+    }
     set(u.msg, this.messageT > 0 ? this.message : '');
     u.hurt.style.opacity = String(Math.min(0.7, p.hurt * 2));
     u.slots.forEach((el, i) => {

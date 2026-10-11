@@ -27,6 +27,8 @@
   .slot.locked { opacity:.3; }
   #top { position:fixed; top:12px; left:0; right:0; text-align:center; pointer-events:none; text-shadow:2px 2px 0 #000; }
   #wave { font-size:15px; letter-spacing:3px; color: var(--gold); }
+  #boss { display:none; width:min(420px,60vw); margin:8px auto 0; font-size:11px; letter-spacing:3px; color: var(--gold); }
+  #bossbar-w { height:10px; background:#300; border:2px solid var(--gold); margin-top:3px; } #bossbar { height:100%; background: linear-gradient(#e0453a,#8a1a14); width:100%; }
   #msg { margin-top:10px; font-size:24px; letter-spacing:2px; min-height:30px; }
   #overlay { position:fixed; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; background: radial-gradient(ellipse at center, rgba(20,10,10,.7), rgba(0,0,0,.92)); cursor:pointer; padding:20px; }
   #overlay h1 { font-size: clamp(30px, 6vw, 64px); margin:0 0 6px; letter-spacing:4px; color: var(--gold); text-shadow: 3px 3px 0 var(--red); }
@@ -50,7 +52,7 @@
 <canvas id="view"></canvas>
 <div id="hurt"></div>
 <div id="cross"></div>
-<div id="top"><div id="wave">GET READY</div><div id="msg"></div></div>
+<div id="top"><div id="wave">GET READY</div><div id="boss"><small>GREAT LIZARD TSAR</small><div id="bossbar-w"><div id="bossbar"></div></div></div><div id="msg"></div></div>
 <div id="hud">
   <div class="panel"><small>HEALTH</small><div class="big" id="hp">100</div><div id="hpbar-w"><div id="hpbar"></div></div></div>
   <div class="panel" style="text-align:right"><small id="wname-l">WEAPON</small><div id="wname">—</div><div id="ammo">—</div>
