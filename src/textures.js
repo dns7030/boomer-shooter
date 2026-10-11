@@ -276,7 +276,6 @@ Object.assign(painters, {
     for (let cy = 0; cy < 2; cy++) for (let cx = 0; cx < 2; cx++) {
       const x0 = cx * 64, y0 = cy * 64;
       R(g, x0, y0, 64, 64, '#bab6aa');
-      speckle(g.__proto__ === undefined ? g : g, w, h, rnd, 0, ['#000']);
       for (let i = 0; i < 70; i++) R(g, x0 + ((rnd() * 64) | 0), y0 + ((rnd() * 64) | 0), 1, 1, rnd() < 0.5 ? '#a8a498' : '#c8c4b8');
       R(g, x0, y0, 64, 1, '#8a867c'); R(g, x0, y0, 1, 64, '#d0ccc0');
       R(g, x0 + 13, y0 + 12, 38, 38, '#ecebe4');

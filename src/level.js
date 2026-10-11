@@ -37,15 +37,16 @@ export function buildLevel(scene) {
   sky.renderOrder = -10;
   scene.add(sky);
 
-  const ground = tiled(700, 700, 175, 175, mat('dirt'));
-  ground.position.y = -0.02;
+  const flatM = (name, order) => { const m = mat(name).clone(); m.depthWrite = false; m.userData.order = order; return m; };
+  const ground = tiled(700, 700, 175, 175, flatM('dirt', -9)); ground.renderOrder = -9;
+  ground.position.y = 0;
   scene.add(ground);
-  const road = tiled(STREET_HALF * 2 + 1.2, 118, 3.4, 29.5, mat('cobble'));
+  const road = tiled(STREET_HALF * 2 + 1.2, 118, 3.4, 29.5, flatM('cobble', -8)); road.renderOrder = -8;
   road.position.set(0, 0, -9);
   scene.add(road);
   for (const s of [-1, 1]) {
-    const walk = tiled(0.9, 118, 1, 30, mat('planks'));
-    walk.position.set(s * (STREET_HALF + 0.35), 0.03, -9);
+    const walk = tiled(0.9, 118, 1, 30, flatM('planks', -7)); walk.renderOrder = -7;
+    walk.position.set(s * (STREET_HALF + 0.35), 0, -9);
     scene.add(walk);
   }
 

@@ -97,6 +97,37 @@ const run = await page.evaluate(() => {
 });
 check('bot clears all waves of level 1', run.state === 'won', JSON.stringify(run));
 
+// --- level 2: bot walks the avenue, fighting each encounter, until the goal ---
+const run2 = await page.evaluate(() => {
+  const g = window.__game, W = window.__weapons;
+  g.loadLevel(1); g.setState('playing');
+  const p = g.p;
+  for (const w of W) p.has[w.id] = true;
+  const idx = (id) => W.findIndex((w) => w.id === id);
+  let steps = 0, maxAlive = 0, lastZ = p.z;
+  while (g.state === 'playing' && steps < 60 * 600) {
+    steps++;
+    if (steps % 90 === 0) { if (Math.abs(p.z - lastZ) < 1) p.x += (Math.random() < 0.5 ? -1 : 1) * 6; lastZ = p.z; } // sidestep a prop if stuck
+    p.health = Math.max(p.health, 50);
+    for (const k of Object.keys(p.ammo)) p.ammo[k] = Math.max(p.ammo[k], 60);
+    const alive = g.enemies.filter((e) => ['move', 'attack', 'pain'].includes(e.state));
+    maxAlive = Math.max(maxAlive, g.aliveCount());
+    if (alive.length) {
+      alive.sort((a, b) => Math.hypot(a.x - p.x, a.z - p.z) - Math.hypot(b.x - p.x, b.z - p.z));
+      const e = alive[0], dx = e.x - p.x, dz = e.z - p.z, d = Math.hypot(dx, dz);
+      p.yaw = Math.atan2(-dx, -dz); p.pitch = Math.atan2(1.2 - 1.7, d);
+      p.weapon = d < 3 ? idx('sabre') : d < 14 ? idx('ssg') : idx('chaingun'); p.cd = Math.min(p.cd, 0.05); p.switching = 0;
+      g.camera.rotation.set(p.pitch, p.yaw, 0); g.camera.updateMatrixWorld(true);
+      g.fire();
+    }
+    // walk down the avenue unless lizards are close
+    if (!alive.some((e) => Math.hypot(e.x - p.x, e.z - p.z) < 25)) { p.z -= 7.5 / 60; if (Math.abs(p.x) > 7) p.x *= 0.97; }
+    g.step(1 / 60);
+  }
+  return { state: g.state, steps, kills: g.stats.kills, z: +p.z.toFixed(1), maxAlive, enc: g.wave.enc, left: g.aliveCount() };
+});
+check('bot fights down the Soviet avenue to the goal', run2.state === 'won', JSON.stringify(run2));
+
 await page.evaluate(() => window.__game.render());
 await page.screenshot({ path: `${out}/end-state.png` });
 check('no console errors', errors.filter((e) => !/willReadFrequently|GPU stall/.test(e)).length === 0, errors.join(' | '));

@@ -22,7 +22,7 @@ export class Game {
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     this.renderer.autoClear = false;
     this.wview = new WeaponView(this.renderer);
-    this.camera = new THREE.PerspectiveCamera(75, 16 / 9, 0.1, 3000);
+    this.camera = new THREE.PerspectiveCamera(75, 16 / 9, 0.2, 3000);
     this.camera.rotation.order = 'YXZ';
     this.liz = makeLizardTextures();
     this.pickTex = makePickupTextures();

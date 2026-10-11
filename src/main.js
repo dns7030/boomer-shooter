@@ -1,6 +1,7 @@
 import { Game } from './game.js';
 import { initAudio } from './audio.js';
 import { WEAPONS } from './weapons.js';
+import { LEVELS } from './levels.js';
 
 const $ = (id) => document.getElementById(id);
 const canvas = $('view');
@@ -17,23 +18,45 @@ const game = new Game({
 window.__game = game; // handy for debugging and the headless smoke test
 window.__weapons = WEAPONS;
 
+const levelBox = $('levels');
+function renderLevels(show) {
+  levelBox.style.display = show ? 'flex' : 'none';
+  levelBox.innerHTML = '';
+  LEVELS.forEach((L, i) => {
+    const b = document.createElement('button');
+    b.className = 'lvl' + (i === game.levelIndex ? ' cur' : '');
+    b.innerHTML = `<b>${i + 1}. ${L.name}</b><small>${L.era}</small>`;
+    b.addEventListener('click', (ev) => { ev.stopPropagation(); start(i); });
+    levelBox.appendChild(b);
+  });
+}
+
 function showOverlay(s) {
   const title = $('ov-title'), body = $('ov-body'), btn = $('ov-btn');
   overlay.style.display = s === 'playing' ? 'none' : 'flex';
+  const L = LEVELS[game.levelIndex];
+  renderLevels(s !== 'paused' && s !== 'playing');
   if (s === 'paused') { title.textContent = 'PAUSED'; body.textContent = 'Click to resume.'; btn.textContent = 'RESUME'; }
-  else if (s === 'dead') { title.textContent = 'YOU DIED'; body.textContent = `Lizards slain: ${game.stats.kills}. The street falls to the invaders.`; btn.textContent = 'TRY AGAIN'; }
+  else if (s === 'dead') { title.textContent = 'YOU DIED'; body.textContent = `Lizards slain: ${game.stats.kills}. The invaders win this round.`; btn.textContent = 'TRY AGAIN'; }
   else if (s === 'won') {
     const t = Math.round(game.stats.time);
-    title.textContent = 'STREET HELD'; body.textContent = `All lizards slain (${game.stats.kills}) in ${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}. The Kremlin gate stays shut — for now.`; btn.textContent = 'PLAY AGAIN';
-  }
+    title.textContent = 'LEVEL CLEARED';
+    body.textContent = `${L.name}: all lizards slain (${game.stats.kills}) in ${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}.`;
+    btn.textContent = game.nextLevel() !== null ? 'NEXT LEVEL' : 'PLAY AGAIN';
+  } else { title.textContent = 'LIZARDS OVER RUS'; btn.textContent = 'PLAY'; }
 }
 
-function start() {
+function start(levelIndex) {
   initAudio();
+  if (typeof levelIndex !== 'number') {
+    levelIndex = undefined;
+    if (game.state === 'won' && game.nextLevel() !== null) levelIndex = game.nextLevel();
+  }
+  if (levelIndex !== undefined && (levelIndex !== game.levelIndex || game.state !== 'title')) game.loadLevel(levelIndex);
   game.begin();
   if (canvas.requestPointerLock) { try { const r = canvas.requestPointerLock(); if (r && r.catch) r.catch(() => {}); } catch (e) { /* ignore */ } }
 }
-$('ov-btn').addEventListener('click', start);
+$('ov-btn').addEventListener('click', () => start());
 overlay.addEventListener('click', (e) => { if (e.target === overlay) start(); });
 
 document.addEventListener('pointerlockchange', () => {
