@@ -8,7 +8,6 @@ const slots = [...document.querySelectorAll('#slots .slot')];
 
 const game = new Game({
   canvas,
-  weaponCanvas: $('weapon'),
   ui: {
     hp: $('hp'), hpBar: $('hpbar'), ammo: $('ammo'), weapon: $('wname'), wave: $('wave'), msg: $('msg'), hurt: $('hurt'), slots,
     onState(s) { showOverlay(s); },

@@ -4,7 +4,7 @@ import { buildLevel, STREET_HALF } from './level.js';
 import { resolveCircle, rayBox, rayCyl } from './geo.js';
 import { makeLizardTextures, makePickupTextures, makePlasmaTexture, makeBeamTexture } from './sprites.js';
 import { WEAPONS, AMMO } from './weapons.js';
-import { drawWeapon, VIEW_W, VIEW_H } from './weaponart.js';
+import { WeaponView } from './weaponmodels.js';
 import { sfx } from './audio.js';
 
 const EYE = 1.7;
@@ -21,13 +21,13 @@ const MAX_ALIVE = 8;
 const ALIVE = new Set(['spawn', 'move', 'attack', 'pain']);
 
 export class Game {
-  constructor({ canvas, weaponCanvas, ui }) {
+  constructor({ canvas, ui }) {
     this.ui = ui || {};
     this.canvas = canvas;
-    this.wctx = weaponCanvas.getContext('2d');
-    this.wctx.imageSmoothingEnabled = false;
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: 'high-performance' });
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
+    this.renderer.autoClear = false;
+    this.wview = new WeaponView(this.renderer);
     this.scene = new THREE.Scene();
     this.camera = new THREE.PerspectiveCamera(75, 16 / 9, 0.1, 500);
     this.camera.rotation.order = 'YXZ';
@@ -78,6 +78,7 @@ export class Game {
     this.renderer.setSize(W, H, false);
     this.camera.aspect = w / h;
     this.camera.updateProjectionMatrix();
+    this.wview.resize(w / h);
   }
 
   setState(s) { this.state = s; if (this.ui.onState) this.ui.onState(s); }
@@ -485,16 +486,18 @@ export class Game {
     cam.position.set(p.x, p.y + EYE + bobY, p.z);
     cam.rotation.set(p.pitch + p.kick, p.yaw, p.roll + Math.sin(p.bob) * 0.006 * p.bobAmp);
     this.level.update(this.state === 'playing' ? 1 / 60 : 0, this.time, cam.position);
+    this.renderer.clear();
     this.renderer.render(this.scene, cam);
 
-    // weapon viewmodel
+    // weapon viewmodel: separate 3D scene drawn on top of the world
     const sw = p.switching, lower = sw <= 0 ? 0 : sw < 1 ? sw : 2 - sw;
     const w = WEAPONS[p.weapon];
-    drawWeapon(this.wctx, w.id, {
-      ox: Math.sin(p.bob) * 3 * p.bobAmp, oy: Math.abs(Math.cos(p.bob)) * 3 * p.bobAmp + lower * 70 + p.flash * 4,
-      fire: p.flash, swing: p.swing, shotN: p.shotN, spin: p.spin,
+    this.wview.update({
+      id: w.id, bob: p.bob, bobAmp: p.bobAmp, flash: p.flash, swing: p.swing, shotN: p.shotN, spin: p.spin, lower,
       pump: w.melee ? 0 : Math.sin(Math.min(1, Math.max(0, (1 - p.cd / w.cooldown - 0.2) / 0.6)) * Math.PI) * (p.cd > 0 ? 1 : 0),
     });
+    this.renderer.clearDepth();
+    this.renderer.render(this.wview.scene, this.wview.camera);
     this.updateHud();
   }
 

@@ -48,7 +48,7 @@ src/buildings.js  façade builders
 src/geo.js        geometry helpers, collision + ray helpers
 src/textures.js   procedural tileable textures
 src/sprites.js    lizard / pickup / plasma sprites
-src/weapons.js    weapon stats        src/weaponart.js  first-person weapon art
+src/weapons.js    weapon stats        src/weaponmodels.js  first-person weapons (3D models, own scene)
 src/audio.js      WebAudio synth sound
 tests/            headless-Chromium smoke test (npm test) and screenshot helpers
 ```
