@@ -157,6 +157,7 @@ export function buildSoviet(scene) {
   box(HALF, 600, -700, 120, 400);
   box(-600, 600, -700, Z_FAR, 400);
   box(-600, 600, Z_NEAR, 120, 400);
+  for (let k = 0; k < 4; k++) boxes[boxes.length - 1 - k].vis = false;   // invisible walls: no bullet holes
 
   // ---- spawn points and pickups ----
   const spawnPoints = [];

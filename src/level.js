@@ -129,6 +129,7 @@ export function buildLevel(scene) {
   box(STREET_HALF, 90, -90, 70, 60);
   box(-90, 90, -90, BOUNDS.zFar, 60);
   box(-90, 90, BOUNDS.zNear, 90, 60);
+  for (let k = 0; k < 4; k++) boxes[boxes.length - 1 - k].vis = false;   // invisible walls: no bullet holes
 
   const spawnPoints = [];
   for (let z = 32; z >= -52; z -= 6) for (const x of [-3.6, 0, 3.6]) spawnPoints.push({ x: x + (z % 2 ? 0.8 : -0.8), z });

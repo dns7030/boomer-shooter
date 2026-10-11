@@ -2,7 +2,7 @@
 import * as THREE from 'three';
 import { tex } from './textures.js';
 
-export const SUN_DIR = new THREE.Vector3(0.34, 0.4, -0.85).normalize();
+export const SUN_DIR = new THREE.Vector3(0.32, 0.5, -0.8).normalize();
 
 export function addSun(scene, distance, size) {
   const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex('sun'), fog: false, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));

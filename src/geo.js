@@ -158,6 +158,21 @@ export function rayBox(o, d, b) {
   return t0;
 }
 
+// Like rayBox, but also says which face was hit: { t, nx, ny, nz } or null.
+export function rayBoxN(o, d, b) {
+  let t0 = 0, t1 = Infinity, nx = 0, ny = 0, nz = 0;
+  const lo = [b.x0, 0, b.z0], hi = [b.x1, b.h, b.z1], oo = [o.x, o.y, o.z], dd = [d.x, d.y, d.z];
+  for (let k = 0; k < 3; k++) {
+    if (Math.abs(dd[k]) < 1e-9) { if (oo[k] < lo[k] || oo[k] > hi[k]) return null; continue; }
+    let a = (lo[k] - oo[k]) / dd[k], c = (hi[k] - oo[k]) / dd[k];
+    if (a > c) { const t = a; a = c; c = t; }
+    if (a > t0) { t0 = a; nx = ny = nz = 0; const sgn = dd[k] > 0 ? -1 : 1; if (k === 0) nx = sgn; else if (k === 1) ny = sgn; else nz = sgn; }
+    t1 = Math.min(t1, c);
+    if (t0 > t1) return null;
+  }
+  return { t: t0, nx, ny, nz };
+}
+
 export function rayCyl(o, d, cx, cz, r, y0, y1) {
   const ox = o.x - cx, oz = o.z - cz;
   const a = d.x * d.x + d.z * d.z;

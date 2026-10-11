@@ -1,11 +1,13 @@
 // Core game: player, weapons, lizards, waves, pickups, rendering.
 import * as THREE from 'three';
 import { LEVELS } from './levels.js';
-import { resolveCircle, rayBox, rayCyl } from './geo.js';
+import { resolveCircle, rayBox, rayBoxN, rayCyl } from './geo.js';
+import { Decals } from './decals.js';
 import { makeLizardTextures, makePickupTextures, makePlasmaTexture } from './sprites.js';
 import { WEAPONS, AMMO, WEAPON_INDEX, SLOTS } from './weapons.js';
 import { WeaponView } from './weaponmodels.js';
 import { sfx } from './audio.js';
+import { PostFX } from './post.js';
 
 const EYE = 1.7;
 const ENEMY = {
@@ -21,6 +23,10 @@ export class Game {
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: 'high-performance' });
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     this.renderer.autoClear = false;
+    this.renderer.shadowMap.enabled = true;
+    this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    this.quality = 2;   // 0 = plain, 1 = bloom + grading, 2 = + sun shadows
+    try { const q = localStorage.getItem('lor.quality'); if (q !== null) this.quality = Math.min(2, Math.max(0, Number(q))); } catch (e) { /* no storage */ }
     this.wview = new WeaponView(this.renderer);
     this.camera = new THREE.PerspectiveCamera(75, 16 / 9, 0.2, 3000);
     this.camera.rotation.order = 'YXZ';
@@ -44,6 +50,36 @@ export class Game {
     this.levelIndex = 0;
     this.loadLevel(0);
     this.resize(canvas.clientWidth || 960, canvas.clientHeight || 540);
+    this.post = new PostFX(this.renderer, this.scene, this.camera, this.wview.scene, this.wview.camera, this.renderer.domElement.width, this.renderer.domElement.height);
+    this.setQuality(this.quality);
+  }
+
+  setQuality(q) {
+    this.quality = q;
+    try { localStorage.setItem('lor.quality', String(q)); } catch (e) { /* no storage */ }
+    if (this.post) this.post.setEnabled(q >= 1);
+    if (this.sun) this.sun.castShadow = q >= 2;
+  }
+  cycleQuality() { this.setQuality((this.quality + 1) % 3); return ['LOW', 'MEDIUM (BLOOM)', 'HIGH (BLOOM + SHADOWS)'][this.quality]; }
+
+  // Sun shadows: everything lit casts and receives, except flat ground layers and see-through decals.
+  setupShadows() {
+    this.sun = null;
+    this.scene.traverse((o) => {
+      if (o.isDirectionalLight) this.sun = o;
+      if (!o.isMesh && !o.isInstancedMesh) return;
+      const m = Array.isArray(o.material) ? o.material[0] : o.material;
+      if (!m || !(m.isMeshLambertMaterial || m.isMeshStandardMaterial || m.isMeshPhongMaterial)) return;
+      o.receiveShadow = true;
+      o.castShadow = !m.transparent && !(o.renderOrder <= -6);
+    });
+    if (this.sun) {
+      const sh = this.sun.shadow;
+      sh.mapSize.set(2048, 2048); sh.camera.left = -75; sh.camera.right = 75; sh.camera.top = 75; sh.camera.bottom = -75; sh.camera.near = 1; sh.camera.far = 700;
+      sh.bias = -0.0006; sh.normalBias = 0.06;
+      this.scene.add(this.sun.target);
+      this.sun.castShadow = this.quality >= 2;
+    }
   }
 
   // Build (or rebuild) a level: fresh scene, colliders, spawn data, particle pool.
@@ -56,6 +92,10 @@ export class Game {
     this.level = LEVELS[i].build(this.scene);
     this.boxes = this.level.boxes;
     this.makeParticlePool();
+    this.setupShadows();
+    this.decals = new Decals(this.scene);
+    this.setupLights();
+    if (this.post) this.post.setScene(this.scene);
     this.reset();
   }
   get levelCount() { return LEVELS.length; }
@@ -74,6 +114,8 @@ export class Game {
 
   reset() {
     this.clearEntities();
+    if (this.decals) this.decals.clear();
+    for (const d of this.dlights || []) { d.owner = null; d.t = 0; d.l.intensity = 0; }
     const L = this.level, st = L.start;
     this.p = {
       x: st.x, y: 0, z: st.z, vx: 0, vz: 0, vy: 0, yaw: st.yaw || 0, pitch: 0, grounded: true,
@@ -96,6 +138,7 @@ export class Game {
     this.camera.aspect = w / h;
     this.camera.updateProjectionMatrix();
     this.wview.resize(w / h);
+    if (this.post) this.post.setSize(W, H);
   }
 
   setState(s) { this.state = s; if (this.ui.onState) this.ui.onState(s); }
@@ -104,6 +147,31 @@ export class Game {
   pause() { if (this.state === 'playing') this.setState('paused'); }
 
   // ---------------- particles ----------------
+  // Four reusable point lights: explosions, fire and plasma light up their surroundings.
+  setupLights() {
+    this.dlights = [];
+    for (let i = 0; i < 4; i++) {
+      const l = new THREE.PointLight(0xffffff, 0, 36, 2);
+      this.scene.add(l);
+      this.dlights.push({ l, t: 0, dur: 1, peak: 0, owner: null });
+    }
+  }
+  acquireLight() {
+    let best = null;
+    for (const d of this.dlights) { if (d.owner) continue; if (d.t <= 0) return d; if (!best || d.t < best.t) best = d; }
+    return best;
+  }
+  flash(x, y, z, color, peak, dur) {
+    const d = this.acquireLight(); if (!d) return;
+    d.l.color.set(color); d.l.position.set(x, y, z); d.peak = peak; d.dur = dur; d.t = dur;
+  }
+  updateLights(dt) {
+    for (const d of this.dlights) {
+      if (d.owner) continue;
+      if (d.t > 0) { d.t -= dt; d.l.intensity = d.peak * Math.max(0, d.t) / d.dur; } else d.l.intensity = 0;
+    }
+  }
+
   makeParticlePool() {
     const geo = new THREE.BoxGeometry(1, 1, 1);
     this.pmats = {
@@ -125,11 +193,11 @@ export class Game {
     this.pIdx = 0;
     // soft sprite particles for fire and smoke
     const sp = (tint, additive) => new THREE.SpriteMaterial({ map: makePlasmaTexture(tint), blending: additive ? THREE.AdditiveBlending : THREE.NormalBlending, depthWrite: false, transparent: true });
-    this.smats = { flameY: sp('orange', true), flameR: sp('orange', true), smoke: null, fire: sp('orange', true) };
+    this.smats = { flameY: sp('orange', true), flameR: sp('orange', true), smoke: null, fire: sp('orange', true), spark: sp('orange', true) };
     const smokeTex = makePlasmaTexture('orange');
     this.smats.smoke = new THREE.SpriteMaterial({ map: smokeTex, color: 0x302c28, depthWrite: false, transparent: true });
     this.sprites = [];
-    for (let i = 0; i < 140; i++) {
+    for (let i = 0; i < 260; i++) {
       const m = new THREE.Sprite(this.smats.fire.clone()); m.visible = false; this.scene.add(m);
       this.sprites.push({ m, life: 0, max: 1, vx: 0, vy: 0, vz: 0, size: 0.3, grav: 0, kind: 'fire' });
     }
@@ -145,8 +213,11 @@ export class Game {
       p.life = 0.35 + Math.random() * 0.35; p.grav = 12;
     }
   }
+  sparks(x, y, z, n, speed = 5, nx = 0, ny = 0.3, nz = 0) {
+    for (let i = 0; i < n; i++) this.emit(x, y, z, 'spark', nx * speed * 0.6 + (Math.random() - 0.5) * speed, ny * speed + Math.random() * speed * 0.7, nz * speed * 0.6 + (Math.random() - 0.5) * speed, 0.25 + Math.random() * 0.3, 0.16 + Math.random() * 0.12, 16);
+  }
   emit(x, y, z, kind, vx, vy, vz, life, size, grav = 12) {
-    if (kind === 'flameY' || kind === 'flameR' || kind === 'smoke' || kind === 'fire') {
+    if (kind === 'flameY' || kind === 'flameR' || kind === 'smoke' || kind === 'fire' || kind === 'spark') {
       const q = this.sprites[this.sIdx++ % this.sprites.length], base = this.smats[kind];
       q.m.material.map = base.map; q.m.material.blending = base.blending; q.m.material.color.copy(base.color);
       q.m.material.needsUpdate = true;
@@ -167,7 +238,7 @@ export class Game {
       const u = q.life / q.max;
       q.vy -= q.grav * dt;
       q.m.position.x += q.vx * dt; q.m.position.y += q.vy * dt; q.m.position.z += q.vz * dt;
-      q.m.scale.setScalar(q.size * (q.kind === 'smoke' ? 0.6 + (1 - u) * 1.2 : 0.35 + u * 0.65));
+      q.m.scale.setScalar(q.size * (q.kind === 'smoke' ? 0.6 + (1 - u) * 1.2 : q.kind === 'spark' ? 0.25 + u * 0.75 : 0.35 + u * 0.65));
       q.m.material.opacity = q.kind === 'smoke' ? 0.55 * u : Math.min(1, u * 1.5);
     }
     for (const p of this.particles) {
@@ -343,9 +414,19 @@ export class Game {
       }
       const hit = this.hitscan(o, d, this.level.range);
       const pt = o.clone().addScaledVector(d, hit.t);
-      if (hit.enemy) this.damageEnemy(hit.enemy, w.damage, pt);
-      else if (hit.t < this.level.range) this.burst(pt.x - d.x * 0.1, pt.y, pt.z - d.z * 0.1, 'dust', 3, 2.2, 0.08);
+      if (hit.enemy) this.damageEnemy(hit.enemy, w.damage, pt, false, d);
+      else if (hit.t < this.level.range) this.impact(pt, hit, d, i < 6);
     }
+  }
+
+  // bullet hit a wall / the ground: dust, sparks and (a few) bullet holes
+  impact(pt, hit, d, mark = true) {
+    this.burst(pt.x - d.x * 0.1, pt.y, pt.z - d.z * 0.1, 'dust', 2, 2.2, 0.08);
+    if (!hit.n) return;
+    this.sparks(pt.x, pt.y, pt.z, hit.ground ? 2 : 3, 4, hit.n.x, hit.n.y, hit.n.z);
+    if (mark && !hit.invisible) this.decals.add('bullet', pt, hit.n, 0.16 + Math.random() * 0.08);
+    if (this.windows) this.shatterWindowsNear(pt, 0.9);
+    if (this.props) this.hitProps(pt, 12);
   }
 
   // muzzle position in the world (right hand side, slightly low)
@@ -370,6 +451,7 @@ export class Game {
   fireFlame(w) {
     const { dir, right, up } = this.basis(), eye = this.eye();
     const o = this.muzzlePos(0.9);
+    this.flash(o.x + dir.x * 2, o.y + dir.y * 2, o.z + dir.z * 2, 0xff8a30, 120, 0.12);
     const wall = this.hitscan(eye, dir, w.range).t;
     const reach = Math.min(w.range, wall);
     for (let i = 0; i < 3; i++) {
@@ -406,27 +488,54 @@ export class Game {
     this.scene.add(mesh);
     this.fx.push({ obj: mesh, t: 0.4, dur: 0.4, kind: 'beam' });
     for (let i = 0; i < 14; i++) { const q = a.clone().lerp(end, Math.random()); this.emit(q.x, q.y, q.z, 'blue', (Math.random() - 0.5) * 2, Math.random() * 2, (Math.random() - 0.5) * 2, 0.4, 0.08, 0); }
-    if (wall < 200) this.burst(end.x, end.y, end.z, 'blue', 8, 4, 0.12);
+    if (wall < 200) { this.burst(end.x, end.y, end.z, 'blue', 8, 4, 0.12); this.sparks(end.x, end.y, end.z, 14, 7, 0, 0.4, 0); const h = this.hitscan(eye, dir, 200); if (h.n && !h.invisible) this.decals.add('scorch', end, h.n, 1.3); }
+    this.flash(a.x + dir.x * 3, a.y + dir.y * 3, a.z + dir.z * 3, 0x7ad0ff, 90, 0.18);
   }
 
-  explode(x, y, z, R, dmg, tint = 'boom') {
+  explode(x, y, z, R, dmg, tint = 'boom', wall = null) {
     sfx.explosion();
     const s = new THREE.Sprite(this.shotMats[tint].clone());
     s.position.set(x, y + 0.3, z); s.scale.setScalar(R * 0.5); this.scene.add(s);
     this.fx.push({ obj: s, t: 0.45, dur: 0.45, kind: 'boom', size: R * 2.2 });
     const kind = tint === 'boomGreen' ? 'plasma' : tint === 'boomBlue' ? 'blue' : 'fire';
     this.burst(x, y + 0.4, z, kind, 14, R * 1.6, 0.12);
-    if (tint === 'boom') for (let i = 0; i < 10; i++) this.emit(x + (Math.random() - 0.5), y + 0.4, z + (Math.random() - 0.5), 'smoke', (Math.random() - 0.5) * R, 1 + Math.random() * 2, (Math.random() - 0.5) * R, 1.2 + Math.random() * 0.6, 0.9 + Math.random() * 0.6, -0.5);
+    this.sparks(x, y + 0.4, z, tint === 'boom' ? 22 : 10, R * 2.2, 0, 0.6, 0);
+    if (tint === 'boom') for (let i = 0; i < 12; i++) this.emit(x + (Math.random() - 0.5), y + 0.4, z + (Math.random() - 0.5), 'smoke', (Math.random() - 0.5) * R, 1 + Math.random() * 2, (Math.random() - 0.5) * R, 1.4 + Math.random() * 0.7, 1.0 + Math.random() * 0.7, -0.5);
+    this.flash(x, y + 0.6, z, tint === 'boomBlue' ? 0x70b8ff : tint === 'boomGreen' ? 0x70ff90 : 0xffa040, tint === 'boomBlue' ? 110 : 300, 0.45);
+    // scorch marks on the ground and on the wall that was hit
+    if (y < R * 1.2) this.decals.add('scorch', { x, y: 0, z }, { x: 0, y: 1, z: 0 }, Math.min(8, R * 1.7));
+    if (wall && !wall.invisible) this.decals.add('scorch', wall.pt, wall.n, Math.min(6, R * 1.3));
     this.p.kick += Math.max(0, 0.06 * (1 - Math.hypot(x - this.p.x, z - this.p.z) / (R * 5)));
     for (const e of this.enemies) {
       if (!ALIVE.has(e.state) || e.state === 'spawn') continue;
       const d = Math.hypot(e.x - x, (1.2 - y) * 0.6, e.z - z);
       if (d > R + 0.6) continue;
       const f = 1 - d / (R + 0.6);
-      this.damageEnemy(e, dmg * (0.3 + 0.7 * f), new THREE.Vector3(e.x, 1.2, e.z));
+      this.damageEnemy(e, dmg * (0.3 + 0.7 * f), new THREE.Vector3(e.x, 1.2, e.z), false, null);
+      this.knock(e, e.x - x, e.z - z, tint === 'boomBlue' ? 4 * f : 16 * f + 4);
     }
+    if (this.props) this.blastProps(x, y, z, R, dmg);
+    if (this.windows) this.shatterWindowsNear({ x, y, z }, R * 1.5);
     const dp = Math.hypot(this.p.x - x, this.p.y + 1 - y, this.p.z - z);
     if (dp < R && tint !== 'boomBlue') this.hurt(Math.min(35, dmg * 0.25 * (1 - dp / R)));
+  }
+
+  // which face of a collider is (x,z) closest to? (for putting a scorch on the wall a rocket hit)
+  wallHit(x, y, z) {
+    let best = null, bd = 1.2;
+    for (const b of this.boxes) {
+      if (y > b.h + 0.5 || x < b.x0 - 1.2 || x > b.x1 + 1.2 || z < b.z0 - 1.2 || z > b.z1 + 1.2) continue;
+      for (const [d, nx, nz, px, pz] of [[Math.abs(x - b.x0), -1, 0, b.x0, z], [Math.abs(x - b.x1), 1, 0, b.x1, z], [Math.abs(z - b.z0), 0, -1, x, b.z0], [Math.abs(z - b.z1), 0, 1, x, b.z1]]) {
+        if (d < bd && (nx ? z >= b.z0 - 0.5 && z <= b.z1 + 0.5 : x >= b.x0 - 0.5 && x <= b.x1 + 0.5)) { bd = d; best = { pt: { x: px, y, z: pz }, n: { x: nx, y: 0, z: nz }, invisible: b.vis === false }; }
+      }
+    }
+    return best;
+  }
+
+  // knock a lizard back (it slides and decays)
+  knock(e, dx, dz, power) {
+    const l = Math.hypot(dx, dz) || 1;
+    e.kx = (e.kx || 0) + (dx / l) * power; e.kz = (e.kz || 0) + (dz / l) * power;
   }
 
   updatePShots(dt) {
@@ -455,8 +564,15 @@ export class Game {
         if (!ALIVE.has(e.state) || e.state === 'spawn') continue;
         if (Math.hypot(q.x - e.x, q.z - e.z) < 0.75 && q.y > 0 && q.y < 2.5) { boom = true; break; }
       }
+      // glow around fast shots
+      if (S.type !== 'grenade') {
+        if (!q.dl) { q.dl = this.acquireLight(); if (q.dl) { q.dl.owner = q; q.dl.l.color.set(S.type === 'plasma' ? 0x60b0ff : S.type === 'bfg' ? 0x60ff80 : 0xff9a30); q.dl.l.intensity = S.type === 'bfg' ? 260 : S.type === 'plasma' ? 70 : 150; } }
+        if (q.dl) q.dl.l.position.set(q.x, q.y, q.z);
+      }
       if (boom) {
-        this.explode(q.x, q.y, q.z, S.radius, S.damage, S.type === 'plasma' ? 'boomBlue' : S.type === 'bfg' ? 'boomGreen' : 'boom');
+        if (q.dl) { q.dl.owner = null; q.dl.t = 0; q.dl.l.intensity = 0; }
+        const wall = S.type === 'grenade' ? null : this.wallHit(q.x, q.y, q.z);
+        this.explode(q.x, q.y, q.z, S.radius, S.damage, S.type === 'plasma' ? 'boomBlue' : S.type === 'bfg' ? 'boomGreen' : 'boom', wall);
         this.scene.remove(q.obj); this.pshots.splice(i, 1);
       }
     }
@@ -489,12 +605,13 @@ export class Game {
   }
 
   hitscan(o, d, range) {
-    let best = { t: range, enemy: null };
-    for (const b of this.boxes) { const t = rayBox(o, d, b); if (t < best.t) best = { t, enemy: null }; }
+    let best = { t: range, enemy: null, n: null, ground: false, invisible: false };
+    for (const b of this.boxes) { const h = rayBoxN(o, d, b); if (h && h.t < best.t) best = { t: h.t, enemy: null, n: { x: h.nx, y: h.ny, z: h.nz }, ground: false, invisible: b.vis === false }; }
+    if (d.y < -1e-4) { const tg = -o.y / d.y; if (tg > 0 && tg < best.t) best = { t: tg, enemy: null, n: { x: 0, y: 1, z: 0 }, ground: true, invisible: false }; }
     for (const e of this.enemies) {
       if (!ALIVE.has(e.state) || e.state === 'spawn') continue;
       const t = rayCyl(o, d, e.x, e.z, 0.6, 0, 2.3);
-      if (t < best.t) best = { t, enemy: e };
+      if (t < best.t) best = { t, enemy: e, n: null, ground: false, invisible: false };
     }
     return best;
   }
@@ -535,9 +652,11 @@ export class Game {
   }
   aliveCount() { let n = 0; for (const e of this.enemies) if (ALIVE.has(e.state)) n++; return n; }
 
-  damageEnemy(e, dmg, pt, quiet = false) {
+  damageEnemy(e, dmg, pt, quiet = false, dir = null) {
     if (!ALIVE.has(e.state) || e.state === 'spawn') return;
     e.hp -= dmg;
+    if (dir) this.knock(e, dir.x, dir.z, Math.min(5, dmg * 0.09));
+    if (!quiet && Math.random() < 0.55) this.decals.add('blood', { x: e.x + (Math.random() - 0.5) * 1.4, y: 0, z: e.z + (Math.random() - 0.5) * 1.4 }, { x: 0, y: 1, z: 0 }, 0.45 + Math.random() * 0.6);
     this.burst(pt.x, pt.y, pt.z, quiet ? 'fire' : 'green', quiet ? 2 : 5, 3.2, 0.12);
     if (!quiet) sfx.hit();
     if (e.hp <= 0) this.killEnemy(e);
@@ -545,6 +664,8 @@ export class Game {
   }
   killEnemy(e) {
     e.state = 'dying'; e.deadT = 0; this.stats.kills++; sfx.lizardDie();
+    this.decals.add('blood', { x: e.x, y: 0, z: e.z }, { x: 0, y: 1, z: 0 }, 1.7 + Math.random() * 0.8);
+    for (let k = 0; k < 3; k++) this.decals.add('blood', { x: e.x + (Math.random() - 0.5) * 2.6, y: 0, z: e.z + (Math.random() - 0.5) * 2.6 }, { x: 0, y: 1, z: 0 }, 0.5 + Math.random() * 0.7);
     this.burst(e.x, 1.2, e.z, 'green', 14, 4.5, 0.16);
     e.shadow.visible = false;
     if (Math.random() < 0.4) {
@@ -728,6 +849,7 @@ export class Game {
     this.updateProjectiles(dt);
     this.updatePShots(dt);
     this.updateFx(dt);
+    this.updateLights(dt);
     this.updatePickups(dt);
     this.updateParticles(dt);
     this.messageT = Math.max(0, this.messageT - dt);
@@ -739,8 +861,12 @@ export class Game {
     cam.position.set(p.x, p.y + EYE + bobY, p.z);
     cam.rotation.set(p.pitch + p.kick, p.yaw, p.roll + Math.sin(p.bob) * 0.006 * p.bobAmp);
     this.level.update(this.state === 'playing' ? 1 / 60 : 0, this.time, cam.position);
-    this.renderer.clear();
-    this.renderer.render(this.scene, cam);
+    // keep the sun's shadow window centred on the player (snapped so shadows don't shimmer)
+    if (this.sun && this.quality >= 2) {
+      const sx = Math.round(p.x / 1.5) * 1.5, sz = Math.round(p.z / 1.5) * 1.5;
+      this.sun.target.position.set(sx, 0, sz);
+      this.sun.position.set(sx, 0, sz).addScaledVector(this.sunDir || (this.sunDir = this.sun.position.clone().normalize()), 300);
+    }
 
     // weapon viewmodel: separate 3D scene drawn on top of the world
     const sw = p.switching, lower = sw <= 0 ? 0 : sw < 1 ? sw : 2 - sw;
@@ -749,8 +875,13 @@ export class Game {
       id: w.id === 'sabre' ? 'sabre' : w.id, bob: p.bob, bobAmp: p.bobAmp, flash: p.flash, swing: p.swing, shotN: p.shotN, spin: p.spin, lower,
       since: p.since, firing: p.firing,
     });
-    this.renderer.clearDepth();
-    this.renderer.render(this.wview.scene, this.wview.camera);
+    if (this.post && this.quality >= 1) this.post.render();
+    else {
+      this.renderer.clear();
+      this.renderer.render(this.scene, cam);
+      this.renderer.clearDepth();
+      this.renderer.render(this.wview.scene, this.wview.camera);
+    }
     this.updateHud();
   }
 

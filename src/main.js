@@ -86,6 +86,7 @@ window.addEventListener('keydown', (e) => {
   game.keys.add(e.code);
   if (game.state === 'playing' && /^Digit[1-9]$/.test(e.code)) game.selectSlot(Number(e.code.slice(5)));
   if (game.state === 'playing' && e.code === 'KeyQ') game.cycleWeapon(-1);
+  if (e.code === 'KeyG') game.setMessage(`GRAPHICS: ${game.cycleQuality()}`, 2);
   if (e.code === 'KeyM' && music) game.setMessage(music.toggleMute() ? 'MUSIC OFF' : 'MUSIC ON', 1.5);
   if ((game.state === 'dead' || game.state === 'won') && e.code === 'Enter') start();
 });
