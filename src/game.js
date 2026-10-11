@@ -26,6 +26,7 @@ export class Game {
     this.camera.rotation.order = 'YXZ';
     this.liz = makeLizardTextures();
     this.pickTex = makePickupTextures();
+    for (const [id, t] of Object.entries(this.wview.renderIcons(this.renderer))) this.pickTex['w_' + id] = t;
     const spriteMat = (tint) => new THREE.SpriteMaterial({ map: makePlasmaTexture(tint), blending: THREE.AdditiveBlending, depthWrite: false, fog: false });
     this.plasmaMat = spriteMat('green');                       // lizard spit
     this.shotMats = { rocket: spriteMat('orange'), plasma: spriteMat('blue'), bfg: spriteMat('green'), boom: spriteMat('orange'), boomBlue: spriteMat('blue'), boomGreen: spriteMat('green') };
@@ -181,12 +182,11 @@ export class Game {
   // ---------------- pickups ----------------
   addPickup(type, x, z) {
     const weapon = type.startsWith('w_');
-    const size = weapon ? 1.1 : 0.8;
-    const mesh = new THREE.Mesh(new THREE.PlaneGeometry(size, size), new THREE.MeshBasicMaterial({ map: this.pickTex[type], transparent: true, alphaTest: 0.5, side: THREE.DoubleSide }));
+    const mesh = new THREE.Mesh(weapon ? new THREE.PlaneGeometry(2.3, 1.15) : new THREE.PlaneGeometry(0.8, 0.8), new THREE.MeshBasicMaterial({ map: this.pickTex[type], transparent: true, alphaTest: 0.4, side: THREE.DoubleSide }));
     mesh.position.set(x, 0.7, z);
     this.scene.add(mesh);
-    const glow = new THREE.Mesh(new THREE.CircleGeometry(0.45, 10), new THREE.MeshBasicMaterial({ color: weapon ? 0xffd060 : 0xffffff, transparent: true, opacity: 0.25, depthWrite: false }));
-    glow.rotation.x = -Math.PI / 2; glow.position.set(0, -0.65, 0); mesh.add(glow);
+    const glow = new THREE.Mesh(new THREE.CircleGeometry(weapon ? 0.9 : 0.45, 14), new THREE.MeshBasicMaterial({ color: weapon ? 0xffd060 : 0xffffff, transparent: true, opacity: 0.25, depthWrite: false }));
+    glow.rotation.x = -Math.PI / 2; glow.position.set(0, weapon ? -0.8 : -0.65, 0); mesh.add(glow);
     this.pickups.push({ type, mesh, x, z, t: Math.random() * 6 });
   }
   updatePickups(dt) {
@@ -194,7 +194,7 @@ export class Game {
     for (let i = this.pickups.length - 1; i >= 0; i--) {
       const k = this.pickups[i];
       k.t += dt;
-      k.mesh.position.y = 0.75 + Math.sin(k.t * 3) * 0.1;
+      k.mesh.position.y = (k.type.startsWith('w_') ? 0.95 : 0.75) + Math.sin(k.t * 3) * 0.1;
       k.mesh.rotation.y = Math.atan2(this.camera.position.x - k.x, this.camera.position.z - k.z);
       if (Math.hypot(p.x - k.x, p.z - k.z) < 1.1 && this.collect(k.type)) {
         this.scene.remove(k.mesh); this.pickups.splice(i, 1); sfx.pickup();

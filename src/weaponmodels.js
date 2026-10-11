@@ -65,6 +65,7 @@ function arm(M, wrist, dir, len = 0.5, r = 0.03) {
   g.add(limb(wrist, P(0.06), r * 0.85, r * 0.9, M.skin));
   g.add(limb(P(0.06), P(0.085), r * 1.12, r * 1.12, M.cuff));
   g.add(limb(P(0.085), P(len), r * 1.2, r * 1.5, M.sleeve));
+  g.userData.skip = true;
   return g;
 }
 // back of a hand with knuckles gripping something (no finger sausages)
@@ -72,6 +73,7 @@ function hand(M, x, y, z, w = 0.058, h = 0.044, d = 0.085) {
   const g = new THREE.Group();
   const back = rbox(w, h, d, 0.016, M.skin); back.position.set(x, y, z); g.add(back);
   for (let i = 0; i < 4; i++) g.add(sphere(w * 0.15, M.skin, x - w * 0.36 + i * (w * 0.24), y - h * 0.1, z - d * 0.5));
+  g.userData.skip = true;
   return g;
 }
 function glowSprite(texName, tint) {
@@ -341,8 +343,8 @@ function buildSabre(M) {
   const grip = new THREE.Mesh(new THREE.CylinderGeometry(0.0145, 0.0125, 0.12, 12), M.leather); grip.position.y = -0.05; g.add(grip);
   for (let i = 0; i < 8; i++) { const t = at(new THREE.Mesh(new THREE.TorusGeometry(0.0138, 0.0013, 4, 12), M.dark), 0, -0.1 + i * 0.0135, 0); t.rotation.x = Math.PI / 2; g.add(t); }
   g.add(sphere(0.0165, M.brass, 0, -0.118, 0));
-  const fist = rbox(0.042, 0.065, 0.048, 0.015, M.skin); fist.position.set(0.0, -0.05, 0.005); g.add(fist);
-  for (let i = 0; i < 4; i++) g.add(sphere(0.0095, M.skin, 0.0, -0.025 - i * 0.0135, -0.022));
+  const fist = rbox(0.042, 0.065, 0.048, 0.015, M.skin); fist.position.set(0.0, -0.05, 0.005); fist.userData.skip = true; g.add(fist);
+  for (let i = 0; i < 4; i++) { const f = sphere(0.0095, M.skin, 0.0, -0.025 - i * 0.0135, -0.022); f.userData.skip = true; g.add(f); }
   g.add(arm(M, [0.0, -0.1, 0.01], [0.15, -0.55, 0.82], 0.6, 0.028));
   g.scale.setScalar(0.72);
   const muzzle = new THREE.Object3D(); muzzle.position.set(0.05, 0.82, 0); g.add(muzzle);
@@ -368,6 +370,7 @@ export class WeaponView {
     this.scene.add(new THREE.AmbientLight(0xa08c80, 0.5));
     const key = new THREE.DirectionalLight(0xffcf9a, 2.2); key.position.set(-0.6, 1, 0.7); this.scene.add(key);
     const rim = new THREE.DirectionalLight(0x7f8fc0, 0.9); rim.position.set(0.8, 0.3, -0.5); this.scene.add(rim);
+    this.key = key;
     this.light = new THREE.PointLight(0xffa040, 0, 1.2); this.scene.add(this.light);
     const M = makeMaterials();
     this.M = M;
@@ -403,6 +406,40 @@ export class WeaponView {
       }
       m.root.visible = false;
     }
+  }
+  // Little side-view pictures of each weapon (no hands) for the pickups lying in the world.
+  renderIcons(renderer, W = 256, H = 128) {
+    const out = {}, cam = new THREE.PerspectiveCamera(20, W / H, 0.01, 20);
+    const prevRT = renderer.getRenderTarget(), prevClear = new THREE.Color(), prevAlpha = renderer.getClearAlpha();
+    renderer.getClearColor(prevClear);
+    const keyPos = this.key.position.clone(); this.key.position.set(0.7, 1, 0.6);
+    const skipped = (o) => { for (; o; o = o.parent) if (o.userData && o.userData.skip) return true; return false; };
+    const sprites = [];
+    this.scene.traverse((o) => { if (o.isSprite && o.visible) { sprites.push(o); o.visible = false; } });
+    const savedVis = Object.fromEntries(Object.entries(this.models).map(([id, m]) => [id, m.root.visible]));
+    for (const [id, m] of Object.entries(this.models)) {
+      if (id === 'sabre') continue;
+      for (const o of Object.values(this.models)) o.root.visible = o === m;
+      m.root.position.set(0, 0, 0); m.root.rotation.set(0, 0, 0); m.root.updateMatrixWorld(true);
+      const hidden = [], box = new THREE.Box3();
+      m.group.traverse((o) => { if (o.userData && o.userData.skip && o.visible) { o.visible = false; hidden.push(o); } });
+      m.group.traverse((o) => { if (o.isMesh && o.visible && !skipped(o) && o.parent.visible !== false) box.union(new THREE.Box3().setFromObject(o)); });
+      const c = box.getCenter(new THREE.Vector3()), size = box.getSize(new THREE.Vector3());
+      const dir = new THREE.Vector3(1, 0.32, 0.5).normalize();
+      const dist = Math.max(size.z * 1.55, size.y * 3.2, 0.5);
+      cam.position.copy(c).addScaledVector(dir, dist); cam.lookAt(c); cam.updateMatrixWorld(true);
+      const rt = new THREE.WebGLRenderTarget(W, H, { minFilter: THREE.NearestFilter, magFilter: THREE.NearestFilter, generateMipmaps: false });
+      rt.texture.colorSpace = THREE.SRGBColorSpace;
+      renderer.setRenderTarget(rt); renderer.setClearColor(0x000000, 0); renderer.clear();
+      renderer.render(this.scene, cam);
+      out[id] = rt.texture;
+      for (const o of hidden) o.visible = true;
+    }
+    renderer.setRenderTarget(prevRT); renderer.setClearColor(prevClear, prevAlpha);
+    this.key.position.copy(keyPos);
+    for (const sp of sprites) sp.visible = true;
+    for (const [id, m] of Object.entries(this.models)) m.root.visible = savedVis[id];
+    return out;
   }
   resize(aspect) { this.camera.aspect = aspect; this.camera.updateProjectionMatrix(); this.align(); }
 
