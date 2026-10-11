@@ -1,6 +1,8 @@
 // Tiny WebAudio synth. Everything is generated at runtime; no audio files.
 let ctx = null, master = null, noiseBuffer = null;
 
+export function getAudio() { return ctx ? { ctx, master } : null; }
+
 export function initAudio() {
   if (ctx) { if (ctx.state === 'suspended') ctx.resume(); return; }
   const AC = window.AudioContext || window.webkitAudioContext;

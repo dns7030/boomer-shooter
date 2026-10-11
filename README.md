@@ -26,6 +26,7 @@ Open <http://localhost:8000> and click **PLAY**. (A local server is required: br
 | Shift | run |
 | 1–9 | weapon slot (press again to cycle weapons in the slot) |
 | Mouse wheel, Q | previous / next weapon |
+| M | music on / off |
 | Esc | pause |
 
 ## Weapons
@@ -55,6 +56,12 @@ No weapon ever covers the crosshair (the headless test checks that).
 
 Pick a level from the title screen; clearing one offers the next.
 
+## Music
+
+Procedural techno generated live in the browser (`src/music.js`): kick, hats, clap, bass line, arpeggio, pad and stabs. The layers fade in
+and out with the fight intensity (lizards alive, damage taken), so exploring is calm and fights are driving but friendly.
+Each level has its own key, tempo and chord progression. `npm test` renders it offline and checks it is audible and not clipping.
+
 ## Layout
 
 ```
@@ -71,7 +78,8 @@ src/textures.js   procedural tileable textures
 src/sprites.js    lizard / pickup / plasma sprites
 src/weapons.js    weapon stats and ammo
 src/weaponmodels.js  first-person weapons (3D models in their own scene, auto-aligned off the crosshair)
-src/audio.js      WebAudio synth sound
+src/audio.js      WebAudio synth sound effects
+src/music.js      procedural techno that follows the fight
 tests/            headless-Chromium smoke test (npm test) and screenshot helpers
 ```
 

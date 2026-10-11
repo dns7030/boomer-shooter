@@ -1,5 +1,6 @@
 import { Game } from './game.js';
-import { initAudio } from './audio.js';
+import { initAudio, getAudio } from './audio.js';
+import { createMusic } from './music.js';
 import { WEAPONS } from './weapons.js';
 import { LEVELS } from './levels.js';
 
@@ -17,6 +18,13 @@ const game = new Game({
 });
 window.__game = game; // handy for debugging and the headless smoke test
 window.__weapons = WEAPONS;
+
+let music = null;
+function ensureMusic() {
+  const a = getAudio();
+  if (a && !music) { music = createMusic(a.ctx, a.master); window.__music = music; }
+  return music;
+}
 
 const levelBox = $('levels');
 function renderLevels(show) {
@@ -36,6 +44,7 @@ function showOverlay(s) {
   overlay.style.display = s === 'playing' ? 'none' : 'flex';
   const L = LEVELS[game.levelIndex];
   renderLevels(s !== 'paused' && s !== 'playing');
+  if (music) music.setMode(s === 'playing' ? 'play' : s === 'paused' ? 'pause' : s === 'won' ? 'win' : s === 'dead' ? 'dead' : 'pause');
   if (s === 'paused') { title.textContent = 'PAUSED'; body.textContent = 'Click to resume.'; btn.textContent = 'RESUME'; }
   else if (s === 'dead') { title.textContent = 'YOU DIED'; body.textContent = `Lizards slain: ${game.stats.kills}. The invaders win this round.`; btn.textContent = 'TRY AGAIN'; }
   else if (s === 'won') {
@@ -54,6 +63,7 @@ function start(levelIndex) {
   }
   if (levelIndex !== undefined && (levelIndex !== game.levelIndex || game.state !== 'title')) game.loadLevel(levelIndex);
   game.begin();
+  const m = ensureMusic(); if (m) m.start(game.levelIndex);
   if (canvas.requestPointerLock) { try { const r = canvas.requestPointerLock(); if (r && r.catch) r.catch(() => {}); } catch (e) { /* ignore */ } }
 }
 $('ov-btn').addEventListener('click', () => start());
@@ -76,6 +86,7 @@ window.addEventListener('keydown', (e) => {
   game.keys.add(e.code);
   if (game.state === 'playing' && /^Digit[1-9]$/.test(e.code)) game.selectSlot(Number(e.code.slice(5)));
   if (game.state === 'playing' && e.code === 'KeyQ') game.cycleWeapon(-1);
+  if (e.code === 'KeyM' && music) game.setMessage(music.toggleMute() ? 'MUSIC OFF' : 'MUSIC ON', 1.5);
   if ((game.state === 'dead' || game.state === 'won') && e.code === 'Enter') start();
 });
 window.addEventListener('keyup', (e) => game.keys.delete(e.code));
@@ -86,6 +97,7 @@ let last = performance.now();
 function frame(now) {
   const dt = (now - last) / 1000; last = now;
   game.step(dt);
+  if (music) music.setIntensity(game.intensity());
   game.render();
   requestAnimationFrame(frame);
 }

@@ -707,6 +707,11 @@ export class Game {
       }
     }
   }
+  // 0 = quiet exploring, 1 = a big fight: drives the music layers
+  intensity() {
+    if (this.state !== 'playing') return 0;
+    return Math.min(1, (this.aliveCount() + this.wave.toSpawn.length * 0.5) / 9 + (this.p.hurt > 0 ? 0.15 : 0));
+  }
   remaining() { return this.enemies.filter((e) => ALIVE.has(e.state)).length + this.wave.toSpawn.length; }
 
   setMessage(t, secs = 2) { this.message = t; this.messageT = secs; }
