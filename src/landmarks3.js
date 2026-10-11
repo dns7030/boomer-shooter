@@ -131,7 +131,7 @@ export function bronzeHorseman() {
 export function teaHouse() {
   const g = G();
   g.add(place(boxT(11, 0.8, 8, mat('granite'), 2), 0, 0.4, 0));
-  g.add(place(slab(9, 5, 6, mat('stuccoPink'), roofM(), 8), 0, 0.8 + 2.5, 0));
+  g.add(place(slab(9, 5, 6, mat('plainPink'), roofM(), 8), 0, 0.8 + 2.5, 0));
   columns(g, { n: 4, gap: 2.6, h: 4.8, r: 0.3, z: 3.6, y: 0.8 });
   const roof = new THREE.Mesh(new THREE.ConeGeometry(7, 3.6, 4), mat('ironGreen', { double: true })); roof.rotation.y = Math.PI / 4; roof.position.set(0, 0.8 + 5 + 1.8, 0); g.add(roof);
   g.add(decal('window', 1.0, 2.2, -2.5, 3.0, 3.05, { c: '#fbfaf4', lit: true })); g.add(decal('window', 1.0, 2.2, 2.5, 3.0, 3.05, { c: '#fbfaf4' })); g.add(decal('door', 1.6, 2.8, 0, 2.2, 3.06, { c: '#6a4220' }));
@@ -176,7 +176,7 @@ export function drawbridge({ len = 14, w = 16 } = {}) {
 // ---------- industrial district ----------
 export function ropeWalk() {
   const g = G(), w = 90, d = 8, h = 6.5;
-  g.add(place(slab(w, h, d, mat('stuccoTerra'), roofM(), 8), 0, h / 2, 0));
+  g.add(place(slab(w, h, d, mat('plainTerra'), roofM(), 8), 0, h / 2, 0));
   for (let x = -w / 2 + 3; x <= w / 2 - 2; x += 4.5) g.add(decal('window', 1.2, 2.0, x, 3.3, d / 2 + 0.06, { c: '#fbfaf4', lit: (x | 0) % 3 === 0 }));
   const rf = gableRoof(w + 0.6, d + 0.6, 2.6, 0.5, mat('ironGrey', { double: true }), mat('stuccoWhite', { double: true }), 3); rf.position.y = h; g.add(rf);
   g.add(place(boxT(1.2, 5, 1.2, mat('brick'), 1.5), 12, h + 3.5, -1));

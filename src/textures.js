@@ -465,6 +465,7 @@ function plainPainter(base, line, seed) {
     for (let y = 0; y < h; y += 32) for (let x = (y / 32 % 2) * 32; x < w; x += 64) R(g, x, y, 1, 32, line);
   };
 }
+Object.entries(STUCCO).forEach(([name, [base]], i) => { painters['plain' + name] = plainPainter(base, 'rgba(0,0,0,0.08)', 300 + i); });   // same colours, no painted windows (for walls that get window decals)
 Object.entries(STUCCO).forEach(([name, [base, trim]], i) => { painters['stucco' + name] = name === 'White' || name === 'Grey' ? plainPainter(name === 'White' ? '#ece8dc' : '#b3b7bb', 'rgba(0,0,0,0.10)', 200 + i) : stuccoPainter(base, trim, 200 + i); });
 Object.assign(painters, {
   rustic(g, w, h) {

@@ -142,14 +142,14 @@ export function winterPalace() {
 }
 export function admiralty() {
   const g = G(), w = 86, d = 15, h = 15;
-  g.add(place(slab(w, h, d, mat('stuccoYellow'), roofM(), 8), 0, h / 2, 0));
+  g.add(place(slab(w, h, d, mat('plainYellow'), roofM(), 8), 0, h / 2, 0));
   g.add(place(boxT(w + 1, 0.9, d + 1, mat('stuccoWhite'), 2), 0, h + 0.45, 0));
   for (let x = -w / 2 + 3; x <= w / 2 - 2; x += 4.4) g.add(decal('window', 1.4, 2.4, x, 6.5, d / 2 + 0.07, { c: '#fbfaf4', lit: (x | 0) % 3 === 0 }));
   for (let x = -w / 2 + 3; x <= w / 2 - 2; x += 4.4) g.add(decal('window', 1.4, 2.2, x, 11.6, d / 2 + 0.07, { c: '#fbfaf4' }));
   const rf = gableRoof(w + 0.6, d + 0.6, 2.4, 0.4, mat('ironGreen', { double: true }), mat('stuccoWhite', { double: true }), 3); rf.position.y = h + 0.9; g.add(rf);
-  for (const sd of [-1, 1]) { g.add(place(slab(16, h + 3, d + 3, mat('stuccoYellow'), roofM(), 8), sd * (w / 2 - 8), (h + 3) / 2, 1)); columns(g, { n: 4, gap: 3, h: 12, z: d / 2 + 2.2, x0: sd * (w / 2 - 8) - 4.5, r: 0.5 }); }
+  for (const sd of [-1, 1]) { g.add(place(slab(16, h + 3, d + 3, mat('plainYellow'), roofM(), 8), sd * (w / 2 - 8), (h + 3) / 2, 1)); columns(g, { n: 4, gap: 3, h: 12, z: d / 2 + 2.2, x0: sd * (w / 2 - 8) - 4.5, r: 0.5 }); }
   // central gate tower
-  g.add(place(slab(14, 12, 14, mat('stuccoYellow'), roofM(), 8), 0, h + 6, 1));
+  g.add(place(slab(14, 12, 14, mat('plainYellow'), roofM(), 8), 0, h + 6, 1));
   g.add(decal('arch', 7, 10, 0, 5, d / 2 + 1.1));
   g.add(place(slab(10, 9, 10, mat('stuccoWhite'), roofM(), 8), 0, h + 12 + 4.5, 1));
   columns(g, { n: 4, gap: 2.4, h: 7, z: 6.2, y: h + 12, r: 0.4 });
@@ -161,7 +161,7 @@ export function generalStaff({ wing = 34, gap = 14, d = 16 } = {}) {
   const g = G(), h = 18, total = wing * 2 + gap;
   for (const sd of [-1, 1]) {
     const x = sd * (gap / 2 + wing / 2);
-    g.add(place(slab(wing, h, d, mat('stuccoYellow'), roofM(), 8), x, h / 2, 0));
+    g.add(place(slab(wing, h, d, mat('plainYellow'), roofM(), 8), x, h / 2, 0));
     g.add(place(boxT(wing + 0.8, 0.8, d + 0.8, mat('stuccoWhite'), 2), x, h + 0.4, 0));
     for (let i = 0; i < Math.floor(wing / 4.2); i++) for (const y of [5.5, 11]) g.add(decal('window', 1.4, 2.4, x - wing / 2 + 3 + i * 4.2, y, d / 2 + 0.07, { c: '#fbfaf4', lit: (i + y) % 4 === 0 }));
     const rf = gableRoof(wing + 0.6, d + 0.6, 2, 0.4, mat('ironGreen', { double: true }), mat('stuccoWhite', { double: true }), 3); rf.position.set(x, h + 0.8, 0); g.add(rf);
@@ -192,13 +192,13 @@ export function theatre() {
 }
 export function kunstkamera() {
   const g = G(), w = 44, d = 15, h = 17;
-  g.add(place(slab(w, h, d, mat('stuccoBlue'), roofM(), 8), 0, h / 2, 0));
+  g.add(place(slab(w, h, d, mat('plainBlue'), roofM(), 8), 0, h / 2, 0));
   g.add(place(boxT(w + 1, 0.9, d + 1, mat('stuccoWhite'), 2), 0, h + 0.45, 0));
   for (let x = -w / 2 + 3; x <= w / 2 - 2; x += 4.4) for (const y of [5.8, 12]) g.add(decal('window', 1.4, 2.5, x, y, d / 2 + 0.07, { c: '#fbfaf4', lit: ((x | 0) + y) % 5 === 0 }));
   const rf = gableRoof(w + 0.6, d + 0.6, 3, 0.4, mat('ironGreen', { double: true }), mat('stuccoWhite', { double: true }), 3); rf.position.y = h + 0.9; g.add(rf);
-  g.add(place(slab(11, 12, 11, mat('stuccoBlue'), roofM(), 8), 0, h + 6, 0.5));
+  g.add(place(slab(11, 12, 11, mat('plainBlue'), roofM(), 8), 0, h + 6, 0.5));
   g.add(place(slab(8, 7, 8, mat('stuccoWhite'), roofM(), 8), 0, h + 12 + 3.5, 0.5));
-  g.add(place(slab(5, 5, 5, mat('stuccoBlue'), roofM(), 8), 0, h + 19 + 2.5, 0.5));
+  g.add(place(slab(5, 5, 5, mat('plainBlue'), roofM(), 8), 0, h + 19 + 2.5, 0.5));
   for (let i = 0; i < 3; i++) { const t = new THREE.Mesh(new THREE.TorusGeometry(1.6, 0.12, 6, 20), color(0xd9a62a)); t.position.set(0, h + 26, 0.5); t.rotation.set(i * 1.05, i * 0.6, 0); g.add(t); }
   g.add(place(new THREE.Mesh(new THREE.ConeGeometry(0.4, 4, 6), color(0xd9a62a)), 0, h + 29, 0.5));
   g.add(decal('door', 2.6, 3.4, 0, 1.8, d / 2 + 0.06, { c: '#4a2a18' }));
