@@ -169,7 +169,7 @@ function icon(draw) {
   return toTexture(makeCanvas(32, 32, (g) => { g.clearRect(0, 0, 32, 32); draw(g); }), false);
 }
 export function makePickupTextures() {
-  return {
+  const t = {
     kvass: icon((g) => { // jug of kvass
       R(g, 9, 8, 14, 20, '#7a4a22'); R(g, 11, 6, 10, 4, '#7a4a22'); R(g, 13, 3, 6, 4, '#c9a060'); R(g, 11, 14, 10, 8, '#e8d8a0'); R(g, 14, 16, 4, 4, '#a03020'); R(g, 9, 8, 2, 20, '#9a6a3a'); R(g, 9, 26, 14, 2, '#4a2a10');
     }),
@@ -179,20 +179,35 @@ export function makePickupTextures() {
     shot: icon((g) => { // leather shot pouch
       R(g, 8, 12, 16, 16, '#7a5230'); R(g, 10, 8, 12, 5, '#5a3a20'); R(g, 14, 6, 4, 4, '#b43a2a'); R(g, 11, 17, 3, 3, '#aaa'); R(g, 16, 20, 3, 3, '#aaa'); R(g, 19, 16, 3, 3, '#aaa'); R(g, 8, 26, 16, 2, '#3a2412');
     }),
-    w_blunder: icon((g) => { // pump shotgun
-      R(g, 2, 13, 24, 4, '#3a3f47'); R(g, 2, 13, 24, 1, '#7d8590'); R(g, 6, 18, 12, 4, '#6a4426'); R(g, 6, 18, 12, 1, '#a8672e'); R(g, 20, 15, 8, 6, '#2a2d33'); R(g, 26, 14, 5, 10, '#6a4426'); R(g, 22, 21, 2, 3, '#1a1c20');
+    rockets: icon((g) => { // rocket crate
+      R(g, 4, 12, 24, 14, '#4a5a34'); R(g, 4, 12, 24, 2, '#6a7a4a'); R(g, 4, 24, 24, 2, '#2a361c');
+      R(g, 8, 6, 4, 8, '#c0c4c8'); R(g, 7, 4, 6, 3, '#c0302a'); R(g, 15, 6, 4, 8, '#c0c4c8'); R(g, 14, 4, 6, 3, '#c0302a'); R(g, 22, 6, 4, 8, '#c0c4c8'); R(g, 21, 4, 6, 3, '#c0302a');
+      R(g, 9, 17, 14, 4, '#d8d4c0');
     }),
-    w_skor: icon((g) => { // chaingun
-      for (let i = 0; i < 3; i++) R(g, 1, 9 + i * 4, 17, 3, i === 1 ? '#7d8590' : '#4c525b');
-      R(g, 17, 7, 7, 14, '#2a2d33'); R(g, 17, 7, 7, 2, '#555c66'); R(g, 24, 11, 6, 8, '#6a4426'); R(g, 19, 21, 3, 6, '#1a1c20'); R(g, 8, 22, 8, 3, '#c9a040');
+    cells: icon((g) => { // plasma cell
+      R(g, 8, 6, 16, 22, '#2a3a52'); R(g, 8, 6, 16, 3, '#4a6a92'); R(g, 11, 12, 10, 12, '#2fd0ff'); R(g, 13, 14, 6, 8, '#d8fbff'); R(g, 12, 3, 8, 4, '#888');
+    }),
+    fuel: icon((g) => { // jerry can
+      R(g, 7, 8, 18, 20, '#b8352a'); R(g, 7, 8, 18, 2, '#e05a4a'); R(g, 7, 26, 18, 2, '#6a1a14'); R(g, 20, 3, 5, 6, '#8a2218'); R(g, 11, 14, 8, 8, '#e8d8a0'); R(g, 13, 16, 4, 4, '#222');
     }),
   };
+  const crate = (label, tint) => icon((g) => {
+    R(g, 3, 8, 26, 18, tint); R(g, 3, 8, 26, 3, 'rgba(255,255,255,0.25)'); R(g, 3, 23, 26, 3, 'rgba(0,0,0,0.35)');
+    R(g, 3, 8, 3, 18, 'rgba(0,0,0,0.25)'); R(g, 26, 8, 3, 18, 'rgba(0,0,0,0.25)');
+    g.fillStyle = '#f0e8c8'; g.font = 'bold 13px Arial'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(label, 16, 18);
+    R(g, 12, 3, 8, 6, '#d9a62a'); R(g, 14, 4, 4, 4, '#222');
+  });
+  const tints = { shotgun: '#6a4426', ssg: '#6a4426', chaingun: '#3a4452', rocket: '#4a5a34', grenade: '#4a5a34', plasma: '#27527a', flamer: '#8a3a22', rail: '#4a3a6a', bfg: '#2f6a3a' };
+  const labels = { shotgun: '3', ssg: '3+', chaingun: '4', rocket: '5', grenade: '5+', plasma: '6', flamer: '7', rail: '8', bfg: '9' };
+  for (const id of Object.keys(tints)) t['w_' + id] = crate(labels[id], tints[id]);
+  return t;
 }
 
-export function makePlasmaTexture() {
+export function makePlasmaTexture(tint = 'green') {
   const c = makeCanvas(32, 32, (g) => {
     const grd = g.createRadialGradient(16, 16, 1, 16, 16, 15);
-    grd.addColorStop(0, '#f0fff0'); grd.addColorStop(0.35, '#6bff7a'); grd.addColorStop(0.7, 'rgba(40,200,70,0.55)'); grd.addColorStop(1, 'rgba(40,200,70,0)');
+    const C = { green: ['#f0fff0', '#6bff7a', 'rgba(40,200,70,0.55)', 'rgba(40,200,70,0)'], blue: ['#f4fdff', '#6fd8ff', 'rgba(40,140,230,0.55)', 'rgba(40,140,230,0)'], orange: ['#fff6d0', '#ffb040', 'rgba(230,90,20,0.55)', 'rgba(230,90,20,0)'] }[tint];
+    grd.addColorStop(0, C[0]); grd.addColorStop(0.35, C[1]); grd.addColorStop(0.7, C[2]); grd.addColorStop(1, C[3]);
     g.fillStyle = grd; g.fillRect(0, 0, 32, 32);
   });
   return toTexture(c, false);

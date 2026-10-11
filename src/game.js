@@ -1,9 +1,9 @@
 // Core game: player, weapons, lizards, waves, pickups, rendering.
 import * as THREE from 'three';
-import { buildLevel, STREET_HALF } from './level.js';
+import { LEVELS } from './levels.js';
 import { resolveCircle, rayBox, rayCyl } from './geo.js';
-import { makeLizardTextures, makePickupTextures, makePlasmaTexture, makeBeamTexture } from './sprites.js';
-import { WEAPONS, AMMO } from './weapons.js';
+import { makeLizardTextures, makePickupTextures, makePlasmaTexture } from './sprites.js';
+import { WEAPONS, AMMO, WEAPON_INDEX, SLOTS } from './weapons.js';
 import { WeaponView } from './weaponmodels.js';
 import { sfx } from './audio.js';
 
@@ -12,12 +12,6 @@ const ENEMY = {
   grunt: { name: 'Lizard Raider', hp: 70, speed: 4.2, radius: 0.5, melee: 10, w: 2.1, h: 2.62 },
   spitter: { name: 'Lizard Spitter', hp: 45, speed: 2.6, radius: 0.5, w: 2.1, h: 2.62 },
 };
-const WAVES = [
-  { grunt: 4 },
-  { grunt: 4, spitter: 3 },
-  { grunt: 6, spitter: 5 },
-];
-const MAX_ALIVE = 8;
 const ALIVE = new Set(['spawn', 'move', 'attack', 'pain']);
 
 export class Game {
@@ -28,48 +22,70 @@ export class Game {
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     this.renderer.autoClear = false;
     this.wview = new WeaponView(this.renderer);
-    this.scene = new THREE.Scene();
-    this.camera = new THREE.PerspectiveCamera(75, 16 / 9, 0.1, 500);
+    this.camera = new THREE.PerspectiveCamera(75, 16 / 9, 0.1, 3000);
     this.camera.rotation.order = 'YXZ';
-    this.scene.add(this.camera);
-
-    this.level = buildLevel(this.scene);
-    this.boxes = this.level.boxes;
     this.liz = makeLizardTextures();
     this.pickTex = makePickupTextures();
-    this.plasmaTex = makePlasmaTexture();
-    this.plasmaMat = new THREE.SpriteMaterial({ map: this.plasmaTex, blending: THREE.AdditiveBlending, depthWrite: false, fog: false });
+    const spriteMat = (tint) => new THREE.SpriteMaterial({ map: makePlasmaTexture(tint), blending: THREE.AdditiveBlending, depthWrite: false, fog: false });
+    this.plasmaMat = spriteMat('green');                       // lizard spit
+    this.shotMats = { rocket: spriteMat('orange'), plasma: spriteMat('blue'), bfg: spriteMat('green'), boom: spriteMat('orange'), boomBlue: spriteMat('blue'), boomGreen: spriteMat('green') };
+    this.grenadeGeo = new THREE.SphereGeometry(0.13, 10, 8);
+    this.grenadeMat = new THREE.MeshLambertMaterial({ color: 0x3a4a2a });
+    this.beamMat = new THREE.MeshBasicMaterial({ color: 0x7ae0ff, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false });
     this.beamGeo = new THREE.CylinderGeometry(0.9, 0.9, 18, 14, 1, true);
     this.shadowGeo = new THREE.CircleGeometry(0.7, 12); this.shadowGeo.rotateX(-Math.PI / 2);
     this.shadowMat = new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.35, depthWrite: false });
 
-    this.makeParticlePool();
     this.keys = new Set();
     this.mouseDown = false;
     this.state = 'title';
     this.time = 0;
-    this.reset();
+    this.levelIndex = 0;
+    this.loadLevel(0);
     this.resize(canvas.clientWidth || 960, canvas.clientHeight || 540);
   }
 
+  // Build (or rebuild) a level: fresh scene, colliders, spawn data, particle pool.
+  loadLevel(i) {
+    this.clearEntities();
+    if (this.scene) this.scene.traverse((o) => { if (o.geometry) o.geometry.dispose(); });
+    this.levelIndex = i;
+    this.scene = new THREE.Scene();
+    this.scene.add(this.camera);
+    this.level = LEVELS[i].build(this.scene);
+    this.boxes = this.level.boxes;
+    this.makeParticlePool();
+    this.reset();
+  }
+  get levelCount() { return LEVELS.length; }
+
   // ---------------- setup / reset ----------------
-  reset() {
+  clearEntities() {
     for (const e of this.enemies || []) this.disposeEnemy(e);
     for (const pr of this.projectiles || []) this.scene.remove(pr.sprite);
     for (const pk of this.pickups || []) this.scene.remove(pk.mesh);
-    this.enemies = []; this.projectiles = []; this.pickups = [];
+    for (const q of this.pshots || []) this.scene.remove(q.obj);
+    for (const f of this.fx || []) this.scene.remove(f.obj);
+    this.enemies = []; this.projectiles = []; this.pickups = []; this.pshots = []; this.fx = [];
+    for (const q of this.sprites || []) { q.life = 0; q.m.visible = false; }
+    for (const q of this.particles || []) { q.life = 0; q.m.visible = false; }
+  }
+
+  reset() {
+    this.clearEntities();
+    const L = this.level, st = L.start;
     this.p = {
-      x: 0, y: 0, z: 34, vx: 0, vz: 0, vy: 0, yaw: 0, pitch: 0, grounded: true,
-      health: 100, ammo: { powder: AMMO.powder.start, shot: AMMO.shot.start },
-      unlocked: [true, true, false, false], weapon: 1, cd: 0,
+      x: st.x, y: 0, z: st.z, vx: 0, vz: 0, vy: 0, yaw: st.yaw || 0, pitch: 0, grounded: true,
+      health: 100, ammo: Object.fromEntries(Object.entries(AMMO).map(([k, v]) => [k, v.start])),
+      has: Object.fromEntries(L.startWeapons.map((id) => [id, true])), weapon: WEAPON_INDEX.pistol, cd: 0, since: 10, firing: false,
       switching: 0, switchTo: 1, flash: 0, swing: -1, pendingMelee: 0, shotN: 0,
       bob: 0, bobAmp: 0, kick: 0, hurt: 0, roll: 0, spin: 0, spinV: 0,
     };
     this.stats = { kills: 0, time: 0, shots: 0 };
-    this.wave = { index: -1, phase: 'intro', timer: 2.5, toSpawn: [], spawnTimer: 0 };
+    this.wave = { index: -1, phase: L.mode === 'waves' ? 'intro' : 'fight', timer: 2.5, toSpawn: [], spawnTimer: 0, enc: 0 };
     this.messageT = 0;
-    for (const s of this.level.pickupSpawns) this.addPickup(s.type, s.x, s.z);
-    this.setMessage('LIZARDS FROM THE SKY — HOLD THE STREET', 4);
+    for (const s of L.pickupSpawns) this.addPickup(s.type, s.x, s.z);
+    this.setMessage(L.intro, 5);
   }
 
   resize(w, h) {
@@ -83,6 +99,7 @@ export class Game {
 
   setState(s) { this.state = s; if (this.ui.onState) this.ui.onState(s); }
   begin() { if (this.state === 'dead' || this.state === 'won') this.reset(); this.setState('playing'); }
+  nextLevel() { return this.levelIndex + 1 < LEVELS.length ? this.levelIndex + 1 : null; }
   pause() { if (this.state === 'playing') this.setState('paused'); }
 
   // ---------------- particles ----------------
@@ -93,6 +110,10 @@ export class Game {
       dust: new THREE.MeshBasicMaterial({ color: 0xcdbb9a }),
       fire: new THREE.MeshBasicMaterial({ color: 0xffc040 }),
       plasma: new THREE.MeshBasicMaterial({ color: 0x8dff9d }),
+      smoke: new THREE.MeshBasicMaterial({ color: 0x555049 }),
+      flameY: new THREE.MeshBasicMaterial({ color: 0xffd860 }),
+      flameR: new THREE.MeshBasicMaterial({ color: 0xff6a20 }),
+      blue: new THREE.MeshBasicMaterial({ color: 0x8adfff }),
     };
     this.particles = [];
     for (let i = 0; i < 160; i++) {
@@ -101,6 +122,17 @@ export class Game {
       this.particles.push({ m, life: 0, vx: 0, vy: 0, vz: 0 });
     }
     this.pIdx = 0;
+    // soft sprite particles for fire and smoke
+    const sp = (tint, additive) => new THREE.SpriteMaterial({ map: makePlasmaTexture(tint), blending: additive ? THREE.AdditiveBlending : THREE.NormalBlending, depthWrite: false, transparent: true });
+    this.smats = { flameY: sp('orange', true), flameR: sp('orange', true), smoke: null, fire: sp('orange', true) };
+    const smokeTex = makePlasmaTexture('orange');
+    this.smats.smoke = new THREE.SpriteMaterial({ map: smokeTex, color: 0x302c28, depthWrite: false, transparent: true });
+    this.sprites = [];
+    for (let i = 0; i < 140; i++) {
+      const m = new THREE.Sprite(this.smats.fire.clone()); m.visible = false; this.scene.add(m);
+      this.sprites.push({ m, life: 0, max: 1, vx: 0, vy: 0, vz: 0, size: 0.3, grav: 0, kind: 'fire' });
+    }
+    this.sIdx = 0;
   }
   burst(x, y, z, kind, n, speed = 3, size = 0.1) {
     for (let i = 0; i < n; i++) {
@@ -109,15 +141,39 @@ export class Game {
       p.m.position.set(x, y, z);
       const s = size * (0.6 + Math.random() * 0.8); p.m.scale.set(s, s, s);
       p.vx = (Math.random() - 0.5) * speed; p.vy = Math.random() * speed * 0.9; p.vz = (Math.random() - 0.5) * speed;
-      p.life = 0.35 + Math.random() * 0.35;
+      p.life = 0.35 + Math.random() * 0.35; p.grav = 12;
     }
   }
+  emit(x, y, z, kind, vx, vy, vz, life, size, grav = 12) {
+    if (kind === 'flameY' || kind === 'flameR' || kind === 'smoke' || kind === 'fire') {
+      const q = this.sprites[this.sIdx++ % this.sprites.length], base = this.smats[kind];
+      q.m.material.map = base.map; q.m.material.blending = base.blending; q.m.material.color.copy(base.color);
+      q.m.material.needsUpdate = true;
+      if (kind === 'flameR') q.m.material.color.setRGB(1, 0.45, 0.2);
+      q.m.visible = true; q.m.position.set(x, y, z); q.life = q.max = life; q.vx = vx; q.vy = vy; q.vz = vz; q.size = size * 2.2; q.grav = grav; q.kind = kind;
+      q.m.scale.setScalar(q.size * 0.5);
+      return;
+    }
+    const p = this.particles[this.pIdx++ % this.particles.length];
+    p.m.material = this.pmats[kind]; p.m.visible = true; p.m.position.set(x, y, z);
+    p.m.scale.set(size, size, size); p.vx = vx; p.vy = vy; p.vz = vz; p.life = life; p.grav = grav; p.grow = 0;
+  }
   updateParticles(dt) {
+    for (const q of this.sprites) {
+      if (q.life <= 0) continue;
+      q.life -= dt;
+      if (q.life <= 0) { q.m.visible = false; continue; }
+      const u = q.life / q.max;
+      q.vy -= q.grav * dt;
+      q.m.position.x += q.vx * dt; q.m.position.y += q.vy * dt; q.m.position.z += q.vz * dt;
+      q.m.scale.setScalar(q.size * (q.kind === 'smoke' ? 0.6 + (1 - u) * 1.2 : 0.35 + u * 0.65));
+      q.m.material.opacity = q.kind === 'smoke' ? 0.55 * u : Math.min(1, u * 1.5);
+    }
     for (const p of this.particles) {
       if (p.life <= 0) continue;
       p.life -= dt;
       if (p.life <= 0) { p.m.visible = false; continue; }
-      p.vy -= 12 * dt;
+      p.vy -= (p.grav === undefined ? 12 : p.grav) * dt;
       p.m.position.x += p.vx * dt; p.m.position.y = Math.max(0.03, p.m.position.y + p.vy * dt); p.m.position.z += p.vz * dt;
     }
   }
@@ -145,28 +201,55 @@ export class Game {
       }
     }
   }
+  addAmmo(kind, n) {
+    const p = this.p, A = AMMO[kind];
+    if (p.ammo[kind] >= A.max) return false;
+    p.ammo[kind] = Math.min(A.max, p.ammo[kind] + n); return true;
+  }
   collect(type) {
     const p = this.p;
     if (type === 'kvass') { if (p.health >= 100) return false; p.health = Math.min(100, p.health + 30); this.setMessage('KVASS  +30 HEALTH'); return true; }
-    if (type === 'powder') { if (p.ammo.powder >= AMMO.powder.max) return false; p.ammo.powder = Math.min(AMMO.powder.max, p.ammo.powder + 24); this.setMessage('POWDER KEG  +24 BULLETS'); return true; }
-    if (type === 'shot') { if (p.ammo.shot >= AMMO.shot.max) return false; p.ammo.shot = Math.min(AMMO.shot.max, p.ammo.shot + 6); this.setMessage('SHOT POUCH  +6 SHELLS'); return true; }
-    const wi = type === 'w_blunder' ? 2 : 3;
-    p.unlocked[wi] = true;
-    if (wi === 2) p.ammo.shot = Math.min(AMMO.shot.max, p.ammo.shot + 8); else p.ammo.powder = Math.min(AMMO.powder.max, p.ammo.powder + 30);
-    this.selectWeapon(wi);
-    this.setMessage(`${WEAPONS[wi].name.toUpperCase()} ACQUIRED  [${wi + 1}]`, 3);
+    const ammoPickups = {
+      powder: ['bullets', 24, 'POWDER KEG  +24 BULLETS'], shot: ['shells', 6, 'SHOT POUCH  +6 SHELLS'],
+      rockets: ['rockets', 4, 'ROCKET CRATE  +4 ROCKETS'], cells: ['cells', 30, 'ENERGY CELL  +30'], fuel: ['fuel', 60, 'FUEL CAN  +60'],
+    };
+    if (ammoPickups[type]) {
+      const [kind, n, msg] = ammoPickups[type];
+      if (type === 'rockets') { const a = this.addAmmo('rockets', 4), b = this.addAmmo('grenades', 4); if (!a && !b) return false; this.setMessage('ROCKETS +4  GRENADES +4'); return true; }
+      if (!this.addAmmo(kind, n)) return false;
+      this.setMessage(msg); return true;
+    }
+    const id = type.slice(2), wi = WEAPON_INDEX[id], w = WEAPONS[wi];
+    if (wi === undefined) return false;
+    const had = p.has[id];
+    p.has[id] = true;
+    this.addAmmo(w.ammo, w.starter || 0);
+    if (!had) { this.selectWeapon(wi); this.setMessage(`${w.name.toUpperCase()} ACQUIRED  [${w.slot}]`, 3); } else this.setMessage(`${w.name.toUpperCase()}  +AMMO`);
     return true;
   }
 
   // ---------------- player ----------------
+  owned(i) { return !!this.p.has[WEAPONS[i].id]; }
   selectWeapon(i) {
     const p = this.p;
-    if (i === p.weapon || !p.unlocked[i] || p.switching > 0) return;
+    if (i === p.weapon || !this.owned(i) || p.switching > 0) return;
     p.switchTo = i; p.switching = 0.0001;
   }
+  // number keys: press again to cycle weapons that share the slot
+  selectSlot(n) {
+    const p = this.p, list = WEAPONS.map((w, i) => i).filter((i) => WEAPONS[i].slot === n && this.owned(i));
+    if (!list.length) return;
+    const cur = list.indexOf(p.weapon);
+    this.selectWeapon(cur < 0 ? list[0] : list[(cur + 1) % list.length]);
+  }
   cycleWeapon(dir) {
-    const p = this.p; let i = p.weapon;
-    for (let n = 0; n < 4; n++) { i = (i + dir + 4) % 4; if (p.unlocked[i]) return this.selectWeapon(i); }
+    const p = this.p, n = WEAPONS.length; let i = p.weapon;
+    for (let k = 0; k < n; k++) { i = (i + dir + n) % n; if (this.owned(i)) return this.selectWeapon(i); }
+  }
+  bestFallback() {
+    const p = this.p;
+    for (let i = WEAPONS.length - 1; i >= 0; i--) if (this.owned(i) && (WEAPONS[i].melee || p.ammo[WEAPONS[i].ammo] >= WEAPONS[i].use)) return i;
+    return 0;
   }
 
   updatePlayer(dt) {
@@ -196,20 +279,21 @@ export class Game {
   }
 
   updateWeapon(dt) {
-    const p = this.p, w = WEAPONS[p.weapon];
+    const p = this.p;
     p.cd = Math.max(0, p.cd - dt);
+    p.since += dt;
     p.flash = Math.max(0, p.flash - dt * 12);
+    p.firing = p.firing && p.since < 0.12;
     if (p.swing >= 0) { p.swing += dt / 0.38; if (p.swing >= 1) p.swing = -1; }
     if (p.pendingMelee > 0) { p.pendingMelee -= dt; if (p.pendingMelee <= 0) this.meleeHit(); }
     if (p.switching > 0) {
       p.switching += dt / 0.16;
-      if (p.switching >= 1 && p.weapon !== p.switchTo) { p.weapon = p.switchTo; p.swing = -1; p.flash = 0; }
+      if (p.switching >= 1 && p.weapon !== p.switchTo) { p.weapon = p.switchTo; p.swing = -1; p.flash = 0; p.firing = false; }
       if (p.switching >= 2) p.switching = 0;
     }
     p.spinV = p.flash > 0.2 ? 28 : Math.max(0, p.spinV - dt * 40);
     p.spin += p.spinV * dt;
     if (this.mouseDown && p.switching === 0 && p.cd <= 0) this.fire();
-    void w;
   }
 
   basis() {
@@ -226,18 +310,27 @@ export class Game {
     const p = this.p, w = WEAPONS[p.weapon];
     if (this.state !== 'playing' || p.cd > 0 || p.switching > 0) return false;
     if (w.melee) {
-      p.cd = w.cooldown; p.swing = 0; p.pendingMelee = 0.14; sfx.sabre(); return true;
+      p.cd = w.cooldown; p.swing = 0; p.pendingMelee = 0.14; p.since = 0; sfx.sabre(); return true;
     }
     if (p.ammo[w.ammo] < w.use) {
       sfx.empty(); p.cd = 0.3;
-      const alt = [3, 2, 1, 0].find((i) => p.unlocked[i] && (WEAPONS[i].melee || p.ammo[WEAPONS[i].ammo] > 0));
-      if (alt !== undefined && alt !== p.weapon) { this.setMessage('OUT OF AMMO'); this.selectWeapon(alt); }
+      const alt = this.bestFallback();
+      if (alt !== p.weapon) { this.setMessage('OUT OF AMMO'); this.selectWeapon(alt); }
       return false;
     }
     p.ammo[w.ammo] -= w.use;
-    p.cd = w.cooldown; p.flash = 1; p.shotN++; this.stats.shots++;
+    p.cd = w.cooldown; p.flash = 1; p.since = 0; p.shotN++; this.stats.shots++;
     p.kick += w.kick;
-    sfx[w.sfx]();
+    if (w.kind === 'flame') p.firing = true;
+    if (w.kind !== 'flame' || p.shotN % 3 === 0) sfx[w.sfx]();
+    if (w.kind === 'hitscan') this.fireHitscan(w);
+    else if (w.kind === 'projectile') this.fireProjectile(w);
+    else if (w.kind === 'flame') this.fireFlame(w);
+    else if (w.kind === 'rail') this.fireRail(w);
+    return true;
+  }
+
+  fireHitscan(w) {
     const { dir, right, up } = this.basis();
     const o = this.eye();
     for (let i = 0; i < w.pellets; i++) {
@@ -246,12 +339,137 @@ export class Game {
         const a = Math.random() * Math.PI * 2, r = Math.sqrt(Math.random()) * w.spread;
         d.addScaledVector(right, Math.cos(a) * r).addScaledVector(up, Math.sin(a) * r).normalize();
       }
-      const hit = this.hitscan(o, d, 90);
+      const hit = this.hitscan(o, d, this.level.range);
       const pt = o.clone().addScaledVector(d, hit.t);
       if (hit.enemy) this.damageEnemy(hit.enemy, w.damage, pt);
-      else if (hit.t < 90) this.burst(pt.x - d.x * 0.1, pt.y, pt.z - d.z * 0.1, 'dust', 3, 2.2, 0.08);
+      else if (hit.t < this.level.range) this.burst(pt.x - d.x * 0.1, pt.y, pt.z - d.z * 0.1, 'dust', 3, 2.2, 0.08);
     }
-    return true;
+  }
+
+  // muzzle position in the world (right hand side, slightly low)
+  muzzlePos(forward = 0.7) {
+    const { dir, right, up } = this.basis();
+    return this.eye().addScaledVector(dir, forward).addScaledVector(right, 0.22).addScaledVector(up, -0.2);
+  }
+
+  fireProjectile(w) {
+    const { dir } = this.basis(), eye = this.eye(), S = w.shot;
+    const aim = this.hitscan(eye, dir, 70);
+    const target = eye.clone().addScaledVector(dir, aim.t);
+    const o = this.muzzlePos(S.type === 'bfg' ? 2.2 : 0.9);
+    const d = target.sub(o).normalize();
+    let obj;
+    if (S.type === 'grenade') obj = new THREE.Mesh(this.grenadeGeo, this.grenadeMat);
+    else { obj = new THREE.Sprite(this.shotMats[S.type]); obj.scale.setScalar(S.type === 'bfg' ? 1.8 : S.type === 'plasma' ? 0.55 : 0.8); }
+    obj.position.copy(o); this.scene.add(obj);
+    this.pshots.push({ S, obj, x: o.x, y: o.y, z: o.z, vx: d.x * S.speed, vy: d.y * S.speed + (S.type === 'grenade' ? 3 : 0), vz: d.z * S.speed, life: S.fuse || 5, bounces: 0 });
+  }
+
+  fireFlame(w) {
+    const { dir, right, up } = this.basis(), eye = this.eye();
+    const o = this.muzzlePos(0.9);
+    const wall = this.hitscan(eye, dir, w.range).t;
+    const reach = Math.min(w.range, wall);
+    for (let i = 0; i < 3; i++) {
+      const d = dir.clone().addScaledVector(right, (Math.random() - 0.5) * 0.18).addScaledVector(up, (Math.random() - 0.5) * 0.14);
+      const sp = 9 + Math.random() * 5;
+      this.emit(o.x, o.y, o.z, Math.random() < 0.5 ? 'flameY' : 'flameR', d.x * sp, d.y * sp + 0.6, d.z * sp, Math.min(0.55, reach / sp + 0.05), 0.2 + Math.random() * 0.2, -1.5);
+    }
+    for (const e of this.enemies) {
+      if (!ALIVE.has(e.state) || e.state === 'spawn') continue;
+      const dx = e.x - eye.x, dz = e.z - eye.z, dy = 1.2 - eye.y, d = Math.hypot(dx, dz);
+      if (d > reach + 0.5) continue;
+      if ((dx * dir.x + dy * dir.y + dz * dir.z) / Math.hypot(dx, dy, dz) < 0.93) continue;
+      this.damageEnemy(e, w.damage, new THREE.Vector3(e.x, 1.2, e.z), true);
+      e.burn = 2.5;
+    }
+  }
+
+  fireRail(w) {
+    const { dir, right, up } = this.basis(), eye = this.eye();
+    const wall = this.hitscan(eye, dir, this.level.range).t;
+    const hits = [];
+    for (const e of this.enemies) {
+      if (!ALIVE.has(e.state) || e.state === 'spawn') continue;
+      const t = rayCyl(eye, dir, e.x, e.z, 0.7, 0, 2.4);
+      if (t < wall) hits.push([t, e]);
+    }
+    for (const [t, e] of hits) this.damageEnemy(e, w.damage, eye.clone().addScaledVector(dir, t));
+    const a = eye.clone().addScaledVector(dir, 0.6).addScaledVector(right, 0.2).addScaledVector(up, -0.16);
+    const end = eye.clone().addScaledVector(dir, Math.min(wall, 200));
+    const len = a.distanceTo(end);
+    const mesh = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 1, 8), this.beamMat.clone());
+    mesh.position.copy(a).lerp(end, 0.5); mesh.scale.y = len;
+    mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), end.clone().sub(a).normalize());
+    this.scene.add(mesh);
+    this.fx.push({ obj: mesh, t: 0.4, dur: 0.4, kind: 'beam' });
+    for (let i = 0; i < 14; i++) { const q = a.clone().lerp(end, Math.random()); this.emit(q.x, q.y, q.z, 'blue', (Math.random() - 0.5) * 2, Math.random() * 2, (Math.random() - 0.5) * 2, 0.4, 0.08, 0); }
+    if (wall < 200) this.burst(end.x, end.y, end.z, 'blue', 8, 4, 0.12);
+  }
+
+  explode(x, y, z, R, dmg, tint = 'boom') {
+    sfx.explosion();
+    const s = new THREE.Sprite(this.shotMats[tint].clone());
+    s.position.set(x, y + 0.3, z); s.scale.setScalar(R * 0.5); this.scene.add(s);
+    this.fx.push({ obj: s, t: 0.45, dur: 0.45, kind: 'boom', size: R * 2.2 });
+    const kind = tint === 'boomGreen' ? 'plasma' : tint === 'boomBlue' ? 'blue' : 'fire';
+    this.burst(x, y + 0.4, z, kind, 14, R * 1.6, 0.12);
+    if (tint === 'boom') for (let i = 0; i < 10; i++) this.emit(x + (Math.random() - 0.5), y + 0.4, z + (Math.random() - 0.5), 'smoke', (Math.random() - 0.5) * R, 1 + Math.random() * 2, (Math.random() - 0.5) * R, 1.2 + Math.random() * 0.6, 0.9 + Math.random() * 0.6, -0.5);
+    this.p.kick += Math.max(0, 0.06 * (1 - Math.hypot(x - this.p.x, z - this.p.z) / (R * 5)));
+    for (const e of this.enemies) {
+      if (!ALIVE.has(e.state) || e.state === 'spawn') continue;
+      const d = Math.hypot(e.x - x, (1.2 - y) * 0.6, e.z - z);
+      if (d > R + 0.6) continue;
+      const f = 1 - d / (R + 0.6);
+      this.damageEnemy(e, dmg * (0.3 + 0.7 * f), new THREE.Vector3(e.x, 1.2, e.z));
+    }
+    const dp = Math.hypot(this.p.x - x, this.p.y + 1 - y, this.p.z - z);
+    if (dp < R && tint !== 'boomBlue') this.hurt(Math.min(35, dmg * 0.25 * (1 - dp / R)));
+  }
+
+  updatePShots(dt) {
+    const p = this.p;
+    for (let i = this.pshots.length - 1; i >= 0; i--) {
+      const q = this.pshots[i], S = q.S;
+      q.life -= dt;
+      if (S.type === 'grenade') q.vy -= S.gravity * dt;
+      const nx = q.x + q.vx * dt, ny = q.y + q.vy * dt, nz = q.z + q.vz * dt;
+      let hitWall = false;
+      const inBox = (x, y, z) => this.boxes.some((b) => x > b.x0 && x < b.x1 && z > b.z0 && z < b.z1 && y < b.h);
+      if (S.type === 'grenade') {
+        if (inBox(nx, q.y, q.z)) { q.vx *= -S.bounce; q.bounces++; } else q.x = nx;
+        if (inBox(q.x, q.y, nz)) { q.vz *= -S.bounce; q.bounces++; } else q.z = nz;
+        if (ny < 0.13) { q.y = 0.13; q.vy = Math.abs(q.vy) * S.bounce; q.vx *= 0.75; q.vz *= 0.75; if (Math.abs(q.vy) < 1.2) q.vy = 0; } else q.y = ny;
+      } else {
+        if (inBox(nx, ny, nz) || ny < 0.05) hitWall = true; else { q.x = nx; q.y = ny; q.z = nz; }
+      }
+      q.obj.position.set(q.x, q.y, q.z);
+      // trails
+      if (S.type === 'rocket') this.emit(q.x - q.vx * 0.02, q.y, q.z - q.vz * 0.02, Math.random() < 0.5 ? 'smoke' : 'flameY', 0, 0.5, 0, 0.5, 0.18, -0.5);
+      else if (S.type === 'bfg') this.emit(q.x, q.y, q.z, 'plasma', (Math.random() - 0.5) * 3, (Math.random() - 0.5) * 3, (Math.random() - 0.5) * 3, 0.35, 0.18, 0);
+      else if (S.type === 'plasma') this.emit(q.x, q.y, q.z, 'blue', 0, 0, 0, 0.15, 0.07, 0);
+      let boom = hitWall || q.life <= 0;
+      if (!boom) for (const e of this.enemies) {
+        if (!ALIVE.has(e.state) || e.state === 'spawn') continue;
+        if (Math.hypot(q.x - e.x, q.z - e.z) < 0.75 && q.y > 0 && q.y < 2.5) { boom = true; break; }
+      }
+      if (boom) {
+        this.explode(q.x, q.y, q.z, S.radius, S.damage, S.type === 'plasma' ? 'boomBlue' : S.type === 'bfg' ? 'boomGreen' : 'boom');
+        this.scene.remove(q.obj); this.pshots.splice(i, 1);
+      }
+    }
+    void p;
+  }
+
+  updateFx(dt) {
+    for (let i = this.fx.length - 1; i >= 0; i--) {
+      const f = this.fx[i];
+      f.t -= dt;
+      const u = Math.max(0, f.t / f.dur);
+      if (f.kind === 'boom') { f.obj.scale.setScalar(f.size * (1 - u * u) + 0.1); f.obj.material.opacity = Math.min(1, u * 1.6); }
+      else if (f.kind === 'beam') { f.obj.material.opacity = u; f.obj.scale.x = f.obj.scale.z = 0.3 + u; }
+      if (f.t <= 0) { this.scene.remove(f.obj); if (f.obj.material) f.obj.material.dispose(); this.fx.splice(i, 1); }
+    }
   }
 
   meleeHit() {
@@ -290,7 +508,8 @@ export class Game {
   // ---------------- enemies ----------------
   spawnEnemy(type) {
     const cfg = ENEMY[type], p = this.p;
-    const pts = this.level.spawnPoints.filter((s) => Math.hypot(s.x - p.x, s.z - p.z) > 14 && Math.hypot(s.x - p.x, s.z - p.z) < 48);
+    const [rMin, rMax] = this.level.spawnRange;
+    const pts = this.level.spawnPoints.filter((s) => Math.hypot(s.x - p.x, s.z - p.z) > rMin && Math.hypot(s.x - p.x, s.z - p.z) < rMax);
     const pool = pts.length ? pts : this.level.spawnPoints;
     const sp = pool[(Math.random() * pool.length) | 0];
     const mat = new THREE.MeshBasicMaterial({ map: this.liz[type].idle, transparent: true, alphaTest: 0.5, side: THREE.DoubleSide });
@@ -314,13 +533,13 @@ export class Game {
   }
   aliveCount() { let n = 0; for (const e of this.enemies) if (ALIVE.has(e.state)) n++; return n; }
 
-  damageEnemy(e, dmg, pt) {
+  damageEnemy(e, dmg, pt, quiet = false) {
     if (!ALIVE.has(e.state) || e.state === 'spawn') return;
     e.hp -= dmg;
-    this.burst(pt.x, pt.y, pt.z, 'green', 5, 3.2, 0.12);
-    sfx.hit();
+    this.burst(pt.x, pt.y, pt.z, quiet ? 'fire' : 'green', quiet ? 2 : 5, 3.2, 0.12);
+    if (!quiet) sfx.hit();
     if (e.hp <= 0) this.killEnemy(e);
-    else if (e.state !== 'attack' && (Math.random() < 0.45 || dmg >= 40)) { e.state = 'pain'; e.timer = 0.28; sfx.lizardPain(); }
+    else if (!quiet && e.state !== 'attack' && (Math.random() < 0.45 || dmg >= 40)) { e.state = 'pain'; e.timer = 0.28; sfx.lizardPain(); }
   }
   killEnemy(e) {
     e.state = 'dying'; e.deadT = 0; this.stats.kills++; sfx.lizardDie();
@@ -348,6 +567,11 @@ export class Game {
       const dx = p.x - e.x, dz = p.z - e.z, dist = Math.hypot(dx, dz) || 1;
       const nx = dx / dist, nz = dz / dist;
       e.cool -= dt;
+      if (e.burn > 0 && ALIVE.has(e.state) && e.state !== 'spawn') {
+        e.burn -= dt; e.burnT = (e.burnT || 0) + dt;
+        if (Math.random() < dt * 14) this.emit(e.x + (Math.random() - 0.5) * 0.6, 0.8 + Math.random() * 1.4, e.z + (Math.random() - 0.5) * 0.6, Math.random() < 0.5 ? 'flameY' : 'flameR', 0, 1.8, 0, 0.4, 0.3, -2);
+        if (e.burnT > 0.3) { e.burnT = 0; this.damageEnemy(e, 5, new THREE.Vector3(e.x, 1.2, e.z), true); }
+      }
       switch (e.state) {
         case 'spawn':
           e.timer -= dt;
@@ -439,24 +663,44 @@ export class Game {
     }
   }
 
-  // ---------------- waves ----------------
-  startWave(i) {
-    const w = this.wave, def = WAVES[i];
-    w.index = i; w.phase = 'fight'; w.spawnTimer = 0.3; w.toSpawn = [];
+  // ---------------- waves / encounters ----------------
+  queue(def) {
+    const w = this.wave;
     for (const [type, n] of Object.entries(def)) for (let k = 0; k < n; k++) w.toSpawn.push(type);
     for (let k = w.toSpawn.length - 1; k > 0; k--) { const j = (Math.random() * (k + 1)) | 0; [w.toSpawn[k], w.toSpawn[j]] = [w.toSpawn[j], w.toSpawn[k]]; }
-    this.setMessage(`WAVE ${i + 1} / ${WAVES.length}`, 3); sfx.wave();
+  }
+  startWave(i) {
+    const w = this.wave;
+    w.index = i; w.phase = 'fight'; w.spawnTimer = 0.3; w.toSpawn = [];
+    this.queue(this.level.waves[i]);
+    this.setMessage(`WAVE ${i + 1} / ${this.level.waves.length}`, 3); sfx.wave();
+  }
+  win() { this.wave.phase = 'done'; this.stats.time = this.time; sfx.win(); this.setState('won'); }
+  trySpawn(dt) {
+    const w = this.wave;
+    w.spawnTimer -= dt;
+    if (w.toSpawn.length && this.aliveCount() < (this.level.maxAlive || 8) && w.spawnTimer <= 0) { this.spawnEnemy(w.toSpawn.pop()); w.spawnTimer = this.level.mode === 'waves' ? 1.1 : 0.6; }
   }
   updateWaves(dt) {
-    const w = this.wave;
+    const w = this.wave, L = this.level, p = this.p;
+    if (L.mode === 'advance') {
+      // lizards drop in as the player passes each trigger line
+      while (w.enc < L.encounters.length && p.z < L.encounters[w.enc].z) {
+        const e = L.encounters[w.enc++];
+        this.queue(e.spawn); w.index = w.enc - 1;
+        this.setMessage(e.msg || 'LIZARDS INBOUND!', 3); sfx.wave();
+      }
+      this.trySpawn(dt);
+      if (w.enc >= L.encounters.length && !w.toSpawn.length && this.aliveCount() === 0 && p.z < L.goalZ) this.win();
+      return;
+    }
     if (w.phase === 'intro' || w.phase === 'between') {
       w.timer -= dt;
       if (w.timer <= 0) this.startWave(w.index + 1);
     } else if (w.phase === 'fight') {
-      w.spawnTimer -= dt;
-      if (w.toSpawn.length && this.aliveCount() < MAX_ALIVE && w.spawnTimer <= 0) { this.spawnEnemy(w.toSpawn.pop()); w.spawnTimer = 1.1; }
+      this.trySpawn(dt);
       if (!w.toSpawn.length && this.aliveCount() === 0) {
-        if (w.index >= WAVES.length - 1) { w.phase = 'done'; this.stats.time = this.time; sfx.win(); this.setState('won'); }
+        if (w.index >= L.waves.length - 1) this.win();
         else { w.phase = 'between'; w.timer = 5; this.setMessage('WAVE CLEARED — REARM', 4); }
       }
     }
@@ -475,6 +719,8 @@ export class Game {
     this.updateWaves(dt);
     this.updateEnemies(dt);
     this.updateProjectiles(dt);
+    this.updatePShots(dt);
+    this.updateFx(dt);
     this.updatePickups(dt);
     this.updateParticles(dt);
     this.messageT = Math.max(0, this.messageT - dt);
@@ -493,8 +739,8 @@ export class Game {
     const sw = p.switching, lower = sw <= 0 ? 0 : sw < 1 ? sw : 2 - sw;
     const w = WEAPONS[p.weapon];
     this.wview.update({
-      id: w.id, bob: p.bob, bobAmp: p.bobAmp, flash: p.flash, swing: p.swing, shotN: p.shotN, spin: p.spin, lower,
-      pump: w.melee ? 0 : Math.sin(Math.min(1, Math.max(0, (1 - p.cd / w.cooldown - 0.2) / 0.6)) * Math.PI) * (p.cd > 0 ? 1 : 0),
+      id: w.id === 'sabre' ? 'sabre' : w.id, bob: p.bob, bobAmp: p.bobAmp, flash: p.flash, swing: p.swing, shotN: p.shotN, spin: p.spin, lower,
+      since: p.since, firing: p.firing,
     });
     this.renderer.clearDepth();
     this.renderer.render(this.wview.scene, this.wview.camera);
@@ -509,10 +755,17 @@ export class Game {
     u.hpBar.style.width = `${Math.max(0, p.health)}%`;
     set(u.weapon, w.name.toUpperCase());
     set(u.ammo, w.melee ? '∞' : `${AMMO[w.ammo].name} ${p.ammo[w.ammo]}`);
-    const wv = this.wave.index < 0 ? 'GET READY' : `WAVE ${this.wave.index + 1}/${WAVES.length} · LIZARDS ${this.remaining()}`;
+    const L = this.level;
+    const wv = L.mode === 'advance'
+      ? `GOAL ${Math.max(0, Math.round(p.z - L.goalZ))} m · LIZARDS ${this.remaining()}`
+      : this.wave.index < 0 ? 'GET READY' : `WAVE ${this.wave.index + 1}/${L.waves.length} · LIZARDS ${this.remaining()}`;
     set(u.wave, wv);
     set(u.msg, this.messageT > 0 ? this.message : '');
     u.hurt.style.opacity = String(Math.min(0.7, p.hurt * 2));
-    u.slots.forEach((s, i) => { s.classList.toggle('on', i === p.weapon); s.classList.toggle('locked', !p.unlocked[i]); });
+    u.slots.forEach((el, i) => {
+      const n = i + 1;
+      el.classList.toggle('on', w.slot === n);
+      el.classList.toggle('locked', !WEAPONS.some((x) => x.slot === n && p.has[x.id]));
+    });
   }
 }

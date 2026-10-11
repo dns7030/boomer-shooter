@@ -1,5 +1,6 @@
 import { Game } from './game.js';
 import { initAudio } from './audio.js';
+import { WEAPONS } from './weapons.js';
 
 const $ = (id) => document.getElementById(id);
 const canvas = $('view');
@@ -14,6 +15,7 @@ const game = new Game({
   },
 });
 window.__game = game; // handy for debugging and the headless smoke test
+window.__weapons = WEAPONS;
 
 function showOverlay(s) {
   const title = $('ov-title'), body = $('ov-body'), btn = $('ov-btn');
@@ -49,7 +51,7 @@ document.addEventListener('wheel', (e) => { if (game.state === 'playing') game.c
 window.addEventListener('keydown', (e) => {
   if (['Space', 'ArrowUp', 'ArrowDown'].includes(e.code)) e.preventDefault();
   game.keys.add(e.code);
-  if (game.state === 'playing' && /^Digit[1-4]$/.test(e.code)) game.selectWeapon(Number(e.code.slice(5)) - 1);
+  if (game.state === 'playing' && /^Digit[1-9]$/.test(e.code)) game.selectSlot(Number(e.code.slice(5)));
   if (game.state === 'playing' && e.code === 'KeyQ') game.cycleWeapon(-1);
   if ((game.state === 'dead' || game.state === 'won') && e.code === 'Enter') start();
 });

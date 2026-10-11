@@ -155,8 +155,14 @@ export function buildLevel(scene) {
     { type: 'kvass', x: -2.0, z: 20 }, { type: 'kvass', x: 3.0, z: -10 }, { type: 'kvass', x: -3.0, z: -38 },
     { type: 'powder', x: 0.0, z: 26 }, { type: 'powder', x: -3.0, z: 3 }, { type: 'powder', x: 3.0, z: -25 }, { type: 'powder', x: 0.5, z: -45 },
     { type: 'shot', x: 3.0, z: 18 }, { type: 'shot', x: -4.0, z: -15 }, { type: 'shot', x: 2.0, z: -36 },
-    { type: 'w_blunder', x: 2.0, z: 24 }, { type: 'w_skor', x: -1.5, z: -3 },
+    { type: 'rockets', x: -2.0, z: -12 }, { type: 'rockets', x: 2.0, z: -34 },
+    { type: 'cells', x: 3.0, z: -26 }, { type: 'cells', x: 1.0, z: -40 }, { type: 'cells', x: -3.0, z: -46 },
+    { type: 'fuel', x: -3.0, z: -6 }, { type: 'fuel', x: 3.0, z: -32 },
+    { type: 'w_shotgun', x: 2.0, z: 24 }, { type: 'w_ssg', x: -3.5, z: 14 }, { type: 'w_chaingun', x: -1.5, z: -3 },
+    { type: 'w_rocket', x: 3.0, z: -14 }, { type: 'w_grenade', x: -3.0, z: -22 }, { type: 'w_flamer', x: 2.0, z: -30 },
+    { type: 'w_plasma', x: -2.0, z: -38 }, { type: 'w_rail', x: 3.0, z: -44 }, { type: 'w_bfg', x: 0.0, z: -50 },
   ];
+
 
   function update(dt, t, camPos) {
     if (windmill) windmill.userData.blades.rotation.z -= dt * 0.7;
@@ -169,5 +175,11 @@ export function buildLevel(scene) {
     trees.position.x = camPos.x; trees.position.z = camPos.z;
   }
 
-  return { boxes, spawnPoints, pickupSpawns, update, fogColor: FOG };
+  return {
+    boxes, spawnPoints, pickupSpawns, update, fogColor: FOG,
+    mode: 'waves', waves: [{ grunt: 4 }, { grunt: 4, spitter: 3 }, { grunt: 6, spitter: 5 }],
+    start: { x: 0, z: 34, yaw: 0 }, startWeapons: ['sabre', 'pistol'],
+    spawnRange: [14, 48], maxAlive: 8, range: 90,
+    intro: 'LIZARDS FROM THE SKY — GRAB EVERY GUN YOU CAN FIND',
+  };
 }

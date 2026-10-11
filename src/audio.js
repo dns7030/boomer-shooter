@@ -46,6 +46,16 @@ function startAmbient() {
 
 export const sfx = {
   pistol() { noise({ dur: 0.2, gain: 0.55, f0: 3200, f1: 400 }); tone({ f0: 190, f1: 55, dur: 0.14, gain: 0.3 }); },
+  shotgun() { this.blunder(); },
+  ssg() { noise({ dur: 0.6, gain: 1.0, f0: 2600, f1: 90 }); noise({ dur: 0.45, gain: 0.7, f0: 1800, f1: 120, delay: 0.07 }); tone({ type: 'sawtooth', f0: 80, f1: 28, dur: 0.5, gain: 0.6 }); },
+  chaingun() { this.skor(); },
+  rocket() { noise({ dur: 0.6, gain: 0.5, f0: 400, f1: 3000, type: 'bandpass', q: 1.5 }); tone({ type: 'sawtooth', f0: 120, f1: 40, dur: 0.4, gain: 0.4 }); },
+  grenade() { tone({ type: 'sine', f0: 160, f1: 50, dur: 0.18, gain: 0.5 }); noise({ dur: 0.15, gain: 0.35, f0: 1400, f1: 200 }); },
+  explosion() { noise({ dur: 1.0, gain: 1.0, f0: 1600, f1: 60 }); tone({ type: 'sine', f0: 90, f1: 22, dur: 0.9, gain: 0.8 }); noise({ dur: 0.5, gain: 0.5, f0: 6000, f1: 800, type: 'highpass', delay: 0.02 }); },
+  plasma() { tone({ type: 'sawtooth', f0: 1400, f1: 300, dur: 0.1, gain: 0.16 }); tone({ type: 'square', f0: 700, f1: 180, dur: 0.08, gain: 0.08 }); },
+  flame() { noise({ dur: 0.12, gain: 0.35, f0: 900, f1: 400, type: 'bandpass', q: 0.8 }); },
+  rail() { tone({ type: 'sine', f0: 2400, f1: 120, dur: 0.5, gain: 0.35 }); noise({ dur: 0.3, gain: 0.4, f0: 5000, f1: 300 }); },
+  bfg() { tone({ type: 'sawtooth', f0: 90, f1: 700, dur: 0.6, gain: 0.4 }); tone({ type: 'sine', f0: 60, f1: 30, dur: 1.0, gain: 0.6 }); noise({ dur: 0.8, gain: 0.5, f0: 400, f1: 3000, type: 'bandpass', q: 1 }); },
   blunder() { noise({ dur: 0.5, gain: 0.9, f0: 2600, f1: 120 }); tone({ type: 'sawtooth', f0: 100, f1: 35, dur: 0.35, gain: 0.5 }); },
   skor() { noise({ dur: 0.09, gain: 0.5, f0: 3000, f1: 700 }); tone({ f0: 240, f1: 90, dur: 0.07, gain: 0.2 }); },
   sabre() { noise({ dur: 0.28, gain: 0.35, f0: 600, f1: 5000, type: 'bandpass', q: 2 }); },

@@ -1,4 +1,4 @@
-// Headless smoke test: boots the game, checks combat + wave flow, saves screenshots.
+// Headless smoke test: boots the game, checks every weapon + combat + wave flow, saves screenshots.
 import { launch } from './shot.mjs';
 const out = process.argv[2] || '/tmp';
 const { page, browser, srv, errors } = await launch();
@@ -7,78 +7,95 @@ const check = (name, ok, extra = '') => { console.log(`${ok ? 'PASS' : 'FAIL'}  
 
 await page.evaluate(() => { window.__game.begin(); document.getElementById('overlay').style.display = 'none'; });
 
-// --- lizards render + take damage ---
-const r1 = await page.evaluate(() => {
+// --- lizards render ---
+await page.evaluate(() => {
   const g = window.__game, p = g.p;
   p.x = 0; p.z = 20; p.yaw = 0; p.pitch = 0; g.wave.phase = 'idle';
   const a = g.spawnEnemy('grunt'), b = g.spawnEnemy('spitter');
-  Object.assign(a, { x: -1.5, z: 12, state: 'move', timer: 0, cool: 99 }); a.mesh.visible = true; a.shadow.visible = true; g.scene.remove(a.beam);
-  Object.assign(b, { x: 2.0, z: 9, state: 'move', timer: 0, cool: 99 }); b.mesh.visible = true; b.shadow.visible = true; g.scene.remove(b.beam);
+  for (const [e, x, z] of [[a, -1.5, 12], [b, 2.0, 9]]) { Object.assign(e, { x, z, state: 'move', timer: 0, cool: 99 }); e.mesh.visible = true; e.shadow.visible = true; g.scene.remove(e.beam); }
   g.render();
-  return { hpA: a.hp, hpB: b.hp };
 });
 await page.screenshot({ path: `${out}/lizards.png` });
 
-const r2 = await page.evaluate(() => {
-  const g = window.__game, p = g.p;
-  const e = g.enemies[0];
-  // aim at grunt and fire pistol
-  const aim = (e) => { const dx = e.x - p.x, dz = e.z - p.z; p.yaw = Math.atan2(-dx, -dz); p.pitch = Math.atan2(1.3 - 1.7, Math.hypot(dx, dz)); };
-  aim(e); g.render();
-  p.weapon = 1; p.cd = 0; const hp0 = e.hp; g.fire();
-  const afterPistol = e.hp;
-  p.cd = 0; p.unlocked[2] = true; p.weapon = 2; p.cd = 0; g.fire();
-  return { hp0, afterPistol, afterShotgun: e.hp, state: e.state };
-});
-check('pistol damages grunt', r2.afterPistol < r2.hp0, JSON.stringify(r2));
-check('shotgun hurts grunt', r2.afterShotgun < r2.afterPistol);
+// --- every weapon does something ---
+const ids = await page.evaluate(() => window.__weapons.map((w) => w.id));
+for (const id of ids) {
+  const r = await page.evaluate((id) => {
+    const g = window.__game, p = g.p, W = window.__weapons;
+    g.reset(); g.setState('playing'); g.wave.phase = 'idle';
+    const q = g.p;
+    for (const w of W) q.has[w.id] = true;
+    for (const k of Object.keys(q.ammo)) q.ammo[k] = 100;
+    q.x = 0; q.z = 20; q.yaw = 0; q.pitch = 0;
+    const e = g.spawnEnemy('grunt'); g.scene.remove(e.beam);
+    Object.assign(e, { x: 0, z: id === 'sabre' ? 18 : 14, state: 'move', timer: 0, cool: 99, hp: 1000 }); e.mesh.visible = true;
+    q.weapon = W.findIndex((w) => w.id === id); q.cd = 0; q.switching = 0;
+    g.camera.rotation.set(0, 0, 0); g.camera.updateMatrixWorld(true);
+    const shots0 = g.pshots.length, hp0 = e.hp;
+    g.mouseDown = false;
+    const ok = g.fire();
+    let lastHp = e.hp;
+    for (let i = 0; i < 120; i++) { if (id === 'flamer' || id === 'chaingun' || id === 'plasma') { q.cd = 0; g.fire(); } g.step(1 / 60); e.x = 0; e.z = Math.max(e.z, 13); e.state = 'move'; e.cool = 99; if (e.state === 'dying') break; }
+    return { ok, dmg: hp0 - e.hp, projectiles: g.pshots.length - shots0, fx: g.fx.length };
+  }, id);
+  check(`weapon ${id}`, r.ok && (r.dmg > 0 || r.projectiles > 0), JSON.stringify(r));
+}
 
-// --- melee ---
-const r3 = await page.evaluate(() => {
-  const g = window.__game, p = g.p, e = g.enemies[1];
-  e.x = p.x; e.z = p.z - 2; p.yaw = 0; p.weapon = 0; p.cd = 0; const hp0 = e.hp; g.fire();
-  for (let i = 0; i < 20; i++) g.step(1 / 60);
-  return { hp0, hp: e.hp };
+// --- weapons never cover the crosshair ---
+const cover = await page.evaluate(() => {
+  const g = window.__game, W = window.__weapons, r = g.renderer, gl = r.getContext();
+  const size = r.getSize(new g.camera.position.constructor().constructor === Object ? {} : { x: 0, y: 0, set() {} });
+  const cw = r.domElement.width, ch = r.domElement.height;
+  const out = {};
+  for (const w of W) {
+    r.setClearColor(0xff00ff, 1); r.clear();
+    g.wview.update({ id: w.id, bob: 0, bobAmp: 0, flash: 0, swing: -1, shotN: 0, spin: 0, lower: 0, since: 10, firing: false });
+    r.clearDepth(); r.render(g.wview.scene, g.wview.camera);
+    const R = 22, buf = new Uint8Array(R * 2 * R * 2 * 4);
+    gl.readPixels(Math.round(cw / 2) - R, Math.round(ch / 2) - R, R * 2, R * 2, gl.RGBA, gl.UNSIGNED_BYTE, buf);
+    let n = 0; for (let i = 0; i < buf.length; i += 4) if (!(buf[i] > 240 && buf[i + 1] < 12 && buf[i + 2] > 240)) n++;
+    out[w.id] = n;
+  }
+  r.setClearColor(0x000000, 1);
+  return { out, size: [cw, ch], _: !!size };
 });
-check('sabre hits', r3.hp < r3.hp0, JSON.stringify(r3));
+for (const [id, n] of Object.entries(cover.out)) check(`crosshair clear: ${id}`, n === 0, `(${n} px)`);
 
-// --- walls block bullets & player ---
+// --- walls block the player ---
 const r4 = await page.evaluate(() => {
-  const g = window.__game, p = g.p;
-  p.x = 0; p.z = 0; p.vx = 30; for (let i = 0; i < 60; i++) { p.vx = 30; g.step(1 / 60); }
+  const g = window.__game; g.reset(); g.setState('playing'); const p = g.p;
+  p.x = 0; p.z = 0; for (let i = 0; i < 60; i++) { p.vx = 30; g.step(1 / 60); }
   return { x: p.x };
 });
 check('player stays in street', Math.abs(r4.x) <= 6.45, `x=${r4.x.toFixed(2)}`);
 
-// --- full bot run through all waves ---
+// --- full bot run through every wave of level 1 ---
 const run = await page.evaluate(() => {
-  const g = window.__game;
+  const g = window.__game, W = window.__weapons;
   g.reset(); g.setState('playing');
   const p = g.p;
-  p.unlocked = [true, true, true, true]; p.ammo.powder = 150; p.ammo.shot = 40;
-  const t0 = performance.now();
-  let steps = 0, shotsHeld = false;
+  for (const w of W) p.has[w.id] = true;
+  let steps = 0;
+  const idx = (id) => W.findIndex((w) => w.id === id);
   while (g.state === 'playing' && steps < 60 * 400) {
     steps++;
-    p.health = Math.max(p.health, 50); // test bot is immortal; we test flow, not balance
-    p.ammo.powder = Math.max(p.ammo.powder, 40);
+    p.health = Math.max(p.health, 50);
+    for (const k of Object.keys(p.ammo)) p.ammo[k] = Math.max(p.ammo[k], 60);
     const alive = g.enemies.filter((e) => ['move', 'attack', 'pain'].includes(e.state));
     if (alive.length) {
       alive.sort((a, b) => Math.hypot(a.x - p.x, a.z - p.z) - Math.hypot(b.x - p.x, b.z - p.z));
-      const e = alive[0], dx = e.x - p.x, dz = e.z - p.z;
-      p.yaw = Math.atan2(-dx, -dz); p.pitch = Math.atan2(1.2 - 1.7, Math.hypot(dx, dz));
-      const d = Math.hypot(dx, dz);
-      p.weapon = d < 3 ? 0 : d < 10 ? 2 : 3;
-      p.cd = Math.min(p.cd, 0.05);
-      g.render ? 0 : 0;
+      const e = alive[0], dx = e.x - p.x, dz = e.z - p.z, d = Math.hypot(dx, dz);
+      p.yaw = Math.atan2(-dx, -dz); p.pitch = Math.atan2(1.2 - 1.7, d);
+      p.weapon = d < 3 ? idx('sabre') : d < 10 ? idx('ssg') : idx('chaingun');
+      p.cd = Math.min(p.cd, 0.05); p.switching = 0;
       g.camera.rotation.set(p.pitch, p.yaw, 0); g.camera.updateMatrixWorld(true);
       g.fire();
     }
     g.step(1 / 60);
   }
-  return { state: g.state, steps, kills: g.stats.kills, wave: g.wave.index, ms: Math.round(performance.now() - t0), left: g.enemies.filter((e) => ['spawn', 'move', 'attack', 'pain'].includes(e.state)).map((e) => [e.type, e.state, +e.x.toFixed(1), +e.z.toFixed(1), e.hp]), p: [+p.x.toFixed(1), +p.z.toFixed(1)] };
+  return { state: g.state, steps, kills: g.stats.kills, wave: g.wave.index, left: g.enemies.filter((e) => ['spawn', 'move', 'attack', 'pain'].includes(e.state)).length };
 });
-check('bot clears all 3 waves', run.state === 'won' && run.wave === 2, JSON.stringify(run));
+check('bot clears all waves of level 1', run.state === 'won', JSON.stringify(run));
 
 await page.evaluate(() => window.__game.render());
 await page.screenshot({ path: `${out}/end-state.png` });
