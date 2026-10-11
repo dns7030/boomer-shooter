@@ -31,7 +31,7 @@ const r2 = await page.evaluate(() => {
   return { hp0, afterPistol, afterShotgun: e.hp, state: e.state };
 });
 check('pistol damages grunt', r2.afterPistol < r2.hp0, JSON.stringify(r2));
-check('blunderbuss kills or hurts grunt', r2.afterShotgun < r2.afterPistol);
+check('shotgun hurts grunt', r2.afterShotgun < r2.afterPistol);
 
 // --- melee ---
 const r3 = await page.evaluate(() => {

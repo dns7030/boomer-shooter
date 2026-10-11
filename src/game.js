@@ -9,8 +9,8 @@ import { sfx } from './audio.js';
 
 const EYE = 1.7;
 const ENEMY = {
-  grunt: { name: 'Lizard Raider', hp: 70, speed: 4.2, radius: 0.5, melee: 10, w: 1.9, h: 2.55 },
-  spitter: { name: 'Lizard Spitter', hp: 45, speed: 2.6, radius: 0.5, w: 1.9, h: 2.55 },
+  grunt: { name: 'Lizard Raider', hp: 70, speed: 4.2, radius: 0.5, melee: 10, w: 2.1, h: 2.62 },
+  spitter: { name: 'Lizard Spitter', hp: 45, speed: 2.6, radius: 0.5, w: 2.1, h: 2.62 },
 };
 const WAVES = [
   { grunt: 4 },
@@ -63,7 +63,7 @@ export class Game {
       health: 100, ammo: { powder: AMMO.powder.start, shot: AMMO.shot.start },
       unlocked: [true, true, false, false], weapon: 1, cd: 0,
       switching: 0, switchTo: 1, flash: 0, swing: -1, pendingMelee: 0, shotN: 0,
-      bob: 0, bobAmp: 0, kick: 0, hurt: 0, roll: 0,
+      bob: 0, bobAmp: 0, kick: 0, hurt: 0, roll: 0, spin: 0, spinV: 0,
     };
     this.stats = { kills: 0, time: 0, shots: 0 };
     this.wave = { index: -1, phase: 'intro', timer: 2.5, toSpawn: [], spawnTimer: 0 };
@@ -88,7 +88,7 @@ export class Game {
   makeParticlePool() {
     const geo = new THREE.BoxGeometry(1, 1, 1);
     this.pmats = {
-      green: new THREE.MeshBasicMaterial({ color: 0x66e04a }),
+      green: new THREE.MeshBasicMaterial({ color: 0x3f7a2a }),
       dust: new THREE.MeshBasicMaterial({ color: 0xcdbb9a }),
       fire: new THREE.MeshBasicMaterial({ color: 0xffc040 }),
       plasma: new THREE.MeshBasicMaterial({ color: 0x8dff9d }),
@@ -147,8 +147,8 @@ export class Game {
   collect(type) {
     const p = this.p;
     if (type === 'kvass') { if (p.health >= 100) return false; p.health = Math.min(100, p.health + 30); this.setMessage('KVASS  +30 HEALTH'); return true; }
-    if (type === 'powder') { if (p.ammo.powder >= AMMO.powder.max) return false; p.ammo.powder = Math.min(AMMO.powder.max, p.ammo.powder + 24); this.setMessage('POWDER KEG  +24'); return true; }
-    if (type === 'shot') { if (p.ammo.shot >= AMMO.shot.max) return false; p.ammo.shot = Math.min(AMMO.shot.max, p.ammo.shot + 6); this.setMessage('BUCKSHOT  +6'); return true; }
+    if (type === 'powder') { if (p.ammo.powder >= AMMO.powder.max) return false; p.ammo.powder = Math.min(AMMO.powder.max, p.ammo.powder + 24); this.setMessage('POWDER KEG  +24 BULLETS'); return true; }
+    if (type === 'shot') { if (p.ammo.shot >= AMMO.shot.max) return false; p.ammo.shot = Math.min(AMMO.shot.max, p.ammo.shot + 6); this.setMessage('SHOT POUCH  +6 SHELLS'); return true; }
     const wi = type === 'w_blunder' ? 2 : 3;
     p.unlocked[wi] = true;
     if (wi === 2) p.ammo.shot = Math.min(AMMO.shot.max, p.ammo.shot + 8); else p.ammo.powder = Math.min(AMMO.powder.max, p.ammo.powder + 30);
@@ -205,6 +205,8 @@ export class Game {
       if (p.switching >= 1 && p.weapon !== p.switchTo) { p.weapon = p.switchTo; p.swing = -1; p.flash = 0; }
       if (p.switching >= 2) p.switching = 0;
     }
+    p.spinV = p.flash > 0.2 ? 28 : Math.max(0, p.spinV - dt * 40);
+    p.spin += p.spinV * dt;
     if (this.mouseDown && p.switching === 0 && p.cd <= 0) this.fire();
     void w;
   }
@@ -300,7 +302,7 @@ export class Game {
     shadow.position.set(sp.x, 0.04, sp.z); shadow.visible = false; this.scene.add(shadow);
     const beam = new THREE.Mesh(this.beamGeo, new THREE.MeshBasicMaterial({ color: 0x8dff9d, transparent: true, opacity: 0.5, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, fog: false }));
     beam.position.set(sp.x, 9, sp.z); this.scene.add(beam);
-    const e = { type, cfg, mesh, shadow, beam, hp: cfg.hp, x: sp.x, z: sp.z, state: 'spawn', timer: 0.9, cool: 0.6 + Math.random() * 0.8, anim: 0, deadT: 0, hit: false, slide: 0, slideT: 0, stuck: 0, strafe: Math.random() < 0.5 ? 1 : -1, strafeT: 1 + Math.random() * 2 };
+    const e = { type, cfg, mesh, shadow, beam, hp: cfg.hp, x: sp.x, z: sp.z, state: 'spawn', timer: 0.9, cool: 0.6 + Math.random() * 0.8, anim: 0, deadT: 0, hit: false, flip: Math.random() < 0.5 ? 1 : -1, slide: 0, slideT: 0, stuck: 0, strafe: Math.random() < 0.5 ? 1 : -1, strafeT: 1 + Math.random() * 2 };
     this.enemies.push(e);
     sfx.beam();
     return e;
@@ -404,7 +406,7 @@ export class Game {
           e.timer -= dt; if (e.timer <= 0) e.state = 'move';
           break;
         case 'dying':
-          e.deadT += dt; if (e.deadT > 0.7) e.state = 'dead';
+          e.deadT += dt; if (e.deadT > 0.5) e.state = 'dead';
           break;
       }
       // visuals
@@ -417,7 +419,7 @@ export class Game {
       if (e.state === 'move') tx = [T.walk1, T.idle, T.walk2, T.idle][Math.floor(e.anim) % 4];
       else if (e.state === 'attack') tx = T.attack;
       else if (e.state === 'pain') tx = T.pain;
-      else if (e.state === 'dying' || e.state === 'dead') tx = T.dead[Math.min(2, Math.floor(e.deadT / 0.2))];
+      else if (e.state === 'dying' || e.state === 'dead') { tx = T.dead[e.deadT < 0.1 ? 0 : e.deadT < 0.26 ? 1 : e.deadT < 0.45 ? 2 : 3]; m.scale.x = 1.5 * e.flip; }
       if (m.material.map !== tx) { m.material.map = tx; m.material.needsUpdate = true; }
       if (e.beam.parent) e.beam.position.set(e.x, 9, e.z);
     }
@@ -490,7 +492,8 @@ export class Game {
     const w = WEAPONS[p.weapon];
     drawWeapon(this.wctx, w.id, {
       ox: Math.sin(p.bob) * 3 * p.bobAmp, oy: Math.abs(Math.cos(p.bob)) * 3 * p.bobAmp + lower * 70 + p.flash * 4,
-      fire: p.flash, swing: p.swing, shotN: p.shotN,
+      fire: p.flash, swing: p.swing, shotN: p.shotN, spin: p.spin,
+      pump: w.melee ? 0 : Math.sin(Math.min(1, Math.max(0, (1 - p.cd / w.cooldown - 0.2) / 0.6)) * Math.PI) * (p.cd > 0 ? 1 : 0),
     });
     this.updateHud();
   }

@@ -1,7 +1,7 @@
 # Lizards Over Rus
 
 A first-person boomer shooter in the browser (Three.js). Muscovy, 1550s: lizard invaders drop from the sky onto a
-street of period buildings, and you fight them with a sabre, a flintlock pistol, a blunderbuss and an organ gun.
+street of period buildings, and you fight them with a sabre, a pistol, a pump shotgun and a chaingun.
 You stay on the street — buildings are façades only.
 
 Everything (textures, sprites, sounds) is generated procedurally at runtime. No asset files, no build step.
@@ -31,7 +31,7 @@ Open <http://localhost:8000> and click **PLAY**. (A local server is required: br
 ## Level 1 — the street
 
 Three waves of two lizard types (Raider: melee runner; Spitter: kites you and fires slow plasma).
-Find the **blunderbuss** (near the start) and the **organ gun** (mid-street). Pick up kvass (health), powder and shot.
+Find the **shotgun** (near the start) and the **chaingun** (mid-street). Pick up kvass (health), powder and shot.
 
 Buildings (Old Rus & Muscovy list): Izba, Boyar Terem, Merchant Palaty, Gostiny Dvor, Kizhi-style wooden church,
 Bell Tower, Banya, Windmill, Kuznitsa (smithy), Kremlin wall + Spasskaya-style gate tower, wooden ostrog palisade

@@ -10,7 +10,7 @@
   * { box-sizing: border-box; }
   html, body { margin:0; height:100%; background:#000; overflow:hidden; font-family: Georgia, 'Times New Roman', serif; color: var(--cream); user-select:none; }
   #view { position:fixed; inset:0; width:100%; height:100%; image-rendering: pixelated; display:block; }
-  #weapon { position:fixed; left:56%; bottom:0; width:min(46vw, 84vh); aspect-ratio: 160/120; transform: translateX(-42%); image-rendering: pixelated; pointer-events:none; }
+  #weapon { position:fixed; left:56%; bottom:0; width:min(46vw, 84vh); aspect-ratio: 200/180; transform: translateX(-42%); image-rendering: pixelated; pointer-events:none; }
   #hurt { position:fixed; inset:0; background: radial-gradient(ellipse at center, rgba(160,0,0,0) 40%, rgba(160,0,0,.85) 100%); opacity:0; pointer-events:none; }
   #cross { position:fixed; left:50%; top:50%; width:14px; height:14px; transform:translate(-50%,-50%); pointer-events:none; }
   #cross::before, #cross::after { content:''; position:absolute; background: rgba(255,255,255,.85); box-shadow: 0 0 0 1px rgba(0,0,0,.6); }
@@ -42,7 +42,7 @@
 </head>
 <body>
 <canvas id="view"></canvas>
-<canvas id="weapon" width="160" height="120"></canvas>
+<canvas id="weapon" width="200" height="180"></canvas>
 <div id="hurt"></div>
 <div id="cross"></div>
 <div id="top"><div id="wave">GET READY</div><div id="msg"></div></div>
@@ -54,7 +54,7 @@
 <div id="overlay">
   <h1 id="ov-title">LIZARDS OVER RUS</h1>
   <div class="sub">Muscovy, 1550s — something has come down from the sky.</div>
-  <p id="ov-body">Hold the street against the lizard invaders. Find the blunderbuss and the organ gun along the way.</p>
+  <p id="ov-body">Hold the street against the lizard invaders. Find the shotgun and the chaingun along the way.</p>
   <div class="keys"><span><b>WASD</b> move</span><span><b>MOUSE</b> look</span><span><b>CLICK</b> fire / swing</span><span><b>SPACE</b> jump</span><span><b>1–4 / WHEEL</b> weapons</span><span><b>SHIFT</b> run</span></div>
   <button id="ov-btn">PLAY</button>
 </div>
