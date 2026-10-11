@@ -3,6 +3,9 @@ import * as THREE from 'three';
 import { LEVELS } from './levels.js';
 import { resolveCircle, rayBox, rayBoxN, rayCyl } from './geo.js';
 import { Decals } from './decals.js';
+import { Debris } from './debris.js';
+import { makeBarrel, makeCrate } from './props.js';
+import { brokenWindowMaterial } from './geo.js';
 import { makeLizardTextures, makePickupTextures, makePlasmaTexture } from './sprites.js';
 import { WEAPONS, AMMO, WEAPON_INDEX, SLOTS } from './weapons.js';
 import { WeaponView } from './weaponmodels.js';
@@ -94,6 +97,11 @@ export class Game {
     this.makeParticlePool();
     this.setupShadows();
     this.decals = new Decals(this.scene);
+    this.debris = new Debris(this.scene, 260, (k, v, p) => this.debrisSound(k, v, p));
+    this.props = [];
+    this.timers = [];
+    this.scene.updateMatrixWorld(true);
+    this.windows = (this.level.windows || []).map((w) => { w.pos = w.mesh.getWorldPosition(new THREE.Vector3()); w.n = w.mesh.getWorldDirection(new THREE.Vector3()); return w; });
     this.setupLights();
     if (this.post) this.post.setScene(this.scene);
     this.reset();
@@ -115,6 +123,9 @@ export class Game {
   reset() {
     this.clearEntities();
     if (this.decals) this.decals.clear();
+    if (this.debris) this.debris.clear();
+    this.timers = [];
+    this.resetWorld();
     for (const d of this.dlights || []) { d.owner = null; d.t = 0; d.l.intensity = 0; }
     const L = this.level, st = L.start;
     this.p = {
@@ -147,6 +158,95 @@ export class Game {
   pause() { if (this.state === 'playing') this.setState('paused'); }
 
   // ---------------- particles ----------------
+  // ---------------- breakable world: props, windows, debris, timers ----------------
+  schedule(delay, fn) { this.timers.push({ t: delay, fn }); }
+  updateTimers(dt) {
+    for (let i = this.timers.length - 1; i >= 0; i--) { const tm = this.timers[i]; tm.t -= dt; if (tm.t <= 0) { this.timers.splice(i, 1); tm.fn(); } }
+  }
+  debrisSound(kind, v) {
+    const now = this.time;
+    if (now - (this._lastTink || 0) < 0.03) return;
+    this._lastTink = now;
+    if (kind === 'glass') sfx.glass(); else sfx.tink(v);
+  }
+  resetWorld() {
+    for (const p of this.props || []) { this.scene.remove(p.obj); const i = this.boxes.indexOf(p.box); if (i >= 0) this.boxes.splice(i, 1); }
+    this.props = [];
+    for (const w of this.windows || []) if (w.broken) { w.broken = false; w.mesh.material = w.orig; }
+    for (const spec of this.level.propSpawns || []) this.addProp(spec);
+  }
+  addProp({ type, x, z, rot = 0 }) {
+    const obj = type === 'barrel' ? makeBarrel() : makeCrate(1.15);
+    const r = type === 'barrel' ? 0.42 : 0.62, h = type === 'barrel' ? 1.0 : 1.15;
+    obj.position.set(x, 0, z); obj.rotation.y = rot; this.scene.add(obj);
+    obj.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+    const box = { x0: x - r, x1: x + r, z0: z - r, z1: z + r, h };
+    this.boxes.push(box);
+    const prop = { type, obj, box, x, z, r, h, hp: type === 'barrel' ? 24 : 40, explosive: type === 'barrel', dead: false };
+    this.props.push(prop);
+    return prop;
+  }
+  hitProps(pt, dmg) {
+    for (const p of this.props) {
+      if (p.dead) continue;
+      if (pt.x > p.box.x0 - 0.2 && pt.x < p.box.x1 + 0.2 && pt.z > p.box.z0 - 0.2 && pt.z < p.box.z1 + 0.2 && pt.y < p.h + 0.2) this.damageProp(p, dmg);
+    }
+  }
+  blastProps(x, y, z, R, dmg) {
+    for (const p of this.props) {
+      if (p.dead) continue;
+      const d = Math.hypot(p.x - x, p.z - z) - p.r;
+      if (d < R) this.damageProp(p, dmg * 1.2 * (1 - Math.max(0, d) / R));
+    }
+  }
+  damageProp(p, dmg) {
+    if (p.dead) return;
+    p.hp -= dmg;
+    p.obj.position.y = 0.02; // tiny jolt
+    if (p.hp <= 0) this.destroyProp(p);
+  }
+  destroyProp(p) {
+    p.dead = true;
+    this.scene.remove(p.obj);
+    const i = this.boxes.indexOf(p.box); if (i >= 0) this.boxes.splice(i, 1);
+    const n = p.explosive ? 7 : 11;
+    for (let k = 0; k < n; k++) {
+      const a = Math.random() * 6.283, sp = 2 + Math.random() * (p.explosive ? 7 : 4);
+      this.debris.spawn(p.explosive ? 'metal' : 'wood', p.x, 0.3 + Math.random() * 0.8, p.z, Math.cos(a) * sp, 3 + Math.random() * 5, Math.sin(a) * sp);
+    }
+    if (p.explosive) {
+      this.schedule(0.1 + Math.random() * 0.14, () => this.explode(p.x, 0.8, p.z, 5.2, 120, 'boom', null));
+    } else {
+      sfx.crate();
+      this.burst(p.x, 0.6, p.z, 'dust', 8, 3, 0.15);
+      if (Math.random() < 0.5) { const r = Math.random(); this.addPickup(r < 0.2 ? 'kvass' : r < 0.6 ? 'powder' : 'shot', p.x, p.z, true); }
+    }
+  }
+  shatterWindowsNear(pt, r) {
+    for (const w of this.windows) {
+      if (w.broken) continue;
+      const dx = w.pos.x - pt.x, dy = w.pos.y - pt.y, dz = w.pos.z - pt.z;
+      if (dx * dx + dy * dy + dz * dz < r * r) this.breakWindow(w);
+    }
+  }
+  breakWindow(w) {
+    w.broken = true; w.orig = w.mesh.material; w.mesh.material = brokenWindowMaterial();
+    sfx.glass();
+    for (let k = 0; k < 10; k++) {
+      const sp = 1.5 + Math.random() * 3.5;
+      this.debris.spawn('glass', w.pos.x + (Math.random() - 0.5) * 0.7, w.pos.y + (Math.random() - 0.5) * 1.0, w.pos.z + (Math.random() - 0.5) * 0.7,
+        w.n.x * sp + (Math.random() - 0.5) * 2, Math.random() * 3, w.n.z * sp + (Math.random() - 0.5) * 2);
+    }
+  }
+  ejectCasing(kind) {
+    const { dir, right, up } = this.basis(), p = this.p, o = this.eye().addScaledVector(dir, 0.55).addScaledVector(right, 0.16).addScaledVector(up, -0.14);
+    const count = kind === 'shell2' ? 2 : 1, type = kind === 'brass' ? 'brass' : 'shell';
+    for (let i = 0; i < count; i++) {
+      const sp = 1.6 + Math.random() * 1.4;
+      this.debris.spawn(type, o.x, o.y, o.z, right.x * sp + dir.x * (Math.random() - 0.4) + p.vx * 0.4 + (i - 0.5) * 0.4, 1.4 + Math.random() * 1.6, right.z * sp + dir.z * (Math.random() - 0.4) + p.vz * 0.4);
+    }
+  }
+
   // Four reusable point lights: explosions, fire and plasma light up their surroundings.
   setupLights() {
     this.dlights = [];
@@ -251,23 +351,40 @@ export class Game {
   }
 
   // ---------------- pickups ----------------
-  addPickup(type, x, z) {
+  addPickup(type, x, z, toss = false) {
     const weapon = type.startsWith('w_');
     const mesh = new THREE.Mesh(weapon ? new THREE.PlaneGeometry(2.3, 1.15) : new THREE.PlaneGeometry(0.8, 0.8), new THREE.MeshBasicMaterial({ map: this.pickTex[type], transparent: true, alphaTest: 0.4, side: THREE.DoubleSide }));
     mesh.position.set(x, 0.7, z);
     this.scene.add(mesh);
     const glow = new THREE.Mesh(new THREE.CircleGeometry(weapon ? 0.9 : 0.45, 14), new THREE.MeshBasicMaterial({ color: weapon ? 0xffd060 : 0xffffff, transparent: true, opacity: 0.25, depthWrite: false }));
     glow.rotation.x = -Math.PI / 2; glow.position.set(0, weapon ? -0.8 : -0.65, 0); mesh.add(glow);
-    this.pickups.push({ type, mesh, x, z, t: Math.random() * 6 });
+    mesh.rotation.order = 'YXZ';
+    const k = { type, mesh, x, z, t: Math.random() * 6, py: toss ? 1.0 : 0.75, vx: 0, vy: 0, vz: 0, rise: toss ? 0 : 1, toss, roll: 0 };
+    if (toss) { const a = Math.random() * 6.283, sp = 2.5 + Math.random() * 2.5; k.vx = Math.cos(a) * sp; k.vz = Math.sin(a) * sp; k.vy = 4 + Math.random() * 3; }
+    this.pickups.push(k);
   }
   updatePickups(dt) {
     const p = this.p;
     for (let i = this.pickups.length - 1; i >= 0; i--) {
       const k = this.pickups[i];
       k.t += dt;
-      k.mesh.position.y = (k.type.startsWith('w_') ? 0.95 : 0.75) + Math.sin(k.t * 3) * 0.1;
+      const base = k.type.startsWith('w_') ? 0.95 : 0.75, rad = 0.32;
+      if (k.toss && k.rise < 1) {
+        // thrown by a lizard / broken crate: falls, bounces, rolls to a stop, then floats up as a normal pickup
+        if (k.settling) { k.rise = Math.min(1, k.rise + dt / 0.5); k.py = rad + (base - rad) * k.rise; if (k.rise >= 1) k.toss = false; }
+        else {
+          k.vy -= 18 * dt; k.py += k.vy * dt; k.x += k.vx * dt; k.z += k.vz * dt;
+          const pos = { x: k.x, z: k.z }, ox = k.x, oz = k.z; resolveCircle(pos, 0.3, this.boxes);
+          if (pos.x !== ox) k.vx = -k.vx * 0.5; if (pos.z !== oz) k.vz = -k.vz * 0.5; k.x = pos.x; k.z = pos.z;
+          if (k.py < rad) { k.py = rad; if (k.vy < -1.2) { k.vy = -k.vy * 0.5; k.vx *= 0.8; k.vz *= 0.8; } else { k.vy = 0; const f = Math.exp(-3.5 * dt); k.vx *= f; k.vz *= f; } }
+          const sp = Math.hypot(k.vx, k.vz); k.roll += sp * dt * 3;
+          k.mesh.rotation.z = Math.sin(k.roll) * 0.5 * Math.min(1, sp);
+          if (k.py <= rad + 0.001 && sp < 0.25) { k.settling = true; k.mesh.rotation.z = 0; }
+        }
+        k.mesh.position.set(k.x, k.py, k.z);
+      } else k.mesh.position.set(k.x, base + Math.sin(k.t * 3) * 0.1, k.z);
       k.mesh.rotation.y = Math.atan2(this.camera.position.x - k.x, this.camera.position.z - k.z);
-      if (Math.hypot(p.x - k.x, p.z - k.z) < 1.1 && this.collect(k.type)) {
+      if (!(k.toss && k.rise < 0.2 && k.py > 0.5 && k.vy > 0) && Math.hypot(p.x - k.x, p.z - k.z) < 1.1 && this.collect(k.type)) {
         this.scene.remove(k.mesh); this.pickups.splice(i, 1); sfx.pickup();
       }
     }
@@ -396,6 +513,7 @@ export class Game {
     p.kick += w.kick;
     if (w.kind === 'flame') p.firing = true;
     if (w.kind !== 'flame' || p.shotN % 3 === 0) sfx[w.sfx]();
+    if (w.eject) { if (w.ejectDelay) this.schedule(w.ejectDelay, () => this.ejectCasing(w.eject)); else this.ejectCasing(w.eject); }
     if (w.kind === 'hitscan') this.fireHitscan(w);
     else if (w.kind === 'projectile') this.fireProjectile(w);
     else if (w.kind === 'flame') this.fireFlame(w);
@@ -415,18 +533,18 @@ export class Game {
       const hit = this.hitscan(o, d, this.level.range);
       const pt = o.clone().addScaledVector(d, hit.t);
       if (hit.enemy) this.damageEnemy(hit.enemy, w.damage, pt, false, d);
-      else if (hit.t < this.level.range) this.impact(pt, hit, d, i < 6);
+      else if (hit.t < this.level.range) this.impact(pt, hit, d, i < 6, w.damage);
     }
   }
 
   // bullet hit a wall / the ground: dust, sparks and (a few) bullet holes
-  impact(pt, hit, d, mark = true) {
+  impact(pt, hit, d, mark = true, dmg = 12) {
     this.burst(pt.x - d.x * 0.1, pt.y, pt.z - d.z * 0.1, 'dust', 2, 2.2, 0.08);
     if (!hit.n) return;
     this.sparks(pt.x, pt.y, pt.z, hit.ground ? 2 : 3, 4, hit.n.x, hit.n.y, hit.n.z);
     if (mark && !hit.invisible) this.decals.add('bullet', pt, hit.n, 0.16 + Math.random() * 0.08);
-    if (this.windows) this.shatterWindowsNear(pt, 0.9);
-    if (this.props) this.hitProps(pt, 12);
+    this.shatterWindowsNear(pt, 0.9);
+    this.hitProps(pt, dmg);
   }
 
   // muzzle position in the world (right hand side, slightly low)
@@ -459,6 +577,7 @@ export class Game {
       const sp = 9 + Math.random() * 5;
       this.emit(o.x, o.y, o.z, Math.random() < 0.5 ? 'flameY' : 'flameR', d.x * sp, d.y * sp + 0.6, d.z * sp, Math.min(0.55, reach / sp + 0.05), 0.2 + Math.random() * 0.2, -1.5);
     }
+    for (const p of this.props) { if (!p.dead && p.explosive) { const dx = p.x - eye.x, dz = p.z - eye.z, d = Math.hypot(dx, dz); if (d < reach + 0.5 && (dx * dir.x + dz * dir.z) / (d || 1) > 0.9) this.damageProp(p, 1.4); } }
     for (const e of this.enemies) {
       if (!ALIVE.has(e.state) || e.state === 'spawn') continue;
       const dx = e.x - eye.x, dz = e.z - eye.z, dy = 1.2 - eye.y, d = Math.hypot(dx, dz);
@@ -514,8 +633,8 @@ export class Game {
       this.damageEnemy(e, dmg * (0.3 + 0.7 * f), new THREE.Vector3(e.x, 1.2, e.z), false, null);
       this.knock(e, e.x - x, e.z - z, tint === 'boomBlue' ? 4 * f : 16 * f + 4);
     }
-    if (this.props) this.blastProps(x, y, z, R, dmg);
-    if (this.windows) this.shatterWindowsNear({ x, y, z }, R * 1.5);
+    this.blastProps(x, y, z, R, dmg);
+    this.shatterWindowsNear({ x, y, z }, R * 1.5);
     const dp = Math.hypot(this.p.x - x, this.p.y + 1 - y, this.p.z - z);
     if (dp < R && tint !== 'boomBlue') this.hurt(Math.min(35, dmg * 0.25 * (1 - dp / R)));
   }
@@ -670,7 +789,7 @@ export class Game {
     e.shadow.visible = false;
     if (Math.random() < 0.4) {
       const r = Math.random();
-      this.addPickup(r < 0.25 ? 'kvass' : r < 0.7 ? 'powder' : 'shot', e.x, e.z);
+      this.addPickup(r < 0.25 ? 'kvass' : r < 0.7 ? 'powder' : 'shot', e.x, e.z, true);
     }
     // keep corpse count bounded
     const dead = this.enemies.filter((x) => x.state === 'dying' || x.state === 'dead');
@@ -690,6 +809,11 @@ export class Game {
       const dx = p.x - e.x, dz = p.z - e.z, dist = Math.hypot(dx, dz) || 1;
       const nx = dx / dist, nz = dz / dist;
       e.cool -= dt;
+      if ((e.kx || e.kz) && e.state !== 'spawn') {
+        const kp = { x: e.x + e.kx * dt, z: e.z + e.kz * dt };
+        resolveCircle(kp, e.cfg.radius, this.boxes); e.x = kp.x; e.z = kp.z;
+        const kf = Math.exp(-5 * dt); e.kx *= kf; e.kz *= kf; if (Math.abs(e.kx) + Math.abs(e.kz) < 0.05) e.kx = e.kz = 0;
+      }
       if (e.burn > 0 && ALIVE.has(e.state) && e.state !== 'spawn') {
         e.burn -= dt; e.burnT = (e.burnT || 0) + dt;
         if (Math.random() < dt * 14) this.emit(e.x + (Math.random() - 0.5) * 0.6, 0.8 + Math.random() * 1.4, e.z + (Math.random() - 0.5) * 0.6, Math.random() < 0.5 ? 'flameY' : 'flameR', 0, 1.8, 0, 0.4, 0.3, -2);
@@ -850,6 +974,8 @@ export class Game {
     this.updatePShots(dt);
     this.updateFx(dt);
     this.updateLights(dt);
+    this.updateTimers(dt);
+    this.debris.update(dt, this.boxes);
     this.updatePickups(dt);
     this.updateParticles(dt);
     this.messageT = Math.max(0, this.messageT - dt);

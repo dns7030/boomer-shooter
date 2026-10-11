@@ -156,6 +156,12 @@ export function buildLevel(scene) {
 
   return {
     boxes, spawnPoints, pickupSpawns, update, fogColor: FOG,
+    propSpawns: [
+      { type: 'barrel', x: 3.4, z: 26 }, { type: 'barrel', x: 4.1, z: 25.3 }, { type: 'crate', x: -3.8, z: 20 }, { type: 'barrel', x: -3.2, z: 8 },
+      { type: 'crate', x: 4.0, z: 6, rot: 0.4 }, { type: 'barrel', x: 3.6, z: -3 }, { type: 'barrel', x: 4.3, z: -3.8 }, { type: 'barrel', x: 3.9, z: -4.6 },
+      { type: 'crate', x: -4.0, z: -12 }, { type: 'crate', x: -4.1, z: -13.2 }, { type: 'barrel', x: 3.5, z: -22 }, { type: 'crate', x: 3.8, z: -29 },
+      { type: 'barrel', x: -3.6, z: -38 }, { type: 'barrel', x: -3.0, z: -38.7 }, { type: 'crate', x: 3.2, z: -45 },
+    ],
     mode: 'waves', waves: [{ grunt: 4 }, { grunt: 4, spitter: 3 }, { grunt: 6, spitter: 5 }],
     start: { x: 0, z: 34, yaw: 0 }, startWeapons: ['sabre', 'pistol'],
     spawnRange: [14, 48], maxAlive: 8, range: 90,

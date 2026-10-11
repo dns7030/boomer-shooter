@@ -5,7 +5,7 @@
   "main": "src/main.js",
   "scripts": {
     "start": "python3 -m http.server 8000",
-    "test": "node tests/smoke.mjs /tmp"
+    "test": "node tests/smoke.mjs /tmp && node tests/physics.mjs && node tests/music.mjs"
   },
   "repository": {
     "type": "git",

@@ -197,6 +197,7 @@ export function buildSoviet(scene) {
 
   return {
     boxes, spawnPoints, pickupSpawns, update, fogColor: FOG,
+    propSpawns: (() => { const a = []; for (let z = 20; z > -300; z -= 23) { const x = (z % 2 ? -1 : 1) * (6 + ((z * 7) % 9)); a.push({ type: 'barrel', x, z }); a.push({ type: 'barrel', x: x + 0.9, z: z - 0.8 }); a.push({ type: 'crate', x: -x * 0.8, z: z - 9, rot: z * 0.1 }); } return a; })(),
     mode: 'advance', encounters, goalZ: GOAL_Z,
     start: { x: 0, z: 44, yaw: 0 }, startWeapons: ['sabre', 'pistol', 'shotgun', 'chaingun'],
     spawnRange: [22, 80], maxAlive: 12, range: 400,

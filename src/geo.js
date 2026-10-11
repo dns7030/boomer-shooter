@@ -1,6 +1,6 @@
 // Geometry / material helpers shared by the level builders.
 import * as THREE from 'three';
-import { tex, toTexture, windowCanvas, doorCanvas, archDecal } from './textures.js';
+import { tex, toTexture, windowCanvas, doorCanvas, archDecal, makeCanvas } from './textures.js';
 
 const mats = {};
 export function mat(name, opts = {}) {
@@ -97,6 +97,26 @@ export function onionDome(R, h, domeMat, crossMat) {
 }
 
 // Flat decal plane facing +Z (so a window / door / arch on a wall).
+// Every window decal is remembered so bullets and explosions can shatter it.
+let windowList = [];
+export function resetWindows() { windowList = []; }
+export function getWindows() { return windowList; }
+let brokenMat = null;
+export function brokenWindowMaterial() {
+  if (!brokenMat) {
+    const c = makeCanvas(32, 48, (g) => {
+      g.clearRect(0, 0, 32, 48);
+      g.fillStyle = '#c9c3b4'; g.fillRect(2, 8, 28, 38); g.fillRect(0, 6, 32, 4);
+      g.fillStyle = '#05070a'; g.fillRect(5, 11, 22, 32);
+      g.fillStyle = '#d8ecf4'; // jagged glass teeth along the frame
+      for (let i = 0; i < 6; i++) { g.beginPath(); g.moveTo(5 + i * 4, 11); g.lineTo(7 + i * 4, 18 + (i % 3) * 3); g.lineTo(9 + i * 4, 11); g.fill(); g.beginPath(); g.moveTo(5 + i * 4, 43); g.lineTo(7 + i * 4, 37 - (i % 2) * 4); g.lineTo(9 + i * 4, 43); g.fill(); }
+      g.beginPath(); g.moveTo(5, 11); g.lineTo(12, 20); g.lineTo(5, 26); g.fill(); g.beginPath(); g.moveTo(27, 43); g.lineTo(21, 34); g.lineTo(27, 29); g.fill();
+    });
+    brokenMat = new THREE.MeshLambertMaterial({ map: toTexture(c, false), transparent: true, alphaTest: 0.5, side: THREE.DoubleSide });
+  }
+  return brokenMat;
+}
+
 const decalCache = {};
 export function decal(kind, w, h, x, y, z, opts = {}) {
   const key = kind + (opts.c || '') + (opts.lit ? 'L' : '');
@@ -111,6 +131,7 @@ export function decal(kind, w, h, x, y, z, opts = {}) {
   }
   const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), decalCache[key]);
   m.position.set(x, y, z);
+  if (kind === 'window') windowList.push({ mesh: m, broken: false, lit: !!opts.lit });
   return m;
 }
 
