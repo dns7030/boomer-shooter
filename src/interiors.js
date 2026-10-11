@@ -139,7 +139,7 @@ export function sevenSisters() {
   const spire = new THREE.Mesh(new THREE.ConeGeometry(6, 36, 8), mat('shingleGreen', { double: true })); spire.position.set(0, y + 18, 0); g.add(spire);
   const star = new THREE.Mesh(new THREE.OctahedronGeometry(2.3), color(0xe03020, { emissive: 0xa01808 })); star.scale.set(1, 1.5, 1); star.position.set(0, y + 38.5, 0); g.add(star);
   // portico on the front
-  for (let i = 0; i < 6; i++) { const x = -15 + i * 6; g.add(place(cylT(0.9, 1.0, 14, 12, mat('concrete'), 3), x, 7, D / 2 + 2.6)); cols.push([x - 1, x + 1, D / 2 + 1.6, D / 2 + 3.6, 14]); }
+  for (let i = 0; i < 6; i++) { if (i === 2 || i === 3) continue; const x = -15 + i * 6; g.add(place(cylT(0.9, 1.0, 14, 12, mat('concrete'), 3), x, 7, D / 2 + 2.6)); cols.push([x - 1, x + 1, D / 2 + 1.6, D / 2 + 3.6, 14]); }   // (no middle columns: a wide central entrance)
   g.add(place(boxT(34, 1.6, 4, cornice, 3), 0, 14.8, D / 2 + 2.6)); g.add(place(boxT(38, 0.7, 7, cornice, 3), 0, 0.35, D / 2 + 3.2));
   banner(g, 'ГЛАВНОЕ ЗДАНИЕ', 22, 2.6, 0, 18, D / 2 + 0.2);
   // windows on the outer base (decals on the walls)
@@ -182,7 +182,7 @@ export function palaceOfCultureHall() {
   for (const t of [{ w: 40, d: 26, h: 18 }, { w: 20, d: 16, h: 16 }]) { g.add(place(slab(t.w, t.h, t.d, mat('stalin'), mat('roofTar'), 6), 0, y + t.h / 2, 0)); g.add(place(boxT(t.w + 1.4, 1.1, t.d + 1.4, cornice, 2), 0, y + t.h + 0.55, 0)); y += t.h + 1.1; }
   const spire = new THREE.Mesh(new THREE.ConeGeometry(5, 30, 8), mat('shingleGreen', { double: true })); spire.position.set(0, y + 15, 0); g.add(spire);
   const star = new THREE.Mesh(new THREE.OctahedronGeometry(2.0), color(0xe03020, { emissive: 0xa01808 })); star.scale.set(1, 1.5, 1); star.position.set(0, y + 32.5, 0); g.add(star);
-  for (let i = 0; i < 9; i++) { const x = -28 + i * 7; g.add(place(cylT(0.9, 1.0, 14, 12, mat('concrete'), 3), x, 7, D / 2 + 2.6)); cols.push([x - 1, x + 1, D / 2 + 1.6, D / 2 + 3.6, 14]); }
+  for (let i = 0; i < 9; i++) { if (i === 4) continue; const x = -28 + i * 7; g.add(place(cylT(0.9, 1.0, 14, 12, mat('concrete'), 3), x, 7, D / 2 + 2.6)); cols.push([x - 1, x + 1, D / 2 + 1.6, D / 2 + 3.6, 14]); }
   g.add(place(boxT(66, 1.6, 4, cornice, 3), 0, 14.8, D / 2 + 2.6)); g.add(place(boxT(70, 0.7, 7, cornice, 3), 0, 0.35, D / 2 + 3.2));
   banner(g, 'ДВОРЕЦ КУЛЬТУРЫ', 30, 3, 0, 18.5, D / 2 + 0.2, 0, '#7a1c14');
   for (let x = -32; x <= 32; x += 6) for (const yy of [11, 19]) { if (Math.abs(x) < 7 && yy === 11) continue; g.add(decal('window', 1.7, 3.4, x, yy, D / 2 + 0.07, { c: '#f4f0e0', lit: ((x | 0) + yy) % 7 === 0 })); }

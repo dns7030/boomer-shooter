@@ -2,7 +2,7 @@
 // Cells blocked by tall colliders are impassable; a breadth-first search from the player's cell
 // gives every cell a distance, and an enemy simply steps to its lowest-distance neighbour.
 export class Nav {
-  constructor(boxes, b, cell = 1.5, inflate = 0.7) {
+  constructor(boxes, b, cell = 1.0, inflate = 0.5) {
     this.c = cell; this.x0 = b.x0; this.z0 = b.z0;
     this.nx = Math.ceil((b.x1 - b.x0) / cell); this.nz = Math.ceil((b.z1 - b.z0) / cell);
     this.blocked = new Uint8Array(this.nx * this.nz);
@@ -56,7 +56,11 @@ export class Nav {
       for (let dj = -4; dj <= 4; dj++) for (let di = -4; di <= 4; di++) {
         const ni = i + di, nj = j + dj; if (ni < 0 || nj < 0 || ni >= nx || nj >= nz) continue;
         const n = nj * nx + ni; if (dist[n] < 0) continue;
-        const score = Math.hypot(di, dj) * 1000 + dist[n]; if (score < bd) { bd = score; best = n; }
+        const score = Math.hypot(di, dj) * 1000 + dist[n]; if (score >= bd) continue;
+        // the way there must not cross another blocked band (otherwise we'd try to walk through a wall to the other side)
+        const cx = this.x0 + ((n % nx) + 0.5) * this.c, cz = this.z0 + (((n / nx) | 0) + 0.5) * this.c, L = Math.hypot(cx - x, cz - z); let ok = true;
+        for (let t = 1.2; t < L && ok; t += 0.5) { const q = this.cellOf(x + ((cx - x) * t) / L, z + ((cz - z) * t) / L); if (q < 0 || blocked[q]) ok = false; }
+        if (ok) { bd = score; best = n; }
       }
       if (best < 0) return null;
       const tx = this.x0 + ((best % nx) + 0.5) * this.c - x, tz = this.z0 + (((best / nx) | 0) + 0.5) * this.c - z, l = Math.hypot(tx, tz) || 1;

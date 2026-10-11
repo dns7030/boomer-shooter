@@ -209,7 +209,7 @@ export function buildMetropolis(scene) {
       const b = bld[name], t = -1.2, c = [[-W / 2 + t, -D / 2 + t], [W / 2 - t, D / 2 - t]].map(([lx, lz]) => toWorld(b.x, b.z, b.f, lx, lz, b.s));
       return { name, x0: Math.min(c[0].x, c[1].x), x1: Math.max(c[0].x, c[1].x), z0: Math.min(c[0].z, c[1].z), z1: Math.max(c[0].z, c[1].z), top: H * b.s };
     }),
-    halls: [['sisters', 44, 0, 8], ['culture', 44, 3.5, 18], ['vdnkh', 40, 0, 12]].map(([name, D, lx, tz]) => {
+    halls: [['sisters', 44, 0, 8], ['culture', 44, 0, 18], ['vdnkh', 40, 0, 12]].map(([name, D, lx, tz]) => {
       const b = bld[name], a = toWorld(b.x, b.z, b.f, lx, D / 2 + 9 / b.s, b.s), c = toWorld(b.x, b.z, b.f, lx, tz, b.s);
       return { name, from: a, to: c };
     }),
