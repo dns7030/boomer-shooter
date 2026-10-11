@@ -6,7 +6,8 @@ import { Decals } from './decals.js';
 import { Debris } from './debris.js';
 import { makeBarrel, makeCrate } from './props.js';
 import { brokenWindowMaterial } from './geo.js';
-import { makeLizardTextures, makePickupTextures, makePlasmaTexture } from './sprites.js';
+import { makePickupTextures, makePlasmaTexture } from './sprites.js';
+import { renderLizardAtlases, frameUV, POSE, ANGLES, SPRITE_SIZE, SPRITE_FOOT } from './lizard3d.js';
 import { WEAPONS, AMMO, WEAPON_INDEX, SLOTS } from './weapons.js';
 import { WeaponView } from './weaponmodels.js';
 import { sfx } from './audio.js';
@@ -33,7 +34,7 @@ export class Game {
     this.wview = new WeaponView(this.renderer);
     this.camera = new THREE.PerspectiveCamera(75, 16 / 9, 0.2, 3000);
     this.camera.rotation.order = 'YXZ';
-    this.liz = makeLizardTextures();
+    this.atlas = renderLizardAtlases(this.renderer);   // 3D lizards baked into 8-direction sprite sheets
     this.pickTex = makePickupTextures();
     for (const [id, t] of Object.entries(this.wview.renderIcons(this.renderer))) this.pickTex['w_' + id] = t;
     const spriteMat = (tint) => new THREE.SpriteMaterial({ map: makePlasmaTexture(tint), blending: THREE.AdditiveBlending, depthWrite: false, fog: false });
@@ -750,8 +751,8 @@ export class Game {
     const pts = this.level.spawnPoints.filter((s) => Math.hypot(s.x - p.x, s.z - p.z) > rMin && Math.hypot(s.x - p.x, s.z - p.z) < rMax);
     const pool = pts.length ? pts : this.level.spawnPoints;
     const sp = pool[(Math.random() * pool.length) | 0];
-    const mat = new THREE.MeshBasicMaterial({ map: this.liz[type].idle, transparent: true, alphaTest: 0.5, side: THREE.DoubleSide });
-    const geo = new THREE.PlaneGeometry(cfg.w, cfg.h); geo.translate(0, cfg.h / 2, 0);
+    const mat = new THREE.MeshBasicMaterial({ map: this.atlas[type].texture, transparent: true, alphaTest: 0.5, side: THREE.DoubleSide });
+    const geo = new THREE.PlaneGeometry(SPRITE_SIZE, SPRITE_SIZE); geo.translate(0, SPRITE_SIZE / 2 - SPRITE_FOOT, 0);
     const mesh = new THREE.Mesh(geo, mat);
     mesh.visible = false;
     mesh.position.set(sp.x, 0, sp.z);
@@ -760,7 +761,7 @@ export class Game {
     shadow.position.set(sp.x, 0.04, sp.z); shadow.visible = false; this.scene.add(shadow);
     const beam = new THREE.Mesh(this.beamGeo, new THREE.MeshBasicMaterial({ color: 0x8dff9d, transparent: true, opacity: 0.5, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, fog: false }));
     beam.position.set(sp.x, 9, sp.z); this.scene.add(beam);
-    const e = { type, cfg, mesh, shadow, beam, hp: cfg.hp, x: sp.x, z: sp.z, state: 'spawn', timer: 0.9, cool: 0.6 + Math.random() * 0.8, anim: 0, deadT: 0, hit: false, flip: Math.random() < 0.5 ? 1 : -1, slide: 0, slideT: 0, stuck: 0, strafe: Math.random() < 0.5 ? 1 : -1, strafeT: 1 + Math.random() * 2 };
+    const e = { type, cfg, mesh, shadow, beam, hp: cfg.hp, x: sp.x, z: sp.z, state: 'spawn', timer: 0.9, cool: 0.6 + Math.random() * 0.8, anim: 0, deadT: 0, hit: false, uv: geo.attributes.uv, frameKey: -1, face: Math.atan2(p.x - sp.x, p.z - sp.z), want: Math.atan2(p.x - sp.x, p.z - sp.z), slide: 0, slideT: 0, stuck: 0, strafe: Math.random() < 0.5 ? 1 : -1, strafeT: 1 + Math.random() * 2 };
     this.enemies.push(e);
     sfx.beam();
     return e;
@@ -809,6 +810,7 @@ export class Game {
       const dx = p.x - e.x, dz = p.z - e.z, dist = Math.hypot(dx, dz) || 1;
       const nx = dx / dist, nz = dz / dist;
       e.cool -= dt;
+      if (e.state !== 'move') e.want = Math.atan2(nx, nz);
       if ((e.kx || e.kz) && e.state !== 'spawn') {
         const kp = { x: e.x + e.kx * dt, z: e.z + e.kz * dt };
         resolveCircle(kp, e.cfg.radius, this.boxes); e.x = kp.x; e.z = kp.z;
@@ -842,6 +844,7 @@ export class Game {
             mx = mx * 0.25 + tx; mz = mz * 0.25 + tz;
             const l = Math.hypot(mx, mz) || 1; mx /= l; mz /= l;
           }
+          e.want = e.type === 'grunt' && (mx || mz) ? Math.atan2(mx, mz) : Math.atan2(nx, nz);
           const pos = { x: e.x + mx * speed * dt, z: e.z + mz * speed * dt };
           for (const o of this.enemies) {
             if (o === e || !ALIVE.has(o.state)) continue;
@@ -881,18 +884,25 @@ export class Game {
           e.deadT += dt; if (e.deadT > 0.5) e.state = 'dead';
           break;
       }
-      // visuals
+      // visuals: pick the frame of the 3D-lizard sprite sheet that matches pose and viewing angle
       const m = e.mesh;
       m.position.set(e.x, 0, e.z);
       e.shadow.position.set(e.x, 0.04, e.z);
-      m.rotation.y = Math.atan2(cam.x - e.x, cam.z - e.z);
-      const T = this.liz[e.type];
-      let tx = T.idle;
-      if (e.state === 'move') tx = [T.walk1, T.idle, T.walk2, T.idle][Math.floor(e.anim) % 4];
-      else if (e.state === 'attack') tx = T.attack;
-      else if (e.state === 'pain') tx = T.pain;
-      else if (e.state === 'dying' || e.state === 'dead') { tx = T.dead[e.deadT < 0.1 ? 0 : e.deadT < 0.26 ? 1 : e.deadT < 0.45 ? 2 : 3]; m.scale.x = 1.5 * e.flip; }
-      if (m.material.map !== tx) { m.material.map = tx; m.material.needsUpdate = true; }
+      const toCam = Math.atan2(cam.x - e.x, cam.z - e.z);
+      m.rotation.y = toCam;
+      if (ALIVE.has(e.state)) { let dd = e.want - e.face; dd = Math.atan2(Math.sin(dd), Math.cos(dd)); e.face += dd * Math.min(1, dt * 9); }
+      let pose = POSE.idle;
+      if (e.state === 'move') pose = POSE.walk0 + (Math.floor(e.anim) % 4);
+      else if (e.state === 'attack') pose = e.timer > (e.type === 'grunt' ? 0.28 : 0.2) ? POSE.windup : POSE.strike;
+      else if (e.state === 'pain') pose = POSE.pain;
+      else if (e.state === 'dying' || e.state === 'dead') pose = POSE.die0 + (e.deadT < 0.09 ? 0 : e.deadT < 0.2 ? 1 : e.deadT < 0.32 ? 2 : e.deadT < 0.44 ? 3 : 4);
+      let dl = toCam - e.face; dl = Math.atan2(Math.sin(dl), Math.cos(dl));
+      const ang = ((Math.round(-dl / (Math.PI / 4)) % ANGLES) + ANGLES) % ANGLES, key = pose * ANGLES + ang;
+      if (key !== e.frameKey) {
+        e.frameKey = key;
+        const [u0, v0, u1, v1] = frameUV(pose, ang), uv = e.uv;
+        uv.setXY(0, u0, v1); uv.setXY(1, u1, v1); uv.setXY(2, u0, v0); uv.setXY(3, u1, v0); uv.needsUpdate = true;
+      }
       if (e.beam.parent) e.beam.position.set(e.x, 9, e.z);
     }
   }
