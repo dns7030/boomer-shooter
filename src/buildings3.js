@@ -169,7 +169,7 @@ export function generalStaff({ wing = 34, gap = 14, d = 16 } = {}) {
   // triumphal arch over the gap
   g.add(place(boxT(gap + 8, 7, d - 2, mat('stuccoWhite'), 3), 0, 14.5 + 3.5 - 3.5 + 3, 0));
   columns(g, { n: 2, gap: gap + 3, h: 11, r: 0.9, z: d / 2 + 0.6, y: 0 });
-  for (const sd of [-1, 1]) g.add(place(boxT(2.4, 14, d - 2, mat('stuccoWhite'), 2), sd * (gap / 2 + 1.2), 7, 0));
+  for (const sd of [-1, 1]) g.add(place(boxT(2.4, 14, d - 2, mat('stuccoWhite'), 2), sd * (gap / 2 + 0.9), 7, 0));   // sticks 0.3 m into the gap (not coplanar with the wing ends)
   // chariot with horses on top
   const gold = color(0xd9a62a, { emissive: 0x3a2a00 });
   g.add(place(new THREE.Mesh(new THREE.BoxGeometry(5, 2.2, 3), gold), 0, 21.5 + 2.5, 0));
