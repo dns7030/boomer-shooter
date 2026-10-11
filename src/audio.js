@@ -72,6 +72,7 @@ export const sfx = {
   lizardDie() { tone({ type: 'sawtooth', f0: 420, f1: 60, dur: 0.6, gain: 0.2 }); noise({ dur: 0.5, gain: 0.25, f0: 4000, f1: 300, type: 'highpass' }); },
   hiss() { noise({ dur: 0.35, gain: 0.22, f0: 6000, f1: 3000, type: 'highpass' }); },
   spit() { tone({ type: 'sawtooth', f0: 220, f1: 900, dur: 0.22, gain: 0.18 }); noise({ dur: 0.2, gain: 0.15, f0: 3000, f1: 1000, type: 'bandpass', q: 3 }); },
+  fireball() { noise({ dur: 0.45, gain: 0.4, f0: 500, f1: 2200, type: 'bandpass', q: 1.2 }); tone({ type: 'sawtooth', f0: 180, f1: 60, dur: 0.35, gain: 0.22 }); },
   plasmaHit() { noise({ dur: 0.25, gain: 0.3, f0: 2500, f1: 200 }); },
   hurt() { tone({ type: 'sine', f0: 200, f1: 80, dur: 0.25, gain: 0.45 }); noise({ dur: 0.2, gain: 0.3, f0: 900, f1: 200 }); },
   pickup() { [660, 880, 1320].forEach((f, i) => tone({ type: 'triangle', f0: f, dur: 0.12, gain: 0.2, delay: i * 0.07 })); },

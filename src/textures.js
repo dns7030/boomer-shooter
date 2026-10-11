@@ -455,7 +455,17 @@ function stuccoPainter(base, trim, seed) {
   };
 }
 const STUCCO = { Yellow: ['#e2c56a', '#f6f2e2'], Pink: ['#d99a92', '#f6efe4'], Mint: ['#9ccdb0', '#f4f6ee'], Blue: ['#90b2d4', '#f4f2ea'], Cream: ['#eadcb8', '#faf6ea'], Terra: ['#c97a5c', '#eee4d0'], Ochre: ['#d9a252', '#f3ecd8'], White: ['#ece8dc', '#c8c4b8'], Grey: ['#b3b7bb', '#eceae2'] };
-Object.entries(STUCCO).forEach(([name, [base, trim]], i) => { painters['stucco' + name] = stuccoPainter(base, trim, 200 + i); });
+// plain stone / trim (columns, cornices, pillars, domes, bodies that get window decals): no painted windows
+function plainPainter(base, line, seed) {
+  return (g, w, h) => {
+    const rnd = mulberry(seed);
+    R(g, 0, 0, w, h, base);
+    for (let i = 0; i < 260; i++) R(g, (rnd() * w) | 0, (rnd() * h) | 0, 1 + ((rnd() * 2) | 0), 1, rnd() < 0.5 ? 'rgba(0,0,0,0.07)' : 'rgba(255,255,255,0.12)');
+    for (let y = 0; y < h; y += 32) R(g, 0, y, w, 1, line);
+    for (let y = 0; y < h; y += 32) for (let x = (y / 32 % 2) * 32; x < w; x += 64) R(g, x, y, 1, 32, line);
+  };
+}
+Object.entries(STUCCO).forEach(([name, [base, trim]], i) => { painters['stucco' + name] = name === 'White' || name === 'Grey' ? plainPainter(name === 'White' ? '#ece8dc' : '#b3b7bb', 'rgba(0,0,0,0.10)', 200 + i) : stuccoPainter(base, trim, 200 + i); });
 Object.assign(painters, {
   rustic(g, w, h) {
     const rnd = mulberry(220);

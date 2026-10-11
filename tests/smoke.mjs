@@ -85,7 +85,7 @@ const run = await page.evaluate(() => {
     if (alive.length) {
       alive.sort((a, b) => Math.hypot(a.x - p.x, a.z - p.z) - Math.hypot(b.x - p.x, b.z - p.z));
       const e = alive[0], dx = e.x - p.x, dz = e.z - p.z, d = Math.hypot(dx, dz);
-      p.yaw = Math.atan2(-dx, -dz); p.pitch = Math.atan2(1.2 - 1.7, d);
+      p.yaw = Math.atan2(-dx, -dz); p.pitch = Math.atan2(1.2 + (e.y || 0) - 1.7, d);
       p.weapon = d < 3 ? idx('sabre') : d < 10 ? idx('ssg') : idx('chaingun');
       p.cd = Math.min(p.cd, 0.05); p.switching = 0;
       g.camera.rotation.set(p.pitch, p.yaw, 0); g.camera.updateMatrixWorld(true);
@@ -115,7 +115,7 @@ const run2 = await page.evaluate(() => {
     if (alive.length) {
       alive.sort((a, b) => Math.hypot(a.x - p.x, a.z - p.z) - Math.hypot(b.x - p.x, b.z - p.z));
       const e = alive[0], dx = e.x - p.x, dz = e.z - p.z, d = Math.hypot(dx, dz);
-      p.yaw = Math.atan2(-dx, -dz); p.pitch = Math.atan2(1.2 - 1.7, d);
+      p.yaw = Math.atan2(-dx, -dz); p.pitch = Math.atan2(1.2 + (e.y || 0) - 1.7, d);
       p.weapon = d < 3 ? idx('sabre') : d < 14 ? idx('ssg') : idx('chaingun'); p.cd = Math.min(p.cd, 0.05); p.switching = 0;
       g.camera.rotation.set(p.pitch, p.yaw, 0); g.camera.updateMatrixWorld(true);
       g.fire();
@@ -149,11 +149,11 @@ const run3 = await page.evaluate(() => {
     steps++;
     p.health = Math.max(p.health, 50);
     for (const k of Object.keys(p.ammo)) p.ammo[k] = Math.max(p.ammo[k], 60);
-    const alive = g.enemies.filter((e) => ['move', 'attack', 'pain'].includes(e.state) && g.hasLOS(p.x, p.y + 1.6, p.z, e.x, 1.3, e.z));
+    const alive = g.enemies.filter((e) => ['move', 'attack', 'pain'].includes(e.state) && g.hasLOS(p.x, p.y + 1.6, p.z, e.x, 1.3 + e.y, e.z));
     if (alive.length) {
       alive.sort((a, b) => Math.hypot(a.x - p.x, a.z - p.z) - Math.hypot(b.x - p.x, b.z - p.z));
       const e = alive[0], dx = e.x - p.x, dz = e.z - p.z, d = Math.hypot(dx, dz);
-      p.yaw = Math.atan2(-dx, -dz); p.pitch = Math.atan2(1.2 - 1.7, d);
+      p.yaw = Math.atan2(-dx, -dz); p.pitch = Math.atan2(1.2 + (e.y || 0) - 1.7, d);
       p.weapon = d < 3 ? idx('sabre') : d < 12 ? idx('ssg') : idx('chaingun'); p.cd = Math.min(p.cd, 0.05); p.switching = 0;
       g.camera.rotation.set(p.pitch, p.yaw, 0); g.camera.updateMatrixWorld(true);
       g.fire();
@@ -163,6 +163,34 @@ const run3 = await page.evaluate(() => {
   return { state: g.state, steps, kills: g.stats.kills, wave: g.wave.index, left: g.remaining() };
 });
 check('bot holds St. Petersburg through every wave', run3.state === 'won', JSON.stringify(run3));
+
+// --- flying fire drake: hovers, throws fireballs, can be shot out of the air ---
+const drake = await page.evaluate(() => {
+  const g = window.__game; g.loadLevel(2); g.setState('playing'); g.wave.phase = 'idle';
+  const p = g.p; p.x = 0; p.z = -30; p.health = 100;
+  const d = g.spawnEnemy('drake'); Object.assign(d, { x: 0, z: -60, state: 'move', timer: 0, cool: 0.1 }); d.mesh.visible = true; g.scene.remove(d.beam);
+  let fired = false, maxY = 0, hurt = 100;
+  for (let t = 0; t < 60 * 8; t++) { g.step(1 / 60); fired = fired || g.projectiles.some((q) => q.fire); maxY = Math.max(maxY, d.y); hurt = Math.min(hurt, p.health); }
+  // shoot it: aim at its body with the pistol
+  p.health = 100; p.has.pistol = true; const W = window.__weapons; p.weapon = W.findIndex((w) => w.id === 'chaingun'); p.has.chaingun = true; p.ammo.bullets = 999; p.switching = 0;
+  let steps = 0;
+  while (d.state !== 'dying' && d.state !== 'dead' && steps++ < 60 * 12) {
+    const dx = d.x - p.x, dz = d.z - p.z, dd = Math.hypot(dx, dz); p.yaw = Math.atan2(-dx, -dz); p.pitch = Math.atan2(1.2 + d.y - 1.7, dd); p.cd = 0; p.health = 100;
+    g.camera.rotation.set(p.pitch, p.yaw, 0); g.camera.updateMatrixWorld(true); g.fire(); g.step(1 / 60);
+  }
+  for (let t = 0; t < 90; t++) g.step(1 / 60);
+  return { fired, maxY: +maxY.toFixed(1), hurt: Math.round(hurt), state: d.state, landed: d.y < 0.05 };
+});
+check('fire drake hovers, throws fireballs and can be shot down', drake.fired && drake.maxY > 3 && drake.hurt < 100 && drake.state === 'dead' && drake.landed, JSON.stringify(drake));
+const sty = await page.evaluate(() => {
+  const g = window.__game; g.loadLevel(0); g.setState('playing'); g.wave.phase = 'idle';
+  const e = g.spawnEnemy('grunt'); e.mesh.visible = true;
+  const a = { st: g.lizStyle, w: e.mesh.geometry.parameters.width };
+  g.setLizStyle('pixel'); const b = { pix: e.pix, w: e.mesh.geometry.parameters.width };
+  g.step(1 / 60); g.setLizStyle('sprite3d'); const c = { pix: e.pix, w: e.mesh.geometry.parameters.width };
+  return { a, b, c };
+});
+check('lizard look can be switched live (3D <-> pixel)', sty.a.w > 2.7 && sty.b.pix === true && sty.b.w < 2.5 && sty.c.pix === false && sty.c.w > 2.7, JSON.stringify(sty));
 
 await page.evaluate(() => window.__game.render());
 await page.screenshot({ path: `${out}/end-state.png` });

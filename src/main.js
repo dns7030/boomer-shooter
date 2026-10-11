@@ -26,6 +26,15 @@ function ensureMusic() {
   return music;
 }
 
+const GFX = ['LOW', 'MEDIUM (BLOOM)', 'HIGH (BLOOM + SHADOWS)'];
+function renderSettings() {
+  $('set-gfx').textContent = `GRAPHICS: ${GFX[game.quality]}  (G)`;
+  $('set-liz').textContent = `LIZARDS: ${game.lizStyle === 'pixel' ? 'PIXEL' : '3D MODELS'}  (L)`;
+}
+$('set-gfx').addEventListener('click', (ev) => { ev.stopPropagation(); game.cycleQuality(); renderSettings(); });
+$('set-liz').addEventListener('click', (ev) => { ev.stopPropagation(); game.toggleLizStyle(); renderSettings(); });
+renderSettings();
+
 const levelBox = $('levels');
 function renderLevels(show) {
   levelBox.style.display = show ? 'flex' : 'none';
@@ -44,6 +53,7 @@ function showOverlay(s) {
   overlay.style.display = s === 'playing' ? 'none' : 'flex';
   const L = LEVELS[game.levelIndex];
   renderLevels(s !== 'paused' && s !== 'playing');
+  renderSettings();
   if (music) music.setMode(s === 'playing' ? 'play' : s === 'paused' ? 'pause' : s === 'won' ? 'win' : s === 'dead' ? 'dead' : 'pause');
   if (s === 'paused') { title.textContent = 'PAUSED'; body.textContent = 'Click to resume.'; btn.textContent = 'RESUME'; }
   else if (s === 'dead') { title.textContent = 'YOU DIED'; body.textContent = `Lizards slain: ${game.stats.kills}. The invaders win this round.`; btn.textContent = 'TRY AGAIN'; }
@@ -86,7 +96,8 @@ window.addEventListener('keydown', (e) => {
   game.keys.add(e.code);
   if (game.state === 'playing' && /^Digit[1-9]$/.test(e.code)) game.selectSlot(Number(e.code.slice(5)));
   if (game.state === 'playing' && e.code === 'KeyQ') game.cycleWeapon(-1);
-  if (e.code === 'KeyG') game.setMessage(`GRAPHICS: ${game.cycleQuality()}`, 2);
+  if (e.code === 'KeyG') { game.setMessage(`GRAPHICS: ${game.cycleQuality()}`, 2); renderSettings(); }
+  if (e.code === 'KeyL') { game.setMessage(`LIZARDS: ${game.toggleLizStyle()}`, 2); renderSettings(); }
   if (e.code === 'KeyM' && music) game.setMessage(music.toggleMute() ? 'MUSIC OFF' : 'MUSIC ON', 1.5);
   if ((game.state === 'dead' || game.state === 'won') && e.code === 'Enter') start();
 });

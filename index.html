@@ -38,6 +38,9 @@
   .lvl { font: inherit; background: rgba(26,18,16,.85); color: var(--cream); border: 2px solid #6a5a30; padding: 10px 16px; cursor:pointer; text-align:left; min-width: 230px; }
   .lvl b { display:block; font-size:16px; letter-spacing:1px; } .lvl small { opacity:.7; font-size:12px; }
   .lvl:hover, .lvl.cur { border-color: var(--gold); }
+  #settings { display:flex; gap:12px; margin-top:16px; flex-wrap:wrap; justify-content:center; }
+  .set { font: inherit; font-size:14px; letter-spacing:1px; background: rgba(26,18,16,.85); color: var(--cream); border: 2px solid #6a5a30; padding: 7px 14px; cursor:pointer; }
+  .set:hover { border-color: var(--gold); }
   .keys { display:grid; grid-template-columns: auto auto; gap: 4px 18px; font-size:14px; margin-bottom:22px; text-align:left; }
   .keys b { color: var(--gold); }
 </style>
@@ -57,8 +60,9 @@
   <h1 id="ov-title">LIZARDS OVER RUS</h1>
   <div class="sub">Muscovy, 1550s — something has come down from the sky.</div>
   <p id="ov-body">Hold the street against the lizard invaders. Pick up every weapon you find — shotguns, chaingun, rockets, plasma, flamethrower, railgun and the BFG.</p>
-  <div class="keys"><span><b>WASD</b> move</span><span><b>MOUSE</b> look</span><span><b>CLICK</b> fire / swing</span><span><b>SPACE</b> jump</span><span><b>1–9 / WHEEL / Q</b> weapons (press a number again to cycle)</span><span><b>SHIFT</b> run</span><span><b>M</b> music on / off</span><span><b>G</b> graphics quality</span></div>
+  <div class="keys"><span><b>WASD</b> move</span><span><b>MOUSE</b> look</span><span><b>CLICK</b> fire / swing</span><span><b>SPACE</b> jump</span><span><b>1–9 / WHEEL / Q</b> weapons (press a number again to cycle)</span><span><b>SHIFT</b> run</span><span><b>M</b> music on / off</span><span><b>G</b> graphics quality</span><span><b>L</b> lizard look (3D / pixel)</span></div>
   <button id="ov-btn">PLAY</button>
+  <div id="settings"><button class="set" id="set-gfx"></button><button class="set" id="set-liz"></button></div>
   <div id="levels"></div>
 </div>
 <script type="module" src="./src/main.js"></script>

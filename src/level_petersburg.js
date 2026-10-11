@@ -28,8 +28,8 @@ function tiled(w, h, u, v, material) {
 export function buildPetersburg(scene) {
   scene.background = new THREE.Color(FOG);
   scene.fog = new THREE.Fog(FOG, 240, 1700);
-  scene.add(new THREE.HemisphereLight(0xb8d4ff, 0x8a8f70, 1.3));
-  addSunlight(scene, 1.8);
+  scene.add(new THREE.HemisphereLight(0xcfe0ff, 0xb0b290, 1.9));
+  addSunlight(scene, 2.0);
   const sunDisc = addSun(scene, 1700, 760);
   const rnd = mulberry(1703);
 
@@ -243,7 +243,7 @@ export function buildPetersburg(scene) {
   return {
     boxes, spawnPoints, pickupSpawns, propSpawns, update, fogColor: FOG,
     navBounds: { x0: X0, x1: X1, z0: ZN, z1: ZS },
-    mode: 'waves', waves: [{ grunt: 5 }, { grunt: 5, spitter: 3 }, { grunt: 7, spitter: 5 }, { grunt: 8, spitter: 7 }, { grunt: 10, spitter: 8 }],
+    mode: 'waves', waves: [{ grunt: 5 }, { grunt: 4, spitter: 3, drake: 2 }, { grunt: 6, spitter: 4, drake: 3 }, { grunt: 6, spitter: 5, drake: 5 }, { grunt: 8, spitter: 6, drake: 6 }],
     start: { x: 0, z: -22, yaw: 0 }, startWeapons: ['sabre', 'pistol', 'shotgun'],
     spawnRange: [28, 95], maxAlive: 14, range: 400,
     intro: 'ST. PETERSBURG — LAPS AROUND THE BLOCKS ARE ALLOWED',

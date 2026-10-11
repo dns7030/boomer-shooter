@@ -4,6 +4,7 @@ import { mat, color, boxT, cylT, place, gableRoof, decal } from './geo.js';
 import { slab, sign } from './buildings2.js';
 import { columns, pediment } from './buildings3.js';
 import { tex } from './textures.js';
+const tilt = (m, axis, v) => { m.rotation[axis] = v; return m; };   // (Object3D.add returns the parent, so tilt the child first)
 
 const G = () => new THREE.Group();
 const roofM = () => mat('roofTar');
@@ -13,7 +14,7 @@ const size = (g, w, d, h, cols = null) => { g.userData = { ...g.userData, w, d, 
 function dome(R, mDome, { drum = 6, drumR = null, windows = true } = {}) {
   const g = G(), dr = drumR || R * 0.9;
   g.add(place(cylT(dr, dr, drum, 20, mat('stuccoWhite'), 4), 0, drum / 2, 0));
-  if (windows) for (let i = 0; i < 12; i++) { const a = (i / 12) * Math.PI * 2; g.add(place(new THREE.Mesh(new THREE.BoxGeometry(0.9, 2.6, 0.2), color(0x1c2a3a)), Math.sin(a) * (dr + 0.02), drum * 0.55, Math.cos(a) * (dr + 0.02))).rotation.y = a; }
+  if (windows) for (let i = 0; i < 12; i++) { const a = (i / 12) * Math.PI * 2; g.add(tilt(place(new THREE.Mesh(new THREE.BoxGeometry(0.9, 2.6, 0.2), color(0x1c2a3a)), Math.sin(a) * (dr + 0.02), drum * 0.55, Math.cos(a) * (dr + 0.02)), 'y', a)); }
   g.add(place(new THREE.Mesh(new THREE.CylinderGeometry(dr + 0.4, dr + 0.4, 0.6, 20), mat('stuccoWhite')), 0, drum + 0.3, 0));
   const d = new THREE.Mesh(new THREE.SphereGeometry(R, 24, 12, 0, Math.PI * 2, 0, Math.PI / 2), mat(mDome, { double: true }));
   d.scale.y = 0.9; d.position.y = drum + 0.6; g.add(d);
@@ -116,15 +117,15 @@ export function bronzeHorseman() {
   const stone = new THREE.Mesh(new THREE.SphereGeometry(1, 12, 8), rock); stone.scale.set(8, 4.6, 6); stone.position.set(0, 2.2, 0); g.add(stone);
   const stone2 = new THREE.Mesh(new THREE.SphereGeometry(1, 10, 8), rock); stone2.scale.set(5, 3.2, 4.6); stone2.position.set(-2.5, 5.2, -0.5); g.add(stone2);
   const horse = new THREE.Group(); horse.position.set(0.8, 8, 0); horse.rotation.z = 0.5; g.add(horse);
-  horse.add(place(new THREE.Mesh(new THREE.CapsuleGeometry(0.9, 2.6, 4, 10), br), 0, 0, 0)).rotation.z = Math.PI / 2;
+  horse.add(tilt(place(new THREE.Mesh(new THREE.CapsuleGeometry(0.9, 2.6, 4, 10), br), 0, 0, 0), 'z', Math.PI / 2));
   for (const [x, z] of [[1.6, 0.45], [1.6, -0.45]]) horse.add(place(new THREE.Mesh(new THREE.CapsuleGeometry(0.2, 1.8, 4, 6), br), x, -1.3, z));
-  for (const [x, z] of [[-1.5, 0.45], [-1.5, -0.45]]) horse.add(place(new THREE.Mesh(new THREE.CapsuleGeometry(0.22, 2.0, 4, 6), br), x, -1.4, z)).rotation.z = -0.4;
-  horse.add(place(new THREE.Mesh(new THREE.CapsuleGeometry(0.42, 1.8, 4, 8), br), 2.4, 1.2, 0)).rotation.z = -0.7;
+  for (const [x, z] of [[-1.5, 0.45], [-1.5, -0.45]]) horse.add(tilt(place(new THREE.Mesh(new THREE.CapsuleGeometry(0.22, 2.0, 4, 6), br), x, -1.4, z), 'z', -0.4));
+  horse.add(tilt(place(new THREE.Mesh(new THREE.CapsuleGeometry(0.42, 1.8, 4, 8), br), 2.4, 1.2, 0), 'z', -0.7));
   horse.add(place(new THREE.Mesh(new THREE.SphereGeometry(0.5, 8, 6), br), 3.1, 2.2, 0));
   const rider = new THREE.Group(); rider.position.set(0.4, 1.4, 0); horse.add(rider);
   rider.add(place(new THREE.Mesh(new THREE.CapsuleGeometry(0.4, 1.2, 4, 8), br), 0, 0.8, 0));
   rider.add(place(new THREE.Mesh(new THREE.SphereGeometry(0.32, 8, 6), br), 0, 1.9, 0));
-  rider.add(place(new THREE.Mesh(new THREE.CapsuleGeometry(0.15, 1.4, 4, 6), br), 0.6, 1.9, 0)).rotation.z = -1.2;
+  rider.add(tilt(place(new THREE.Mesh(new THREE.CapsuleGeometry(0.15, 1.4, 4, 6), br), 0.6, 1.9, 0), 'z', -1.2));
   return size(g, 14, 10, 15);
 }
 export function teaHouse() {
@@ -265,7 +266,7 @@ export function carriage() {
   for (const sx of [-0.45, 0.45]) {
     g.add(place(new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.9, 1.7), horse), sx, 1.35, 3.6));
     for (const [dx, dz] of [[-0.18, 0.7], [0.18, 0.7], [-0.18, -0.7], [0.18, -0.7]]) g.add(place(new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.95, 0.16), horse), sx + dx, 0.5, 3.6 + dz));
-    g.add(place(new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.4, 0.8), horse), sx, 1.9, 4.6)).rotation.x = -0.4;
+    g.add(tilt(place(new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.4, 0.8), horse), sx, 1.9, 4.6), 'x', -0.4));
   }
   return size(g, 2.4, 6.4, 3);
 }

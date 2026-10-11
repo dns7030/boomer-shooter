@@ -29,6 +29,7 @@ Open <http://localhost:8000> and click **PLAY**. (A local server is required: br
 | Mouse wheel, Q | previous / next weapon |
 | M | music on / off |
 | G | graphics quality (low / medium / high: shadows + bloom) |
+| L | lizard look: baked 3D models or the original pixel sprites (also buttons on the Esc / pause screen) |
 | Esc | pause |
 
 ## Weapons
@@ -60,7 +61,7 @@ No weapon ever covers the crosshair (the headless test checks that).
    beyond. Palace Square (Winter Palace, General Staff arch, Alexander Column), St. Isaac's, the Bronze Horseman, Rostral columns,
    the Admiralty and Kunstkamera around a garden, Kazan Cathedral, Nevsky frontage, and an industrial yard (ropeworks, porcelain
    works, mint, foundry, sawmill). You can walk around whole blocks; lizards find their way round them (`src/nav.js`).
-   Five waves.
+   Five waves, with flying **Fire Drakes** that hover over the streets and throw fireballs (shoot them out of the sky).
 
 Pick a level from the title screen; clearing one offers the next.
 

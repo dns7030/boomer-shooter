@@ -6,7 +6,7 @@ import { Decals } from './decals.js';
 import { Debris } from './debris.js';
 import { makeBarrel, makeCrate } from './props.js';
 import { brokenWindowMaterial } from './geo.js';
-import { makePickupTextures, makePlasmaTexture } from './sprites.js';
+import { makeLizardTextures, makePickupTextures, makePlasmaTexture } from './sprites.js';
 import { renderLizardAtlases, frameUV, POSE, ANGLES, SPRITE_SIZE, SPRITE_FOOT } from './lizard3d.js';
 import { WEAPONS, AMMO, WEAPON_INDEX, SLOTS } from './weapons.js';
 import { WeaponView } from './weaponmodels.js';
@@ -18,6 +18,7 @@ const EYE = 1.7;
 const ENEMY = {
   grunt: { name: 'Lizard Raider', hp: 70, speed: 4.2, radius: 0.5, melee: 10, w: 2.1, h: 2.62 },
   spitter: { name: 'Lizard Spitter', hp: 45, speed: 2.6, radius: 0.5, w: 2.1, h: 2.62 },
+  drake: { name: 'Fire Drake', hp: 60, speed: 3.4, radius: 0.6, w: 2.1, h: 2.62, hover: 4.2 },   // flies and throws fireballs
 };
 const ALIVE = new Set(['spawn', 'move', 'attack', 'pain']);
 
@@ -35,11 +36,15 @@ export class Game {
     this.wview = new WeaponView(this.renderer);
     this.camera = new THREE.PerspectiveCamera(75, 16 / 9, 0.2, 3000);
     this.camera.rotation.order = 'YXZ';
+    this.lizStyle = 'sprite3d';   // 'sprite3d' (baked 3D) or 'pixel' (the original hand-drawn pixel lizards)
+    try { const ls = localStorage.getItem('lor.lizards'); if (ls === 'pixel' || ls === 'sprite3d') this.lizStyle = ls; } catch (e) { /* no storage */ }
+    this.liz = makeLizardTextures();
     this.atlas = renderLizardAtlases(this.renderer);   // 3D lizards baked into 8-direction sprite sheets
     this.pickTex = makePickupTextures();
     for (const [id, t] of Object.entries(this.wview.renderIcons(this.renderer))) this.pickTex['w_' + id] = t;
     const spriteMat = (tint) => new THREE.SpriteMaterial({ map: makePlasmaTexture(tint), blending: THREE.AdditiveBlending, depthWrite: false, fog: false });
     this.plasmaMat = spriteMat('green');                       // lizard spit
+    this.fireballMat = spriteMat('orange');                    // drake fireballs
     this.shotMats = { rocket: spriteMat('orange'), plasma: spriteMat('blue'), bfg: spriteMat('green'), boom: spriteMat('orange'), boomBlue: spriteMat('blue'), boomGreen: spriteMat('green') };
     this.grenadeGeo = new THREE.SphereGeometry(0.13, 10, 8);
     this.grenadeMat = new THREE.MeshLambertMaterial({ color: 0x3a4a2a });
@@ -64,6 +69,23 @@ export class Game {
     try { localStorage.setItem('lor.quality', String(q)); } catch (e) { /* no storage */ }
     if (this.post) this.post.setEnabled(q >= 1);
     if (this.sun) this.sun.castShadow = q >= 2;
+  }
+  // lizard look: baked 3D models or the original pixel sprites; swaps live lizards too (drakes are always 3D)
+  setLizStyle(st) {
+    this.lizStyle = st;
+    try { localStorage.setItem('lor.lizards', st); } catch (e) { /* no storage */ }
+    for (const e of this.enemies || []) this.styleEnemy(e);
+    return st === 'pixel' ? 'PIXEL' : '3D MODELS';
+  }
+  toggleLizStyle() { return this.setLizStyle(this.lizStyle === 'pixel' ? 'sprite3d' : 'pixel'); }
+  styleEnemy(e) {
+    const pix = this.lizStyle === 'pixel' && e.type !== 'drake', cfg = e.cfg;
+    e.pix = pix;
+    const geo = pix ? new THREE.PlaneGeometry(cfg.w, cfg.h) : new THREE.PlaneGeometry(SPRITE_SIZE, SPRITE_SIZE);
+    geo.translate(0, pix ? cfg.h / 2 : SPRITE_SIZE / 2 - SPRITE_FOOT, 0);
+    e.mesh.geometry.dispose(); e.mesh.geometry = geo; e.uv = geo.attributes.uv;
+    e.mesh.material.map = pix ? this.liz[e.type].idle : this.atlas[e.type].texture; e.mesh.material.needsUpdate = true;
+    e.mesh.scale.x = 1; e.frameKey = -1;
   }
   cycleQuality() { this.setQuality((this.quality + 1) % 3); return ['LOW', 'MEDIUM (BLOOM)', 'HIGH (BLOOM + SHADOWS)'][this.quality]; }
 
@@ -583,10 +605,10 @@ export class Game {
     for (const p of this.props) { if (!p.dead && p.explosive) { const dx = p.x - eye.x, dz = p.z - eye.z, d = Math.hypot(dx, dz); if (d < reach + 0.5 && (dx * dir.x + dz * dir.z) / (d || 1) > 0.9) this.damageProp(p, 1.4); } }
     for (const e of this.enemies) {
       if (!ALIVE.has(e.state) || e.state === 'spawn') continue;
-      const dx = e.x - eye.x, dz = e.z - eye.z, dy = 1.2 - eye.y, d = Math.hypot(dx, dz);
+      const dx = e.x - eye.x, dz = e.z - eye.z, dy = 1.2 + e.y - eye.y, d = Math.hypot(dx, dz);
       if (d > reach + 0.5) continue;
       if ((dx * dir.x + dy * dir.y + dz * dir.z) / Math.hypot(dx, dy, dz) < 0.93) continue;
-      this.damageEnemy(e, w.damage, new THREE.Vector3(e.x, 1.2, e.z), true);
+      this.damageEnemy(e, w.damage, new THREE.Vector3(e.x, 1.2 + e.y, e.z), true);
       e.burn = 2.5;
     }
   }
@@ -597,7 +619,7 @@ export class Game {
     const hits = [];
     for (const e of this.enemies) {
       if (!ALIVE.has(e.state) || e.state === 'spawn') continue;
-      const t = rayCyl(eye, dir, e.x, e.z, 0.7, 0, 2.4);
+      const t = rayCyl(eye, dir, e.x, e.z, 0.7, e.y, e.y + 2.4);
       if (t < wall) hits.push([t, e]);
     }
     for (const [t, e] of hits) this.damageEnemy(e, w.damage, eye.clone().addScaledVector(dir, t));
@@ -630,10 +652,10 @@ export class Game {
     this.p.kick += Math.max(0, 0.06 * (1 - Math.hypot(x - this.p.x, z - this.p.z) / (R * 5)));
     for (const e of this.enemies) {
       if (!ALIVE.has(e.state) || e.state === 'spawn') continue;
-      const d = Math.hypot(e.x - x, (1.2 - y) * 0.6, e.z - z);
+      const d = Math.hypot(e.x - x, (1.2 + e.y - y) * 0.6, e.z - z);
       if (d > R + 0.6) continue;
       const f = 1 - d / (R + 0.6);
-      this.damageEnemy(e, dmg * (0.3 + 0.7 * f), new THREE.Vector3(e.x, 1.2, e.z), false, null);
+      this.damageEnemy(e, dmg * (0.3 + 0.7 * f), new THREE.Vector3(e.x, 1.2 + e.y, e.z), false, null);
       this.knock(e, e.x - x, e.z - z, tint === 'boomBlue' ? 4 * f : 16 * f + 4);
     }
     this.blastProps(x, y, z, R, dmg);
@@ -684,7 +706,7 @@ export class Game {
       let boom = hitWall || q.life <= 0;
       if (!boom) for (const e of this.enemies) {
         if (!ALIVE.has(e.state) || e.state === 'spawn') continue;
-        if (Math.hypot(q.x - e.x, q.z - e.z) < 0.75 && q.y > 0 && q.y < 2.5) { boom = true; break; }
+        if (Math.hypot(q.x - e.x, q.z - e.z) < 0.75 && q.y > e.y && q.y < e.y + 2.5) { boom = true; break; }
       }
       // glow around fast shots
       if (S.type !== 'grenade') {
@@ -719,7 +741,7 @@ export class Game {
     for (const e of this.enemies) {
       if (!ALIVE.has(e.state) || e.state === 'spawn') continue;
       const dx = e.x - p.x, dz = e.z - p.z, d = Math.hypot(dx, dz);
-      if (d > w.range + 0.5) continue;
+      if (d > w.range + 0.5 || e.y > 2.0) continue;
       if ((dx * fx + dz * fz) / (d || 1) < 0.45) continue;
       this.damageEnemy(e, w.damage, new THREE.Vector3(e.x, 1.3, e.z)); hit = true;
     }
@@ -732,7 +754,7 @@ export class Game {
     if (d.y < -1e-4) { const tg = -o.y / d.y; if (tg > 0 && tg < best.t) best = { t: tg, enemy: null, n: { x: 0, y: 1, z: 0 }, ground: true, invisible: false }; }
     for (const e of this.enemies) {
       if (!ALIVE.has(e.state) || e.state === 'spawn') continue;
-      const t = rayCyl(o, d, e.x, e.z, 0.6, 0, 2.3);
+      const t = rayCyl(o, d, e.x, e.z, 0.6, e.y, e.y + 2.3);
       if (t < best.t) best = { t, enemy: e, n: null, ground: false, invisible: false };
     }
     return best;
@@ -763,7 +785,8 @@ export class Game {
     shadow.position.set(sp.x, 0.04, sp.z); shadow.visible = false; this.scene.add(shadow);
     const beam = new THREE.Mesh(this.beamGeo, new THREE.MeshBasicMaterial({ color: 0x8dff9d, transparent: true, opacity: 0.5, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, fog: false }));
     beam.position.set(sp.x, 9, sp.z); this.scene.add(beam);
-    const e = { type, cfg, mesh, shadow, beam, hp: cfg.hp, x: sp.x, z: sp.z, state: 'spawn', timer: 0.9, cool: 0.6 + Math.random() * 0.8, anim: 0, deadT: 0, hit: false, uv: geo.attributes.uv, frameKey: -1, face: Math.atan2(p.x - sp.x, p.z - sp.z), want: Math.atan2(p.x - sp.x, p.z - sp.z), slide: 0, slideT: 0, stuck: 0, strafe: Math.random() < 0.5 ? 1 : -1, strafeT: 1 + Math.random() * 2 };
+    const e = { type, cfg, mesh, shadow, beam, hp: cfg.hp, x: sp.x, y: 0, flip: Math.random() < 0.5 ? -1 : 1, z: sp.z, state: 'spawn', timer: 0.9, cool: 0.6 + Math.random() * 0.8, anim: 0, deadT: 0, hit: false, uv: geo.attributes.uv, frameKey: -1, face: Math.atan2(p.x - sp.x, p.z - sp.z), want: Math.atan2(p.x - sp.x, p.z - sp.z), slide: 0, slideT: 0, stuck: 0, strafe: Math.random() < 0.5 ? 1 : -1, strafeT: 1 + Math.random() * 2 };
+    this.styleEnemy(e);
     this.enemies.push(e);
     sfx.beam();
     return e;
@@ -788,7 +811,7 @@ export class Game {
     e.state = 'dying'; e.deadT = 0; this.stats.kills++; sfx.lizardDie();
     this.decals.add('blood', { x: e.x, y: 0, z: e.z }, { x: 0, y: 1, z: 0 }, 1.7 + Math.random() * 0.8);
     for (let k = 0; k < 3; k++) this.decals.add('blood', { x: e.x + (Math.random() - 0.5) * 2.6, y: 0, z: e.z + (Math.random() - 0.5) * 2.6 }, { x: 0, y: 1, z: 0 }, 0.5 + Math.random() * 0.7);
-    this.burst(e.x, 1.2, e.z, 'green', 14, 4.5, 0.16);
+    this.burst(e.x, 1.2 + e.y, e.z, 'green', 14, 4.5, 0.16);
     e.shadow.visible = false;
     if (Math.random() < 0.4) {
       const r = Math.random();
@@ -815,27 +838,31 @@ export class Game {
       e.cool -= dt;
       if (e.state !== 'move') e.want = Math.atan2(nx, nz);
       if ((e.kx || e.kz) && e.state !== 'spawn') {
-        const kp = { x: e.x + e.kx * dt, z: e.z + e.kz * dt };
+        const kp = { x: e.x + e.kx * dt, z: e.z + e.kz * dt, y: e.y };
         resolveCircle(kp, e.cfg.radius, this.boxes); e.x = kp.x; e.z = kp.z;
         const kf = Math.exp(-5 * dt); e.kx *= kf; e.kz *= kf; if (Math.abs(e.kx) + Math.abs(e.kz) < 0.05) e.kx = e.kz = 0;
       }
       if (e.burn > 0 && ALIVE.has(e.state) && e.state !== 'spawn') {
         e.burn -= dt; e.burnT = (e.burnT || 0) + dt;
-        if (Math.random() < dt * 14) this.emit(e.x + (Math.random() - 0.5) * 0.6, 0.8 + Math.random() * 1.4, e.z + (Math.random() - 0.5) * 0.6, Math.random() < 0.5 ? 'flameY' : 'flameR', 0, 1.8, 0, 0.4, 0.3, -2);
-        if (e.burnT > 0.3) { e.burnT = 0; this.damageEnemy(e, 5, new THREE.Vector3(e.x, 1.2, e.z), true); }
+        if (Math.random() < dt * 14) this.emit(e.x + (Math.random() - 0.5) * 0.6, e.y + 0.8 + Math.random() * 1.4, e.z + (Math.random() - 0.5) * 0.6, Math.random() < 0.5 ? 'flameY' : 'flameR', 0, 1.8, 0, 0.4, 0.3, -2);
+        if (e.burnT > 0.3) { e.burnT = 0; this.damageEnemy(e, 5, new THREE.Vector3(e.x, 1.2 + e.y, e.z), true); }
+      }
+      if (e.cfg.hover) { // drakes: rise off the ground, bob in the air, and plummet when killed
+        const tgt = e.state === 'move' || e.state === 'attack' || e.state === 'pain' ? e.cfg.hover + Math.sin(this.time * 2.2 + e.x) * 0.45 : 0;
+        if (e.state === 'dying' || e.state === 'dead') e.y = Math.max(0, e.y - 14 * dt); else e.y += (tgt - e.y) * Math.min(1, dt * 1.6);
       }
       switch (e.state) {
         case 'spawn':
           e.timer -= dt;
           e.beam.material.opacity = Math.max(0, Math.min(0.55, e.timer * 1.2 + (0.9 - e.timer) * 0.2));
           if (e.timer <= 0.35 && !e.mesh.visible) { e.mesh.visible = true; e.shadow.visible = true; this.burst(e.x, 0.5, e.z, 'plasma', 12, 4, 0.14); }
-          if (e.timer <= 0) { e.state = 'move'; this.scene.remove(e.beam); }
+          if (e.timer <= 0) { e.state = 'move'; this.scene.remove(e.beam); if (e.cfg.hover) sfx.hiss(); }
           break;
         case 'move': {
           let mx = 0, mz = 0, speed = e.cfg.speed;
           if (this.nav && dist > 3) { // no line of sight: follow the street grid around the buildings
             e.losT = (e.losT || 0) - dt;
-            if (e.losT <= 0) { e.losT = 0.25 + Math.random() * 0.15; e.los = this.hasLOS(e.x, 1.4, e.z, p.x, p.y + 1.4, p.z); }
+            if (e.losT <= 0) { e.losT = 0.25 + Math.random() * 0.15; e.los = this.hasLOS(e.x, e.y + 1.4, e.z, p.x, p.y + 1.4, p.z); }
             if (!e.los) { const nd = this.nav.dir(e.x, e.z); if (nd) { nx = nd.x; nz = nd.z; e.pathing = true; } else e.pathing = false; } else e.pathing = false;
           } else e.pathing = false;
           if (e.pathing) {
@@ -845,8 +872,9 @@ export class Game {
             if (dist < 1.8 && e.cool <= 0) { e.state = 'attack'; e.timer = 0.55; e.hit = false; sfx.hiss(); }
           } else {
             e.strafeT -= dt; if (e.strafeT <= 0) { e.strafe *= -1; e.strafeT = 1 + Math.random() * 2; }
-            if (dist > 15) { mx = nx; mz = nz; } else if (dist < 8) { mx = -nx; mz = -nz; speed *= 0.8; } else { mx = -nz * e.strafe; mz = nx * e.strafe; speed *= 0.6; }
-            if (e.cool <= 0 && dist < 36 && this.hasLOS(e.x, 1.5, e.z, p.x, p.y + 1.4, p.z)) { e.state = 'attack'; e.timer = 0.5; e.hit = false; sfx.hiss(); }
+            const far = e.cfg.hover ? 24 : 15, near = e.cfg.hover ? 13 : 8;
+            if (dist > far) { mx = nx; mz = nz; } else if (dist < near) { mx = -nx; mz = -nz; speed *= 0.8; } else { mx = -nz * e.strafe; mz = nx * e.strafe; speed *= 0.6; }
+            if (e.cool <= 0 && dist < (e.cfg.hover ? 48 : 36) && this.hasLOS(e.x, e.y + 1.5, e.z, p.x, p.y + 1.4, p.z)) { e.state = 'attack'; e.timer = 0.5; e.hit = false; sfx.hiss(); }
           }
           if (e.slideT > 0) { // steer around props we got stuck on
             e.slideT -= dt;
@@ -855,7 +883,7 @@ export class Game {
             const l = Math.hypot(mx, mz) || 1; mx /= l; mz /= l;
           }
           e.want = e.type === 'grunt' && (mx || mz) ? Math.atan2(mx, mz) : Math.atan2(nx, nz);
-          const pos = { x: e.x + mx * speed * dt, z: e.z + mz * speed * dt };
+          const pos = { x: e.x + mx * speed * dt, z: e.z + mz * speed * dt, y: e.y };
           for (const o of this.enemies) {
             if (o === e || !ALIVE.has(o.state)) continue;
             const ox = pos.x - o.x, oz = pos.z - o.z, od = Math.hypot(ox, oz);
@@ -869,7 +897,7 @@ export class Game {
             if (e.stuck > 0.25) { e.slide = e.slide ? -e.slide : (Math.random() < 0.5 ? 1 : -1); e.slideT = 1.2; e.stuck = 0; }
           } else e.stuck = 0;
           e.x = pos.x; e.z = pos.z;
-          e.anim += dt * (e.type === 'grunt' ? 9 : 6);
+          e.anim += dt * (e.type === 'grunt' ? 9 : e.cfg.hover ? 8 : 6);
           break;
         }
         case 'attack':
@@ -878,14 +906,14 @@ export class Game {
             if (!e.hit && e.timer < 0.25) { e.hit = true; if (dist < 2.3) this.hurt(e.cfg.melee); }
           } else if (!e.hit && e.timer < 0.2) {
             e.hit = true;
-            const sx = e.x, sy = 1.5, sz = e.z;
+            const fire = !!e.cfg.hover, sx = e.x, sy = e.y + 1.5, sz = e.z, spd = fire ? 17 : 14;
             const tx = p.x - sx, ty = p.y + 1.3 - sy, tz = p.z - sz, l = Math.hypot(tx, ty, tz) || 1;
-            const sprite = new THREE.Sprite(this.plasmaMat); sprite.scale.set(1.1, 1.1, 1.1); sprite.position.set(sx, sy, sz);
+            const sprite = new THREE.Sprite(fire ? this.fireballMat : this.plasmaMat); const sc = fire ? 2.0 : 1.1; sprite.scale.set(sc, sc, sc); sprite.position.set(sx, sy, sz);
             this.scene.add(sprite);
-            this.projectiles.push({ sprite, x: sx, y: sy, z: sz, vx: (tx / l) * 14, vy: (ty / l) * 14, vz: (tz / l) * 14, life: 6 });
-            sfx.spit();
+            this.projectiles.push({ sprite, x: sx, y: sy, z: sz, vx: (tx / l) * spd, vy: (ty / l) * spd, vz: (tz / l) * spd, life: 6, fire, dmg: fire ? 14 : 12 });
+            if (fire) { this.flash(sx, sy, sz, 0xff8a30, 90, 0.2); sfx.fireball(); } else sfx.spit();
           }
-          if (e.timer <= 0) { e.state = 'move'; e.cool = e.type === 'grunt' ? 0.8 : 1.6 + Math.random(); }
+          if (e.timer <= 0) { e.state = 'move'; e.cool = e.type === 'grunt' ? 0.8 : e.cfg.hover ? 2.0 + Math.random() * 1.2 : 1.6 + Math.random(); }
           break;
         case 'pain':
           e.timer -= dt; if (e.timer <= 0) e.state = 'move';
@@ -896,7 +924,7 @@ export class Game {
       }
       // visuals: pick the frame of the 3D-lizard sprite sheet that matches pose and viewing angle
       const m = e.mesh;
-      m.position.set(e.x, 0, e.z);
+      m.position.set(e.x, e.y, e.z);
       e.shadow.position.set(e.x, 0.04, e.z);
       const toCam = Math.atan2(cam.x - e.x, cam.z - e.z);
       m.rotation.y = toCam;
@@ -906,6 +934,16 @@ export class Game {
       else if (e.state === 'attack') pose = e.timer > (e.type === 'grunt' ? 0.28 : 0.2) ? POSE.windup : POSE.strike;
       else if (e.state === 'pain') pose = POSE.pain;
       else if (e.state === 'dying' || e.state === 'dead') pose = POSE.die0 + (e.deadT < 0.09 ? 0 : e.deadT < 0.2 ? 1 : e.deadT < 0.32 ? 2 : e.deadT < 0.44 ? 3 : 4);
+      if (e.pix) { // the original pixel sprites
+        const T = this.liz[e.type]; let tx = T.idle;
+        if (e.state === 'move') tx = [T.walk1, T.idle, T.walk2, T.idle][Math.floor(e.anim) % 4];
+        else if (e.state === 'attack') tx = T.attack;
+        else if (e.state === 'pain') tx = T.pain;
+        else if (e.state === 'dying' || e.state === 'dead') { tx = T.dead[e.deadT < 0.1 ? 0 : e.deadT < 0.26 ? 1 : e.deadT < 0.45 ? 2 : 3]; m.scale.x = 1.5 * e.flip; }
+        if (m.material.map !== tx) { m.material.map = tx; m.material.needsUpdate = true; }
+        if (e.beam.parent) e.beam.position.set(e.x, 9, e.z);
+        continue;
+      }
       let dl = toCam - e.face; dl = Math.atan2(Math.sin(dl), Math.cos(dl));
       const ang = ((Math.round(-dl / (Math.PI / 4)) % ANGLES) + ANGLES) % ANGLES, key = pose * ANGLES + ang;
       if (key !== e.frameKey) {
@@ -925,8 +963,10 @@ export class Game {
       q.sprite.position.set(q.x, q.y, q.z);
       let dead = q.life <= 0 || q.y < 0.05;
       if (!dead) for (const b of this.boxes) if (q.x > b.x0 && q.x < b.x1 && q.z > b.z0 && q.z < b.z1 && q.y < b.h) { dead = true; break; }
-      if (!dead && Math.hypot(q.x - p.x, q.z - p.z) < 0.7 && q.y > p.y && q.y < p.y + 1.9) { this.hurt(12); sfx.plasmaHit(); dead = true; }
-      if (dead) { this.burst(q.x, q.y, q.z, 'plasma', 8, 3.5, 0.12); this.scene.remove(q.sprite); this.projectiles.splice(i, 1); }
+      if (!dead && Math.hypot(q.x - p.x, q.z - p.z) < 0.7 && q.y > p.y && q.y < p.y + 1.9) { this.hurt(q.dmg || 12); sfx.plasmaHit(); dead = true; }
+      if (dead && q.fire) { this.burst(q.x, q.y, q.z, 'fire', 10, 4.5, 0.25); this.sparks(q.x, q.y, q.z, 8, 6, 0, 0.35, 0); this.flash(q.x, q.y, q.z, 0xff8a30, 160, 0.3); }
+      if (dead && !q.fire) this.burst(q.x, q.y, q.z, 'plasma', 8, 3.5, 0.12);
+      if (dead) { this.scene.remove(q.sprite); this.projectiles.splice(i, 1); }
     }
   }
 

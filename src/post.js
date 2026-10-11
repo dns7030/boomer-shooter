@@ -7,12 +7,13 @@ import { UnrealBloomPass } from '../vendor/jsm/postprocessing/UnrealBloomPass.js
 import { OutputPass } from '../vendor/jsm/postprocessing/OutputPass.js';
 
 const GradeShader = {
-  uniforms: { tDiffuse: { value: null }, uVignette: { value: 0.32 }, uSat: { value: 1.08 }, uContrast: { value: 0.35 } },
+  uniforms: { tDiffuse: { value: null }, uVignette: { value: 0.32 }, uSat: { value: 1.08 }, uContrast: { value: 0.22 }, uLift: { value: 0.86 } },
   vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
   fragmentShader: `
-    uniform sampler2D tDiffuse; uniform float uVignette, uSat, uContrast; varying vec2 vUv;
+    uniform sampler2D tDiffuse; uniform float uVignette, uSat, uContrast, uLift; varying vec2 vUv;
     void main(){
       vec4 c = texture2D(tDiffuse, vUv);
+      c.rgb = pow(max(c.rgb, vec3(0.0)), vec3(uLift));                      // lift the mid-tones so streets aren't murky next to the bright sky
       float l = dot(c.rgb, vec3(0.2126, 0.7152, 0.0722));
       c.rgb = mix(vec3(l), c.rgb, uSat);                                   // a touch more colour
       vec3 s = clamp(c.rgb, 0.0, 1.0); s = s * s * (3.0 - 2.0 * s);       // gentle S-curve contrast

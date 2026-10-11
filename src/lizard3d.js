@@ -2,6 +2,7 @@
 // The game then shows the right frame for the angle you view the lizard from, Doom-style, but with real 3D shading.
 import * as THREE from 'three';
 import { makeCanvas, toTexture, mulberry } from './textures.js';
+const tilt = (m, axis, v) => { m.rotation[axis] = v; return m; };   // (Object3D.add returns the parent, so tilt the child first)
 
 export const FRAME = 128;                 // px per frame
 export const ANGLES = 8;
@@ -14,6 +15,7 @@ export const SPRITE_FOOT = 0.08;           // metres of margin below the feet in
 const PALETTE = {
   grunt: { skin: 0x76874c, belly: 0xc2b98c, dark: 0x3a4529, eye: 0xffc820, claw: 0xe0dac0 },
   spitter: { skin: 0x56777e, belly: 0xb6c0b2, dark: 0x2a3c44, eye: 0xff8a2a, claw: 0xd8dcd0 },
+  drake: { skin: 0x8a4632, belly: 0xdcb078, dark: 0x3a1c14, eye: 0xffe040, claw: 0xe8e0c8 },
 };
 
 function scaleTexture(seed) {
@@ -60,7 +62,7 @@ export function buildLizard(kind) {
   torso.add(at(ell(0.42, 0.4, 0.36, M.skin), 0, 0.36, 0.04));
   torso.add(at(ell(0.3, 0.3, 0.12, M.belly), 0, 0.3, 0.3));
   for (let i = 0; i < 4; i++) torso.add(at(ell(0.26 - i * 0.015, 0.045, 0.06, M.dark), 0, 0.14 + i * 0.12, 0.38 - i * 0.015)); // belly plate seams
-  for (let i = 0; i < 6; i++) torso.add(at(cone(0.06 - i * 0.004, 0.2 - i * 0.012, M.dark), 0, 0.72 - i * 0.1, -0.22 - i * 0.03)).rotation.x = -0.5; // dorsal spikes
+  for (let i = 0; i < 6; i++) torso.add(tilt(at(cone(0.06 - i * 0.004, 0.2 - i * 0.012, M.dark), 0, 0.72 - i * 0.1, -0.22 - i * 0.03), 'x', -0.5)); // dorsal spikes
   // neck + head
   const neck = new THREE.Group(); neck.position.set(0, 0.62, 0.18); torso.add(neck);
   const neckMesh = ell(0.17, 0.2, 0.2, M.skin); neckMesh.position.set(0, 0.06, 0.06); neck.add(neckMesh);
@@ -74,7 +76,7 @@ export function buildLizard(kind) {
     head.add(at(new THREE.Mesh(new THREE.SphereGeometry(0.011, 6, 5), M.pupil), sd * 0.04, 0.02, 0.46)); // nostril
     for (let t = 0; t < 4; t++) { const th = cone(0.012, 0.055, M.tooth, 4); th.rotation.x = Math.PI; head.add(at(th, sd * (0.075 - t * 0.004), -0.085, 0.14 + t * 0.07)); }
   }
-  for (let i = 0; i < 3; i++) head.add(at(cone(0.035, 0.16 - i * 0.02, M.dark), 0, 0.13 - i * 0.02, -0.08 - i * 0.07)).rotation.x = -1.0;   // crest
+  for (let i = 0; i < 3; i++) head.add(tilt(at(cone(0.035, 0.16 - i * 0.02, M.dark), 0, 0.13 - i * 0.02, -0.08 - i * 0.07), 'x', -1.0));   // crest
   if (!sp) for (const sd of [-1, 1]) { const h = cone(0.03, 0.2, M.claw, 5); h.rotation.set(-1.2, 0, sd * -0.5); head.add(at(h, sd * 0.16, 0.08, -0.08)); }   // horns
   const jaw = new THREE.Group(); jaw.position.set(0, -0.085, 0.05); head.add(jaw);
   jaw.add(at(ell(0.085, 0.04, 0.22, M.skin), 0, -0.02, 0.17));
@@ -84,7 +86,7 @@ export function buildLizard(kind) {
     const frill = new THREE.Group(); frill.position.set(0, 0.02, -0.05); head.add(frill);
     const disc = new THREE.Mesh(new THREE.CylinderGeometry(0.36, 0.1, 0.03, 16, 1), std(0x32282e)); disc.rotation.x = Math.PI / 2; disc.rotation.z = 0; frill.add(disc);
     for (let i = 0; i < 9; i++) { const a = -1.4 + (i / 8) * 2.8; const sp2 = cone(0.025, 0.2, M.claw, 4); sp2.position.set(Math.sin(a) * 0.36, Math.cos(a) * 0.28 + 0.0, -0.03); sp2.rotation.z = -a; frill.add(sp2); }
-    frill.add(at(new THREE.Mesh(new THREE.CylinderGeometry(0.27, 0.06, 0.035, 14), std(0x7a3a30)), 0, 0, -0.006)).rotation.x = Math.PI / 2;
+    frill.add(tilt(at(new THREE.Mesh(new THREE.CylinderGeometry(0.27, 0.06, 0.035, 14), std(0x7a3a30)), 0, 0, -0.006), 'x', Math.PI / 2));
   }
 
   // arms
@@ -118,6 +120,27 @@ export function buildLizard(kind) {
     }
   }
 
+  // drake: big bat-like wings (membrane stretched between a thick arm bone and three fingers)
+  const wings = [];
+  if (kind === 'drake') {
+    const wingMat = new THREE.MeshStandardMaterial({ color: 0x5a2a22, roughness: 0.8, side: THREE.DoubleSide });
+    const bone = new THREE.MeshStandardMaterial({ color: 0x3a1c14, roughness: 0.6 });
+    for (const sd of [-1, 1]) {
+      const wing = new THREE.Group(); wing.position.set(sd * 0.36, 0.62, -0.1); torso.add(wing);
+      const sub = new THREE.Group(); sub.scale.x = sd; wing.add(sub);                  // mirror for the left wing
+      const tips = [[1.7, 0.35, -0.15], [1.55, 0.05, -0.75], [1.15, -0.05, -1.2]];
+      const bodyAttach = [0.05, -0.05, -1.0];
+      const verts = [0, 0, 0, ...tips[0], ...tips[1], 0, 0, 0, ...tips[1], ...tips[2], 0, 0, 0, ...tips[2], ...bodyAttach];
+      const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.Float32BufferAttribute(verts, 3)); geo.computeVertexNormals();
+      sub.add(new THREE.Mesh(geo, wingMat));
+      for (const t of tips) {
+        const len = Math.hypot(...t), bm = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.045, len, 6), bone);
+        bm.position.set(t[0] / 2, t[1] / 2, t[2] / 2); bm.lookAt(t[0], t[1], t[2]); bm.rotateX(Math.PI / 2); sub.add(bm);
+      }
+      wings.push(wing);
+    }
+  }
+
   // spitter extras: armour plate and a plasma gun in the right hand
   let gun = null;
   if (sp) {
@@ -130,16 +153,28 @@ export function buildLizard(kind) {
     gun.add(at(new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.05, 0.3), M.dark), 0, 0.02, 0.62));
     gun.add(at(new THREE.Mesh(new THREE.SphereGeometry(0.045, 8, 6), M.glow), 0, 0.02, 0.8));
   }
-  return { root, pelvis, torso, neck, head, jaw, arms, legs, tail, gun, kind };
+  if (kind === 'drake') root.scale.setScalar(0.72);
+  return { root, pelvis, torso, neck, head, jaw, arms, legs, tail, gun, wings, kind };
 }
 
 // ---------- poses ----------
 const rest = () => ({
   lean: 0.32, headPitch: -0.12, headYaw: 0, jaw: 0.06, rootY: 0, rootZ: 0, tailYaw: 0, tailPitch: 0.1,
   armUp: [-0.3, -0.3], armOut: [0.12, -0.12], foreBend: [-0.8, -0.8],
-  thigh: [-0.75, -0.75], shin: [1.3, 1.3], fall: 0, fallBack: 0,
+  thigh: [-0.75, -0.75], shin: [1.3, 1.3], fall: 0, fallBack: 0, wing: 0.15,
 });
+function drakePose(id) {
+  const p = rest();
+  p.lean = 0.95; p.headPitch = -0.35; p.armUp = [-0.2, -0.2]; p.armOut = [0.5, -0.5]; p.foreBend = [-1.2, -1.2]; p.thigh = [-1.3, -1.3]; p.shin = [1.9, 1.9]; p.tailPitch = 0.35; p.jaw = 0.12;
+  if (id >= POSE.walk0 && id <= POSE.walk3) { p.wing = [-0.9, -0.1, 0.8, -0.1][id - POSE.walk0]; p.rootY = [0.12, 0.05, -0.05, 0.05][id - POSE.walk0]; }
+  else if (id === POSE.windup) { p.wing = -1.0; p.lean = 0.6; p.headPitch = -0.7; p.jaw = 0.9; }
+  else if (id === POSE.strike) { p.wing = 0.6; p.lean = 1.1; p.headPitch = 0.15; p.jaw = 1.0; }
+  else if (id === POSE.pain) { p.wing = -0.2; p.lean = 0.3; p.headPitch = -0.7; p.jaw = 0.7; p.armOut = [1.0, -1.0]; }
+  else if (id >= POSE.die0) { const t = [0.2, 0.42, 0.66, 0.88, 1][id - POSE.die0]; p.wing = 0.5 + 0.6 * t; p.lean = 0.5 - 0.7 * t; p.jaw = 0.6; p.fall = t * 1.5; p.fallBack = t * 0.3; p.headPitch = -0.5 * t; }
+  return p;
+}
 function poseFor(kind, id) {
+  if (kind === 'drake') return drakePose(id);
   const p = rest();
   const walk = (ph) => {
     const s = Math.sin(ph * Math.PI * 2), c = Math.cos(ph * Math.PI * 2);
@@ -166,22 +201,23 @@ function poseFor(kind, id) {
   }
   return p;
 }
-export function applyPose(model, id) {
+export function applyPose(model, id, yaw = 0) {
   const p = poseFor(model.kind, id), { root, pelvis, torso, neck, head, jaw, arms, legs, tail } = model;
-  root.rotation.set(0, 0, 0); root.position.set(0, 0, 0);
+  root.rotation.order = 'YXZ'; root.rotation.set(0, yaw, 0); root.position.set(0, 0, 0);
   pelvis.position.set(0, 1.02 + p.rootY, p.rootZ);
   torso.rotation.x = p.lean;
   neck.rotation.x = p.headPitch * 0.4; head.rotation.set(p.headPitch * 0.6, p.headYaw, 0);
   jaw.rotation.x = p.jaw;
   arms.forEach((a, i) => { a.sh.rotation.set(p.armUp[i], 0, p.armOut[i]); a.fore.rotation.x = p.foreBend[i]; });
   legs.forEach((l, i) => { l.thigh.rotation.x = p.thigh[i]; l.shin.rotation.x = p.shin[i]; l.foot.rotation.x = -(p.thigh[i] + p.shin[i]); });
+  (model.wings || []).forEach((w, i) => { w.rotation.set(0, 0, (i ? -1 : 1) * p.wing); });
   tail.forEach((s, i) => { s.rotation.y = p.tailYaw * (0.5 + i * 0.35); s.rotation.x = p.tailPitch * 0.35; });
   if (p.fall) {
-    root.rotation.z = p.fall; root.rotation.x = -p.fallBack;               // topple sideways (and a bit back) about the feet
+    root.rotation.set(-p.fallBack, yaw, p.fall);                              // turn, then topple sideways (and a bit back) about the feet
     root.updateMatrixWorld(true);
     const box = new THREE.Box3().setFromObject(root), c = box.getCenter(new THREE.Vector3());
     root.position.y -= box.min.y - 0.02;                                    // rest on the ground
-    if (p.fall > 1) { root.position.x -= c.x * 0.8; root.position.z -= c.z * 0.8; }
+    if (p.fall > 1) { root.position.x -= c.x; root.position.z -= c.z; }
   }
 }
 
@@ -199,16 +235,15 @@ export function renderLizardAtlases(renderer) {
   const W = FRAME * ANGLES, H = FRAME * POSE_COUNT;
   const prevRT = renderer.getRenderTarget(), prevClear = new THREE.Color(), prevAlpha = renderer.getClearAlpha(), prevAuto = renderer.autoClear;
   renderer.getClearColor(prevClear); renderer.autoClear = false;
-  for (const kind of ['grunt', 'spitter']) {
+  for (const kind of ['grunt', 'spitter', 'drake']) {
     const model = buildLizard(kind); scene.add(model.root);
     const rt = new THREE.WebGLRenderTarget(W, H, { minFilter: THREE.NearestFilter, magFilter: THREE.NearestFilter, generateMipmaps: false, samples: 0 });
     rt.texture.colorSpace = THREE.SRGBColorSpace;
     renderer.setRenderTarget(rt); renderer.setClearColor(0x000000, 0); renderer.clear();
     rt.scissorTest = true;
     for (let pose = 0; pose < POSE_COUNT; pose++) {
-      applyPose(model, pose);
       for (let k = 0; k < ANGLES; k++) {
-        model.root.rotation.y = (k * Math.PI * 2) / ANGLES;
+        applyPose(model, pose, (k * Math.PI * 2) / ANGLES);
         model.root.updateMatrixWorld(true);
         rt.viewport.set(k * FRAME, pose * FRAME, FRAME, FRAME); rt.scissor.set(k * FRAME, pose * FRAME, FRAME, FRAME);
         renderer.setRenderTarget(rt); renderer.clear(); renderer.render(scene, cam);
