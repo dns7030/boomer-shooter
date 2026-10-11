@@ -1,0 +1,28 @@
+{
+  "name": "lizards-over-rus",
+  "version": "0.1.0",
+  "description": "First-person boomer shooter set in 1550s Muscovy \u2014 lizard invaders from space.",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "python3 -m http.server 8000",
+    "test": "node tests/smoke.mjs /tmp"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dns7030/sim-city.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/dns7030/sim-city/issues"
+  },
+  "homepage": "https://github.com/dns7030/sim-city#readme",
+  "dependencies": {
+    "three": "^0.170.0"
+  },
+  "devDependencies": {
+    "playwright-core": "^1.64.0"
+  },
+  "type": "module"
+}
