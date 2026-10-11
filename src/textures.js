@@ -537,11 +537,15 @@ export function textTexture(text, w = 512, h = 128, { bg = '#b8352a', fg = '#f4e
   return toTexture(c, false);
 }
 
+// other modules can register their own procedural textures: addPainters({ name: (g, w, h) => {...} }, { name: [w, h] })
+const extraSizes = {};
+export function addPainters(obj, sizes = {}) { Object.assign(painters, obj); Object.assign(extraSizes, sizes); }
+
 const cache = {};
 export function tex(name) {
   if (!cache[name]) {
     const sizes = { panel: [128, 128], panelLoggia: [128, 128], ribbon: [128, 128], stalin: [128, 128], tramSide: [128, 32], flame: [64, 96], sun: [128, 128], skyBlue: [512, 256], steam: [128, 128], skyGrey: [512, 256], chimney: [32, 64], metalRoof: [32, 32], arcade: [128, 64], awningRed: [32, 32], awningBlue: [32, 32], lattice: [32, 128], clock: [64, 64], treeline: [512, 64], sky: [512, 256], ironDoor: [32, 64] };
-    const [w, h] = sizes[name] || (name.startsWith('stucco') ? [128, 128] : [64, 64]);
+    const [w, h] = extraSizes[name] || sizes[name] || (name.startsWith('stucco') ? [128, 128] : [64, 64]);
     const noRepeat = name === 'clock' || name === 'sky' || name === 'skyGrey' || name === 'skyBlue' || name === 'sun' || name === 'flame' || name === 'steam' || name === 'tramSide';
     cache[name] = toTexture(makeCanvas(w, h, painters[name]), !noRepeat);
   }

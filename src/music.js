@@ -18,6 +18,7 @@ export const TRACKS = [
   { name: 'Sunny Rush', bpm: 122, root: 45, seed: 11, prog: [[0, 'm'], [-4, 'M'], [3, 'M'], [-2, 'M']] },   // A: Am F C G
   { name: 'Avenue Groove', bpm: 126, root: 50, seed: 29, prog: [[0, 'm'], [-2, 'M'], [-4, 'M'], [-2, 'M']] }, // D: Dm C Bb C
   { name: 'Nevsky Nights', bpm: 118, root: 40, seed: 47, prog: [[0, 'm'], [5, 'm'], [-4, 'M'], [3, 'M']] },     // E: Em Am C G
+  { name: 'Cosmodrome', bpm: 124, root: 43, seed: 83, prog: [[0, 'm'], [3, 'M'], [-2, 'M'], [-4, 'M']] },        // G: Gm Bb F Eb
 ];
 const TRIAD = { m: [0, 3, 7], M: [0, 4, 7] };
 
