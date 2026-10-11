@@ -5,7 +5,7 @@ import { makeCanvas, toTexture, mulberry } from './textures.js';
 const tilt = (m, axis, v) => { m.rotation[axis] = v; return m; };   // (Object3D.add returns the parent, so tilt the child first)
 
 export const FRAME = 128;                 // px per frame
-export const ANGLES = 8;
+export const ANGLES = 16;
 // pose ids = rows in the atlas
 export const POSE = { idle: 0, walk0: 1, walk1: 2, walk2: 3, walk3: 4, windup: 5, strike: 6, pain: 7, die0: 8, die1: 9, die2: 10, die3: 11, die4: 12 };
 export const POSE_COUNT = 13;

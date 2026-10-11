@@ -174,7 +174,7 @@ export function buildSoviet(scene) {
     P('rockets', 9, -62), P('rockets', -9, -128), P('rockets', 8, -196), P('rockets', -7, -270),
     P('cells', -7, -118), P('cells', 8, -180), P('cells', -6, -236), P('cells', 7, -288),
     P('fuel', 7, -150), P('fuel', -8, -206), P('fuel', 6, -258),
-    P('w_ssg', -6, -18), P('w_rocket', 7, -46), P('w_grenade', -7, -80), P('w_plasma', 8, -112),
+    P('w_ssg', -6, -18), P('w_rocket', 7, -46), P('w_grenade', -7, -80), P('w_plasma', 8, -112), P('w_frost', -7, -30),
     P('w_flamer', -8, -156), P('w_rail', 7, -198), P('w_bfg', -6, -246),
   ];
 
@@ -198,6 +198,7 @@ export function buildSoviet(scene) {
   return {
     boxes, spawnPoints, pickupSpawns, update, fogColor: FOG,
     propSpawns: (() => { const a = []; for (let z = 20; z > -300; z -= 23) { const x = (z % 2 ? -1 : 1) * (6 + ((z * 7) % 9)); a.push({ type: 'barrel', x, z }); a.push({ type: 'barrel', x: x + 0.9, z: z - 0.8 }); a.push({ type: 'crate', x: -x * 0.8, z: z - 9, rot: z * 0.1 }); } return a; })(),
+    navBounds: { x0: -24, x1: 24, z0: -310, z1: 56 },
     mode: 'advance', encounters, goalZ: GOAL_Z,
     start: { x: 0, z: 44, yaw: 0 }, startWeapons: ['sabre', 'pistol', 'shotgun', 'chaingun'],
     spawnRange: [22, 80], maxAlive: 12, range: 400,

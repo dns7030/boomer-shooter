@@ -143,7 +143,7 @@ export function buildLevel(scene) {
     { type: 'fuel', x: -3.0, z: -6 }, { type: 'fuel', x: 3.0, z: -32 },
     { type: 'w_shotgun', x: 2.0, z: 24 }, { type: 'w_ssg', x: -3.5, z: 14 }, { type: 'w_chaingun', x: -1.5, z: -3 },
     { type: 'w_rocket', x: 3.0, z: -14 }, { type: 'w_grenade', x: -3.0, z: -22 }, { type: 'w_flamer', x: 2.0, z: -30 },
-    { type: 'w_plasma', x: -2.0, z: -38 }, { type: 'w_rail', x: 3.0, z: -44 }, { type: 'w_bfg', x: 0.0, z: -50 },
+    { type: 'w_plasma', x: -2.0, z: -38 }, { type: 'w_frost', x: 2.5, z: -2 }, { type: 'w_rail', x: 3.0, z: -44 }, { type: 'w_bfg', x: 0.0, z: -50 },
   ];
 
 
@@ -162,6 +162,7 @@ export function buildLevel(scene) {
       { type: 'crate', x: -4.0, z: -12 }, { type: 'crate', x: -4.1, z: -13.2 }, { type: 'barrel', x: 3.5, z: -22 }, { type: 'crate', x: 3.8, z: -29 },
       { type: 'barrel', x: -3.6, z: -38 }, { type: 'barrel', x: -3.0, z: -38.7 }, { type: 'crate', x: 3.2, z: -45 },
     ],
+    navBounds: { x0: -30, x1: 30, z0: -80, z1: 50 },
     mode: 'waves', waves: [{ grunt: 4 }, { grunt: 4, spitter: 3 }, { grunt: 6, spitter: 5 }],
     start: { x: 0, z: 34, yaw: 0 }, startWeapons: ['sabre', 'pistol'],
     spawnRange: [14, 48], maxAlive: 8, range: 90,

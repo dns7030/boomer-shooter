@@ -36,6 +36,7 @@ function makeMaterials() {
     glowGreen: new THREE.MeshBasicMaterial({ color: 0x6aff7a }),
     glowRed: new THREE.MeshBasicMaterial({ color: 0xff5030 }),
     shellRed: S(0xb8352a, 0.0, 0.5),
+    ice: new THREE.MeshStandardMaterial({ color: 0xa8e8ff, emissive: 0x2a8ab0, emissiveIntensity: 0.6, metalness: 0.1, roughness: 0.15 }),
   };
 }
 
@@ -269,6 +270,23 @@ function buildPlasma(M) {
   return { group: g, muzzle, flash: 0.17, tint: 'blue', tip: [0.16, -0.18], rot: [0.3, 0.05, 0], recoil: 0.5 };
 }
 
+function buildFrost(M) {
+  const g = new THREE.Group();
+  g.add(at(rbox(0.07, 0.08, 0.3, 0.012, M.blued), 0, 0, -0.15));
+  g.add(at(zcyl(0.036, 0.036, 0.24, M.ice, 14), 0, 0.066, -0.04));                 // coolant canister on top
+  for (const z of [-0.0, -0.1, -0.2]) g.add(at(zring(0.038, 0.006, M.steel), 0, 0.066, z));
+  g.add(at(zcyl(0.03, 0.034, 0.3, M.poly, 14), 0, 0, -0.3));                       // barrel
+  g.add(at(zcyl(0.058, 0.032, 0.14, M.steel, 14), 0, 0, -0.5));                    // flared nozzle
+  g.add(at(zcyl(0.048, 0.048, 0.02, M.glowCyan, 14), 0, 0, -0.645));
+  for (const z of [-0.36, -0.44]) g.add(at(zring(0.036, 0.007, M.glowCyan), 0, 0, z));
+  for (let i = 0; i < 6; i++) { const a = (i / 6) * Math.PI * 2, c = new THREE.Mesh(new THREE.ConeGeometry(0.012, 0.07, 5), M.ice); c.rotation.x = -Math.PI / 2; c.position.set(Math.sin(a) * 0.062, Math.cos(a) * 0.062, -0.5); g.add(c); }
+  g.add(at(rbox(0.04, 0.09, 0.05, 0.01, M.poly), 0, -0.085, -0.02));
+  g.add(hand(M, 0.003, -0.078, 0.03, 0.06, 0.05, 0.09));
+  g.add(arm(M, [0.0, -0.1, 0.07], [0.2, -0.3, 0.93], 0.55, 0.03));
+  const muzzle = new THREE.Object3D(); muzzle.position.set(0, 0, -0.66); g.add(muzzle);
+  return { group: g, muzzle, flash: 0.2, tint: 'blue', tip: [0.17, -0.18], rot: [0.3, 0.05, 0], recoil: 0.7 };
+}
+
 function buildFlamer(M) {
   const g = new THREE.Group();
   g.add(at(rbox(0.05, 0.06, 0.18, 0.01, M.blued), 0, 0, -0.09));
@@ -376,7 +394,7 @@ export class WeaponView {
     this.M = M;
     this.models = {
       sabre: buildSabre(M), pistol: buildPistol(M), shotgun: buildShotgun(M), ssg: buildSSG(M), chaingun: buildChaingun(M),
-      rocket: buildRocket(M), grenade: buildGrenade(M), plasma: buildPlasma(M), flamer: buildFlamer(M), rail: buildRail(M), bfg: buildBFG(M),
+      rocket: buildRocket(M), grenade: buildGrenade(M), plasma: buildPlasma(M), frost: buildFrost(M), flamer: buildFlamer(M), rail: buildRail(M), bfg: buildBFG(M),
     };
     for (const [id, m] of Object.entries(this.models)) {
       m.id = id;

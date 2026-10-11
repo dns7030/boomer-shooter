@@ -1,8 +1,8 @@
 # Lizards Over Rus
 
 A first-person boomer shooter in the browser (Three.js). Lizard invaders drop from the sky into different eras of Russia
-and you fight them with eleven weapons. Real sun shadows, bloom, bullet holes and scorch marks, dynamic explosion light,
-exploding barrels, breakable crates and windows, and lizards that are 3D models baked into 8-direction sprite sheets at startup.
+and you fight them with twelve weapons. Real sun shadows, bloom, bullet holes and scorch marks, dynamic explosion light,
+exploding barrels, breakable crates and windows, and lizards that are 3D models baked into 16-direction sprite sheets at startup. Lizards turn slowly, so you can run around them and see their sides and backs; they need to face you to bite or shoot.
 
 Everything (textures, sprites, sounds) is generated procedurally at runtime. No asset files, no build step.
 
@@ -41,7 +41,7 @@ Open <http://localhost:8000> and click **PLAY**. (A local server is required: br
 | 3 | Pump Shotgun / Super Shotgun | shells; fast pump, 20-pellet double barrel |
 | 4 | Chaingun | bullets, spinning barrels |
 | 5 | Rocket Launcher / Grenade Launcher | splash damage (careful — it hurts you too); grenades bounce and have a fuse |
-| 6 | Plasma Rifle | cells, fast bolts |
+| 6 | Plasma Rifle / Frost Gun | cells; plasma = fast bolts, frost = freezes lizards solid for 15 s (flames thaw them, hits shatter them; a frozen drake drops out of the sky) |
 | 7 | Flamethrower | fuel; sets lizards on fire |
 | 8 | Railgun | cells, pierces every lizard in a line |
 | 9 | BFG 9000 | 25 cells, huge splash |

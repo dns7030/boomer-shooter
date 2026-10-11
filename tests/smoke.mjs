@@ -192,6 +192,30 @@ const sty = await page.evaluate(() => {
 });
 check('lizard look can be switched live (3D <-> pixel)', sty.a.w > 2.7 && sty.b.pix === true && sty.b.w < 2.5 && sty.c.pix === false && sty.c.w > 2.7, JSON.stringify(sty));
 
+// --- frost gun: freezes a lizard solid for 15 s, then it thaws; frozen drakes drop out of the sky ---
+const ice = await page.evaluate(() => {
+  const g = window.__game, W = window.__weapons;
+  g.loadLevel(2); g.setState('playing'); g.wave.phase = 'idle';
+  const p = g.p; p.x = 0; p.z = -30; p.yaw = 0; p.pitch = 0; p.health = 100;
+  p.has.frost = true; p.ammo.cells = 100; p.weapon = W.findIndex((w) => w.id === 'frost'); p.cd = 0; p.switching = 0;
+  const e = g.spawnEnemy('grunt'); Object.assign(e, { x: 0, z: -45, state: 'move', timer: 0, cool: 0.1 }); e.mesh.visible = true; g.scene.remove(e.beam);
+  const d = g.spawnEnemy('drake'); Object.assign(d, { x: 6, z: -48, y: 4.2, state: 'move', timer: 0, cool: 99 }); d.mesh.visible = true; g.scene.remove(d.beam);
+  g.camera.rotation.set(0, 0, 0); g.camera.updateMatrixWorld(true);
+  g.fire();
+  let frozenAt = null, x0 = null, moved = 0, thawAt = null;
+  for (let t = 0; t < 60 * 20; t++) {
+    p.health = 100; g.step(1 / 60);
+    if (frozenAt === null && e.frozen > 0) { frozenAt = t / 60; x0 = [e.x, e.z]; }
+    if (frozenAt !== null && e.frozen > 0) moved = Math.max(moved, Math.hypot(e.x - x0[0], e.z - x0[1]));
+    if (frozenAt !== null && thawAt === null && !(e.frozen > 0)) { thawAt = t / 60; break; }
+  }
+  // freeze the drake directly and check it drops
+  g.freezeEnemy(d, 15); for (let t = 0; t < 90; t++) g.step(1 / 60);
+  return { frozenAt, moved: +moved.toFixed(2), frozenFor: thawAt === null ? null : +(thawAt - frozenAt).toFixed(1), drakeY: +d.y.toFixed(2), drakeFrozen: d.frozen > 0 };
+});
+check('frost gun freezes a lizard solid for ~15 s, then it thaws', ice.frozenAt !== null && ice.moved < 0.5 && ice.frozenFor > 14 && ice.frozenFor < 15.6, JSON.stringify(ice));
+check('a frozen drake falls out of the sky and stays put', ice.drakeY < 0.1 && ice.drakeFrozen, JSON.stringify(ice));
+
 await page.evaluate(() => window.__game.render());
 await page.screenshot({ path: `${out}/end-state.png` });
 check('no console errors', errors.filter((e) => !/willReadFrequently|GPU stall/.test(e)).length === 0, errors.join(' | '));

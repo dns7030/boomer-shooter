@@ -222,7 +222,7 @@ export function buildPetersburg(scene) {
     P('cells', 15, -50), P('cells', 48, -30), P('cells', -60, -20), P('cells', 90, 40),
     P('fuel', -30, -30), P('fuel', -48, 80), P('fuel', 100, 20),
     P('w_shotgun', 6, -30), P('w_ssg', -46, -4), P('w_chaingun', 30, -80), P('w_rocket', 46, 3), P('w_grenade', -20, 20),
-    P('w_flamer', -90, -74), P('w_plasma', 100, -8), P('w_rail', 20, 48), P('w_bfg', 100, 46),
+    P('w_flamer', -90, -74), P('w_plasma', 100, -8), P('w_frost', -24, -40), P('w_rail', 20, 48), P('w_bfg', 100, 46),
   ];
   const pickupSpawns = wanted.filter((q) => free(q.x, q.z, 1.2));
   const propSpawns = [];

@@ -20,6 +20,8 @@ const ENEMY = {
   spitter: { name: 'Lizard Spitter', hp: 45, speed: 2.6, radius: 0.5, w: 2.1, h: 2.62 },
   drake: { name: 'Fire Drake', hp: 60, speed: 3.4, radius: 0.6, w: 2.1, h: 2.62, hover: 4.2 },   // flies and throws fireballs
 };
+const TURN = { grunt: 3.4, spitter: 2.8, drake: 2.3 };   // rad/s: lizards turn slower than you can run around them
+const angDiff = (a, b) => { const d = a - b; return Math.atan2(Math.sin(d), Math.cos(d)); };
 const ALIVE = new Set(['spawn', 'move', 'attack', 'pain']);
 
 export class Game {
@@ -45,7 +47,7 @@ export class Game {
     const spriteMat = (tint) => new THREE.SpriteMaterial({ map: makePlasmaTexture(tint), blending: THREE.AdditiveBlending, depthWrite: false, fog: false });
     this.plasmaMat = spriteMat('green');                       // lizard spit
     this.fireballMat = spriteMat('orange');                    // drake fireballs
-    this.shotMats = { rocket: spriteMat('orange'), plasma: spriteMat('blue'), bfg: spriteMat('green'), boom: spriteMat('orange'), boomBlue: spriteMat('blue'), boomGreen: spriteMat('green') };
+    this.shotMats = { rocket: spriteMat('orange'), plasma: spriteMat('blue'), frost: spriteMat('blue'), bfg: spriteMat('green'), boom: spriteMat('orange'), boomBlue: spriteMat('blue'), boomGreen: spriteMat('green') };
     this.grenadeGeo = new THREE.SphereGeometry(0.13, 10, 8);
     this.grenadeMat = new THREE.MeshLambertMaterial({ color: 0x3a4a2a });
     this.beamMat = new THREE.MeshBasicMaterial({ color: 0x7ae0ff, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false });
@@ -586,7 +588,7 @@ export class Game {
     const d = target.sub(o).normalize();
     let obj;
     if (S.type === 'grenade') obj = new THREE.Mesh(this.grenadeGeo, this.grenadeMat);
-    else { obj = new THREE.Sprite(this.shotMats[S.type]); obj.scale.setScalar(S.type === 'bfg' ? 1.8 : S.type === 'plasma' ? 0.55 : 0.8); }
+    else { obj = new THREE.Sprite(this.shotMats[S.type]); obj.scale.setScalar(S.type === 'bfg' ? 1.8 : S.type === 'plasma' ? 0.55 : S.type === 'frost' ? 0.7 : 0.8); }
     obj.position.copy(o); this.scene.add(obj);
     this.pshots.push({ S, obj, x: o.x, y: o.y, z: o.z, vx: d.x * S.speed, vy: d.y * S.speed + (S.type === 'grenade' ? 3 : 0), vz: d.z * S.speed, life: S.fuse || 5, bounces: 0 });
   }
@@ -608,6 +610,7 @@ export class Game {
       const dx = e.x - eye.x, dz = e.z - eye.z, dy = 1.2 + e.y - eye.y, d = Math.hypot(dx, dz);
       if (d > reach + 0.5) continue;
       if ((dx * dir.x + dy * dir.y + dz * dir.z) / Math.hypot(dx, dy, dz) < 0.93) continue;
+      if (e.frozen > 0) this.thaw(e, false);
       this.damageEnemy(e, w.damage, new THREE.Vector3(e.x, 1.2 + e.y, e.z), true);
       e.burn = 2.5;
     }
@@ -676,6 +679,35 @@ export class Game {
     return best;
   }
 
+  // ---- freezing ----
+  freezeEnemy(e, secs) {
+    if (!ALIVE.has(e.state) || e.state === 'spawn') return;
+    if (!(e.frozen > 0)) { this.burst(e.x, e.y + 1.2, e.z, 'blue', 10, 3, 0.14); for (let k = 0; k < 6; k++) this.debris.spawn('glass', e.x + (Math.random() - 0.5) * 0.8, e.y + 0.4 + Math.random() * 1.6, e.z + (Math.random() - 0.5) * 0.8, (Math.random() - 0.5) * 3, 1 + Math.random() * 2, (Math.random() - 0.5) * 3, 0.8); }
+    e.frozen = secs; e.burn = 0; e.kx = e.kz = 0;
+    if (e.state === 'attack' || e.state === 'pain') e.state = 'move';
+    sfx.freeze();
+  }
+  thaw(e, natural) {
+    e.frozen = 0; e.mesh.material.color.setHex(0xffffff);
+    if (natural) { this.burst(e.x, e.y + 1.0, e.z, 'smoke', 6, 2, 0.2); sfx.tink(3); }
+  }
+  // frost bolt hit something: freeze every lizard in the small cloud
+  frostBurst(x, y, z, R, S) {
+    sfx.freeze();
+    const sp = new THREE.Sprite(this.shotMats.boomBlue.clone()); sp.position.set(x, y + 0.3, z); sp.scale.setScalar(R * 0.5); this.scene.add(sp);
+    this.fx.push({ obj: sp, t: 0.4, dur: 0.4, kind: 'boom', size: R * 1.8 });
+    this.burst(x, y + 0.3, z, 'blue', 14, R * 1.8, 0.12);
+    for (let k = 0; k < 8; k++) this.debris.spawn('glass', x + (Math.random() - 0.5), y + 0.3, z + (Math.random() - 0.5), (Math.random() - 0.5) * 6, 2 + Math.random() * 4, (Math.random() - 0.5) * 6, 0.7);
+    this.flash(x, y + 0.6, z, 0xa8e4ff, 120, 0.4);
+    for (const e of this.enemies) {
+      if (!ALIVE.has(e.state) || e.state === 'spawn') continue;
+      if (Math.hypot(e.x - x, (1.2 + e.y - y) * 0.7, e.z - z) > R + 0.6) continue;
+      this.damageEnemy(e, S.damage, new THREE.Vector3(e.x, 1.2 + e.y, e.z), true);
+      if (ALIVE.has(e.state)) this.freezeEnemy(e, S.freeze);
+    }
+    this.hitProps({ x, y, z }, 0);
+  }
+
   // knock a lizard back (it slides and decays)
   knock(e, dx, dz, power) {
     const l = Math.hypot(dx, dz) || 1;
@@ -703,6 +735,7 @@ export class Game {
       if (S.type === 'rocket') this.emit(q.x - q.vx * 0.02, q.y, q.z - q.vz * 0.02, Math.random() < 0.5 ? 'smoke' : 'flameY', 0, 0.5, 0, 0.5, 0.18, -0.5);
       else if (S.type === 'bfg') this.emit(q.x, q.y, q.z, 'plasma', (Math.random() - 0.5) * 3, (Math.random() - 0.5) * 3, (Math.random() - 0.5) * 3, 0.35, 0.18, 0);
       else if (S.type === 'plasma') this.emit(q.x, q.y, q.z, 'blue', 0, 0, 0, 0.15, 0.07, 0);
+      else if (S.type === 'frost') { this.emit(q.x, q.y, q.z, 'blue', (Math.random() - 0.5) * 1.5, (Math.random() - 0.5) * 1.5, (Math.random() - 0.5) * 1.5, 0.35, 0.1, 0); }
       let boom = hitWall || q.life <= 0;
       if (!boom) for (const e of this.enemies) {
         if (!ALIVE.has(e.state) || e.state === 'spawn') continue;
@@ -710,13 +743,13 @@ export class Game {
       }
       // glow around fast shots
       if (S.type !== 'grenade') {
-        if (!q.dl) { q.dl = this.acquireLight(); if (q.dl) { q.dl.owner = q; q.dl.l.color.set(S.type === 'plasma' ? 0x60b0ff : S.type === 'bfg' ? 0x60ff80 : 0xff9a30); q.dl.l.intensity = S.type === 'bfg' ? 260 : S.type === 'plasma' ? 70 : 150; } }
+        if (!q.dl) { q.dl = this.acquireLight(); if (q.dl) { q.dl.owner = q; q.dl.l.color.set(S.type === 'plasma' || S.type === 'frost' ? 0x60b0ff : S.type === 'bfg' ? 0x60ff80 : 0xff9a30); q.dl.l.intensity = S.type === 'bfg' ? 260 : S.type === 'plasma' ? 70 : 150; } }
         if (q.dl) q.dl.l.position.set(q.x, q.y, q.z);
       }
       if (boom) {
         if (q.dl) { q.dl.owner = null; q.dl.t = 0; q.dl.l.intensity = 0; }
         const wall = S.type === 'grenade' ? null : this.wallHit(q.x, q.y, q.z);
-        this.explode(q.x, q.y, q.z, S.radius, S.damage, S.type === 'plasma' ? 'boomBlue' : S.type === 'bfg' ? 'boomGreen' : 'boom', wall);
+        if (S.type === 'frost') this.frostBurst(q.x, q.y, q.z, S.radius, S); else this.explode(q.x, q.y, q.z, S.radius, S.damage, S.type === 'plasma' ? 'boomBlue' : S.type === 'bfg' ? 'boomGreen' : 'boom', wall);
         this.scene.remove(q.obj); this.pshots.splice(i, 1);
       }
     }
@@ -808,7 +841,9 @@ export class Game {
     else if (!quiet && e.state !== 'attack' && (Math.random() < 0.45 || dmg >= 40)) { e.state = 'pain'; e.timer = 0.28; sfx.lizardPain(); }
   }
   killEnemy(e) {
+    const wasIced = e.frozen > 0;
     e.state = 'dying'; e.deadT = 0; this.stats.kills++; sfx.lizardDie();
+    if (wasIced) { sfx.glass(); for (let k = 0; k < 14; k++) this.debris.spawn('glass', e.x + (Math.random() - 0.5), e.y + 0.3 + Math.random() * 1.8, e.z + (Math.random() - 0.5), (Math.random() - 0.5) * 7, 2 + Math.random() * 4, (Math.random() - 0.5) * 7, 1); this.burst(e.x, e.y + 1.2, e.z, 'blue', 12, 4, 0.14); }
     this.decals.add('blood', { x: e.x, y: 0, z: e.z }, { x: 0, y: 1, z: 0 }, 1.7 + Math.random() * 0.8);
     for (let k = 0; k < 3; k++) this.decals.add('blood', { x: e.x + (Math.random() - 0.5) * 2.6, y: 0, z: e.z + (Math.random() - 0.5) * 2.6 }, { x: 0, y: 1, z: 0 }, 0.5 + Math.random() * 0.7);
     this.burst(e.x, 1.2 + e.y, e.z, 'green', 14, 4.5, 0.16);
@@ -842,16 +877,24 @@ export class Game {
         resolveCircle(kp, e.cfg.radius, this.boxes); e.x = kp.x; e.z = kp.z;
         const kf = Math.exp(-5 * dt); e.kx *= kf; e.kz *= kf; if (Math.abs(e.kx) + Math.abs(e.kz) < 0.05) e.kx = e.kz = 0;
       }
-      if (e.burn > 0 && ALIVE.has(e.state) && e.state !== 'spawn') {
+      if (e.burn > 0 && ALIVE.has(e.state) && e.state !== 'spawn' && !iced) {
         e.burn -= dt; e.burnT = (e.burnT || 0) + dt;
         if (Math.random() < dt * 14) this.emit(e.x + (Math.random() - 0.5) * 0.6, e.y + 0.8 + Math.random() * 1.4, e.z + (Math.random() - 0.5) * 0.6, Math.random() < 0.5 ? 'flameY' : 'flameR', 0, 1.8, 0, 0.4, 0.3, -2);
         if (e.burnT > 0.3) { e.burnT = 0; this.damageEnemy(e, 5, new THREE.Vector3(e.x, 1.2 + e.y, e.z), true); }
       }
-      if (e.cfg.hover) { // drakes: rise off the ground, bob in the air, and plummet when killed
-        const tgt = e.state === 'move' || e.state === 'attack' || e.state === 'pain' ? e.cfg.hover + Math.sin(this.time * 2.2 + e.x) * 0.45 : 0;
-        if (e.state === 'dying' || e.state === 'dead') e.y = Math.max(0, e.y - 14 * dt); else e.y += (tgt - e.y) * Math.min(1, dt * 1.6);
+      let iced = false;
+      if (e.frozen > 0) {
+        if (ALIVE.has(e.state) && e.state !== 'spawn') { iced = true; e.frozen -= dt; if (e.frozen <= 0) this.thaw(e, true); }
+        else this.thaw(e, false);
       }
-      switch (e.state) {
+      if (e.cfg.hover) { // drakes: rise off the ground, bob in the air, and plummet when killed
+        const tgt = !iced && (e.state === 'move' || e.state === 'attack' || e.state === 'pain') ? e.cfg.hover + Math.sin(this.time * 2.2 + e.x) * 0.45 : 0;
+        if (e.state === 'dying' || e.state === 'dead' || (iced && tgt === 0)) e.y = Math.max(0, e.y - 14 * dt); else e.y += (tgt - e.y) * Math.min(1, dt * 1.6);
+      }
+      switch (iced ? 'iced' : e.state) {
+        case 'iced':
+          if (Math.random() < dt * 2.5) this.emit(e.x + (Math.random() - 0.5) * 0.8, e.y + 0.4 + Math.random() * 1.6, e.z + (Math.random() - 0.5) * 0.8, 'blue', 0, -0.3, 0, 0.5, 0.08, 0);
+          break;
         case 'spawn':
           e.timer -= dt;
           e.beam.material.opacity = Math.max(0, Math.min(0.55, e.timer * 1.2 + (0.9 - e.timer) * 0.2));
@@ -869,12 +912,12 @@ export class Game {
             mx = nx; mz = nz;
           } else if (e.type === 'grunt') {
             mx = nx; mz = nz;
-            if (dist < 1.8 && e.cool <= 0) { e.state = 'attack'; e.timer = 0.55; e.hit = false; sfx.hiss(); }
+            if (dist < 1.8 && e.cool <= 0 && Math.abs(angDiff(Math.atan2(nx, nz), e.face)) < 0.7) { e.state = 'attack'; e.timer = 0.55; e.hit = false; sfx.hiss(); }
           } else {
             e.strafeT -= dt; if (e.strafeT <= 0) { e.strafe *= -1; e.strafeT = 1 + Math.random() * 2; }
             const far = e.cfg.hover ? 24 : 15, near = e.cfg.hover ? 13 : 8;
             if (dist > far) { mx = nx; mz = nz; } else if (dist < near) { mx = -nx; mz = -nz; speed *= 0.8; } else { mx = -nz * e.strafe; mz = nx * e.strafe; speed *= 0.6; }
-            if (e.cool <= 0 && dist < (e.cfg.hover ? 48 : 36) && this.hasLOS(e.x, e.y + 1.5, e.z, p.x, p.y + 1.4, p.z)) { e.state = 'attack'; e.timer = 0.5; e.hit = false; sfx.hiss(); }
+            if (e.cool <= 0 && dist < (e.cfg.hover ? 48 : 36) && this.hasLOS(e.x, e.y + 1.5, e.z, p.x, p.y + 1.4, p.z) && Math.abs(angDiff(Math.atan2(nx, nz), e.face)) < 0.5) { e.state = 'attack'; e.timer = 0.5; e.hit = false; sfx.hiss(); }
           }
           if (e.slideT > 0) { // steer around props we got stuck on
             e.slideT -= dt;
@@ -883,6 +926,10 @@ export class Game {
             const l = Math.hypot(mx, mz) || 1; mx /= l; mz /= l;
           }
           e.want = e.type === 'grunt' && (mx || mz) ? Math.atan2(mx, mz) : Math.atan2(nx, nz);
+          // slow turning: they only move at full speed while facing where they are going (grunts steer along their facing)
+          const wantA = Math.atan2(mx, mz), turnErr = Math.abs(angDiff(wantA, e.face));
+          speed *= Math.max(0.18, Math.cos(Math.min(turnErr, 1.4)));
+          if (e.type === 'grunt' || e.pathing) { mx = Math.sin(e.face); mz = Math.cos(e.face); }
           const pos = { x: e.x + mx * speed * dt, z: e.z + mz * speed * dt, y: e.y };
           for (const o of this.enemies) {
             if (o === e || !ALIVE.has(o.state)) continue;
@@ -903,7 +950,7 @@ export class Game {
         case 'attack':
           e.timer -= dt;
           if (e.type === 'grunt') {
-            if (!e.hit && e.timer < 0.25) { e.hit = true; if (dist < 2.3) this.hurt(e.cfg.melee); }
+            if (!e.hit && e.timer < 0.25) { e.hit = true; if (dist < 2.3 && Math.abs(angDiff(Math.atan2(nx, nz), e.face)) < 1.0) this.hurt(e.cfg.melee); }
           } else if (!e.hit && e.timer < 0.2) {
             e.hit = true;
             const fire = !!e.cfg.hover, sx = e.x, sy = e.y + 1.5, sz = e.z, spd = fire ? 17 : 14;
@@ -928,12 +975,14 @@ export class Game {
       e.shadow.position.set(e.x, 0.04, e.z);
       const toCam = Math.atan2(cam.x - e.x, cam.z - e.z);
       m.rotation.y = toCam;
-      if (ALIVE.has(e.state)) { let dd = e.want - e.face; dd = Math.atan2(Math.sin(dd), Math.cos(dd)); e.face += dd * Math.min(1, dt * 9); }
+      if (ALIVE.has(e.state) && !iced) { const dd = angDiff(e.want, e.face), mx = (TURN[e.type] || 3) * dt * (e.state === 'attack' ? 0.6 : 1); e.face += Math.max(-mx, Math.min(mx, dd)); }
+      m.material.color.setHex(e.frozen > 0 && ALIVE.has(e.state) ? 0x8fd2ff : 0xffffff);
       let pose = POSE.idle;
       if (e.state === 'move') pose = POSE.walk0 + (Math.floor(e.anim) % 4);
       else if (e.state === 'attack') pose = e.timer > (e.type === 'grunt' ? 0.28 : 0.2) ? POSE.windup : POSE.strike;
       else if (e.state === 'pain') pose = POSE.pain;
-      else if (e.state === 'dying' || e.state === 'dead') pose = POSE.die0 + (e.deadT < 0.09 ? 0 : e.deadT < 0.2 ? 1 : e.deadT < 0.32 ? 2 : e.deadT < 0.44 ? 3 : 4);
+      if (iced) pose = e.icePose || 0; else e.icePose = pose;
+      if (e.state === 'dying' || e.state === 'dead') pose = POSE.die0 + (e.deadT < 0.09 ? 0 : e.deadT < 0.2 ? 1 : e.deadT < 0.32 ? 2 : e.deadT < 0.44 ? 3 : 4);
       if (e.pix) { // the original pixel sprites
         const T = this.liz[e.type]; let tx = T.idle;
         if (e.state === 'move') tx = [T.walk1, T.idle, T.walk2, T.idle][Math.floor(e.anim) % 4];
@@ -945,7 +994,7 @@ export class Game {
         continue;
       }
       let dl = toCam - e.face; dl = Math.atan2(Math.sin(dl), Math.cos(dl));
-      const ang = ((Math.round(-dl / (Math.PI / 4)) % ANGLES) + ANGLES) % ANGLES, key = pose * ANGLES + ang;
+      const ang = ((Math.round(-dl / (Math.PI * 2 / ANGLES)) % ANGLES) + ANGLES) % ANGLES, key = pose * ANGLES + ang;
       if (key !== e.frameKey) {
         e.frameKey = key;
         const [u0, v0, u1, v1] = frameUV(pose, ang), uv = e.uv;

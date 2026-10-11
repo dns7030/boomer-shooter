@@ -21,6 +21,8 @@ export const WEAPONS = [
     shot: { type: 'grenade', speed: 19, radius: 4.5, damage: 95, gravity: 16, fuse: 1.7, bounce: 0.5 } },
   { id: 'plasma', name: 'Plasma Rifle', slot: 6, kind: 'projectile', cooldown: 0.09, ammo: 'cells', use: 1, sfx: 'plasma', kick: 0.01, auto: true, starter: 40,
     shot: { type: 'plasma', speed: 52, radius: 1.8, damage: 22 } },
+  { id: 'frost', name: 'Frost Gun', slot: 6, kind: 'projectile', cooldown: 0.55, ammo: 'cells', use: 3, sfx: 'frost', kick: 0.03, starter: 30,
+    shot: { type: 'frost', speed: 40, radius: 3.0, damage: 6, freeze: 15 } },   // freezes lizards solid for 15 s
   { id: 'flamer', name: 'Flamethrower', slot: 7, kind: 'flame', cooldown: 0.05, ammo: 'fuel', use: 1, sfx: 'flame', kick: 0.004, auto: true, starter: 120, range: 9, damage: 5 },
   { id: 'rail', name: 'Railgun', slot: 8, kind: 'rail', cooldown: 1.1, damage: 170, ammo: 'cells', use: 6, sfx: 'rail', kick: 0.1, starter: 18 },
   { id: 'bfg', name: 'BFG 9000', slot: 9, kind: 'projectile', cooldown: 1.7, ammo: 'cells', use: 25, sfx: 'bfg', kick: 0.14, starter: 50,
