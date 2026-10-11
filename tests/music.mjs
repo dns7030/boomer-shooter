@@ -25,7 +25,7 @@ const res = await page.evaluate(async () => {
 for (const r of res) {
   check(`level ${r.lvl + 1} @ intensity ${r.inten}: audible, no NaN, no clipping`, r.nan === 0 && r.rms > 0.01 && r.peak < 0.99, JSON.stringify(r));
 }
-for (let lvl = 0; lvl < 2; lvl++) {
+for (let lvl = 0; lvl < 3; lvl++) {
   const calm = res.find((r) => r.lvl === lvl && r.inten === 0), fight = res.find((r) => r.lvl === lvl && r.inten === 1);
   check(`level ${lvl + 1}: fight music is fuller than calm music`, fight.rms > calm.rms * 1.1, `(${calm.rms} -> ${fight.rms})`);
 }

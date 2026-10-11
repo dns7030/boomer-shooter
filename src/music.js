@@ -17,6 +17,7 @@ const ramp = (x, a, b) => Math.min(1, Math.max(0, (x - a) / (b - a)));
 export const TRACKS = [
   { name: 'Sunny Rush', bpm: 122, root: 45, seed: 11, prog: [[0, 'm'], [-4, 'M'], [3, 'M'], [-2, 'M']] },   // A: Am F C G
   { name: 'Avenue Groove', bpm: 126, root: 50, seed: 29, prog: [[0, 'm'], [-2, 'M'], [-4, 'M'], [-2, 'M']] }, // D: Dm C Bb C
+  { name: 'Nevsky Nights', bpm: 118, root: 40, seed: 47, prog: [[0, 'm'], [5, 'm'], [-4, 'M'], [3, 'M']] },     // E: Em Am C G
 ];
 const TRIAD = { m: [0, 3, 7], M: [0, 4, 7] };
 

@@ -8,12 +8,12 @@ const G = () => new THREE.Group();
 const roofM = () => mat('roofTar');
 
 // ---------- helpers ----------
-function slab(w, h, d, side, roof, tile = 6) { // box with separate side / roof materials
+export function slab(w, h, d, side, roof, tile = 6) { // box with separate side / roof materials
   const m = boxT(w, h, d, side, tile);
   m.material = [side, side, roof, roof, side, side];
   return m;
 }
-function tiledPlane(w, h, u, v, material, x, y, z) {
+export function tiledPlane(w, h, u, v, material, x, y, z) {
   const g = new THREE.PlaneGeometry(w, h);
   const uv = g.attributes.uv;
   for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) * u, uv.getY(i) * v);

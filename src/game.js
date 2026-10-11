@@ -12,6 +12,7 @@ import { WEAPONS, AMMO, WEAPON_INDEX, SLOTS } from './weapons.js';
 import { WeaponView } from './weaponmodels.js';
 import { sfx } from './audio.js';
 import { PostFX } from './post.js';
+import { Nav } from './nav.js';
 
 const EYE = 1.7;
 const ENEMY = {
@@ -95,6 +96,7 @@ export class Game {
     this.scene.add(this.camera);
     this.level = LEVELS[i].build(this.scene);
     this.boxes = this.level.boxes;
+    this.nav = this.level.navBounds ? new Nav(this.boxes, this.level.navBounds) : null;
     this.makeParticlePool();
     this.setupShadows();
     this.decals = new Decals(this.scene);
@@ -806,9 +808,10 @@ export class Game {
 
   updateEnemies(dt) {
     const p = this.p, cam = this.camera.position;
+    if (this.nav) this.nav.update(p.x, p.z, dt);
     for (const e of this.enemies) {
       const dx = p.x - e.x, dz = p.z - e.z, dist = Math.hypot(dx, dz) || 1;
-      const nx = dx / dist, nz = dz / dist;
+      let nx = dx / dist, nz = dz / dist;
       e.cool -= dt;
       if (e.state !== 'move') e.want = Math.atan2(nx, nz);
       if ((e.kx || e.kz) && e.state !== 'spawn') {
@@ -830,7 +833,14 @@ export class Game {
           break;
         case 'move': {
           let mx = 0, mz = 0, speed = e.cfg.speed;
-          if (e.type === 'grunt') {
+          if (this.nav && dist > 3) { // no line of sight: follow the street grid around the buildings
+            e.losT = (e.losT || 0) - dt;
+            if (e.losT <= 0) { e.losT = 0.25 + Math.random() * 0.15; e.los = this.hasLOS(e.x, 1.4, e.z, p.x, p.y + 1.4, p.z); }
+            if (!e.los) { const nd = this.nav.dir(e.x, e.z); if (nd) { nx = nd.x; nz = nd.z; e.pathing = true; } else e.pathing = false; } else e.pathing = false;
+          } else e.pathing = false;
+          if (e.pathing) {
+            mx = nx; mz = nz;
+          } else if (e.type === 'grunt') {
             mx = nx; mz = nz;
             if (dist < 1.8 && e.cool <= 0) { e.state = 'attack'; e.timer = 0.55; e.hit = false; sfx.hiss(); }
           } else {

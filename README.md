@@ -1,7 +1,8 @@
 # Lizards Over Rus
 
 A first-person boomer shooter in the browser (Three.js). Lizard invaders drop from the sky into different eras of Russia
-and you fight them with eleven weapons. You stay on the street — buildings are façades only.
+and you fight them with eleven weapons. Real sun shadows, bloom, bullet holes and scorch marks, dynamic explosion light,
+exploding barrels, breakable crates and windows, and lizards that are 3D models baked into 8-direction sprite sheets at startup.
 
 Everything (textures, sprites, sounds) is generated procedurally at runtime. No asset files, no build step.
 
@@ -27,6 +28,7 @@ Open <http://localhost:8000> and click **PLAY**. (A local server is required: br
 | 1–9 | weapon slot (press again to cycle weapons in the slot) |
 | Mouse wheel, Q | previous / next weapon |
 | M | music on / off |
+| G | graphics quality (low / medium / high: shadows + bloom) |
 | Esc | pause |
 
 ## Weapons
@@ -54,6 +56,12 @@ No weapon ever covers the crosshair (the headless test checks that).
    Workers' Club, trams, TV tower, obelisk and eternal flame) ending at the Motherland monument. You and the lizards keep the
    same size, so the world feels huge — run, fight seven encounters, reach the monument.
 
+3. **St. Petersburg (1800s)** — six city blocks around a street grid, a canal with bridges (one drawbridge is up) and the Neva
+   beyond. Palace Square (Winter Palace, General Staff arch, Alexander Column), St. Isaac's, the Bronze Horseman, Rostral columns,
+   the Admiralty and Kunstkamera around a garden, Kazan Cathedral, Nevsky frontage, and an industrial yard (ropeworks, porcelain
+   works, mint, foundry, sawmill). You can walk around whole blocks; lizards find their way round them (`src/nav.js`).
+   Five waves.
+
 Pick a level from the title screen; clearing one offers the next.
 
 ## Music
@@ -71,8 +79,14 @@ src/game.js       player, weapons, lizards, waves, pickups, rendering
 src/levels.js     level registry
 src/level.js      level 1 (Muscovy): layout, colliders, sky, UFOs
 src/level_soviet.js  level 2 (Soviet avenue)
+src/level_petersburg.js  level 3 (St. Petersburg blocks, canal, river)
+src/nav.js        flow-field pathfinding around city blocks
+src/lizard3d.js   3D lizard model + 8-angle sprite atlas baking
+src/post.js       bloom + colour grade + vignette
+src/decals.js, src/debris.js, src/props.js  bullet holes / scorch, flying debris, barrels and crates
 src/buildings.js  Muscovy façade builders
 src/buildings2.js Soviet building builders (real scale)
+src/buildings3.js, src/landmarks3.js  Imperial Petersburg buildings and landmarks
 src/geo.js        geometry helpers, collision + ray helpers
 src/textures.js   procedural tileable textures
 src/sprites.js    lizard / pickup / plasma sprites

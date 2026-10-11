@@ -434,6 +434,83 @@ Object.assign(painters, {
     }
   },
 });
+
+// ---------- Imperial St. Petersburg ----------
+function stuccoPainter(base, trim, seed) {
+  return (g, w, h) => {
+    const rnd = mulberry(seed);
+    for (let cy = 0; cy < 2; cy++) for (let cx = 0; cx < 2; cx++) {
+      const x0 = cx * 64, y0 = cy * 64;
+      R(g, x0, y0, 64, 64, base);
+      for (let i = 0; i < 80; i++) R(g, x0 + ((rnd() * 64) | 0), y0 + ((rnd() * 64) | 0), 1, 1, rnd() < 0.5 ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.10)');
+      R(g, x0, y0, 3, 64, trim);                                                  // pilaster strip between bays
+      R(g, x0 + 18, y0 + 15, 28, 42, trim);                                        // frame
+      R(g, x0 + 21, y0 + 18, 22, 36, '#27323e'); R(g, x0 + 21, y0 + 18, 22, 7, '#43566c');   // glass
+      R(g, x0 + 31, y0 + 18, 2, 36, trim); R(g, x0 + 21, y0 + 31, 22, 2, trim);
+      if (cy === 0) { R(g, x0 + 15, y0 + 10, 34, 5, trim); R(g, x0 + 29, y0 + 7, 6, 4, trim); }
+      else for (let i = 0; i < 8; i++) R(g, x0 + 16 + i, y0 + 14 - i, 32 - i * 2, 1, trim);   // triangular pediment
+      R(g, x0 + 15, y0 + 57, 34, 3, trim);                                          // sill
+      R(g, x0, y0 + 62, 64, 2, 'rgba(0,0,0,0.12)');
+    }
+  };
+}
+const STUCCO = { Yellow: ['#e2c56a', '#f6f2e2'], Pink: ['#d99a92', '#f6efe4'], Mint: ['#9ccdb0', '#f4f6ee'], Blue: ['#90b2d4', '#f4f2ea'], Cream: ['#eadcb8', '#faf6ea'], Terra: ['#c97a5c', '#eee4d0'], Ochre: ['#d9a252', '#f3ecd8'], White: ['#ece8dc', '#c8c4b8'], Grey: ['#b3b7bb', '#eceae2'] };
+Object.entries(STUCCO).forEach(([name, [base, trim]], i) => { painters['stucco' + name] = stuccoPainter(base, trim, 200 + i); });
+Object.assign(painters, {
+  rustic(g, w, h) {
+    const rnd = mulberry(220);
+    R(g, 0, 0, w, h, '#c4bba6');
+    for (let r = 0; r < 8; r++) { R(g, 0, r * 8 + 7, w, 1, 'rgba(60,50,40,0.45)'); for (let c = 0; c < 4; c++) R(g, ((c * 16 + (r % 2 ? 8 : 0)) % 64), r * 8, 1, 7, 'rgba(60,50,40,0.35)'); }
+    for (let i = 0; i < 120; i++) R(g, (rnd() * w) | 0, (rnd() * h) | 0, 1, 1, rnd() < 0.5 ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.12)');
+    R(g, 18, 20, 28, 34, '#d8d0bc'); R(g, 21, 24, 22, 30, '#1c1c20');
+    for (let y = 0; y < 5; y++) R(g, 21 + y, 24 - y + 4, 22 - 2 * y, 1, '#1c1c20');
+    R(g, 20, 54, 24, 3, '#b8ae98');
+  },
+  shopfront(g, w, h) {
+    const rnd = mulberry(221);
+    R(g, 0, 0, w, h, '#4a2e1c');
+    const gr = g.createLinearGradient(0, 0, 0, h); gr.addColorStop(0, '#ffe2a0'); gr.addColorStop(1, '#c88a48');
+    g.fillStyle = gr; g.fillRect(4, 8, w - 8, h - 14);
+    for (let s = 0; s < 3; s++) { R(g, 4, 18 + s * 14, w - 8, 2, '#6a4528'); for (let k = 0; k < 9; k++) R(g, 7 + k * 6, 10 + s * 14, 4, 7, ['#c0402a', '#e8c070', '#8a5a2a', '#f4ecd8', '#d89050'][(rnd() * 5) | 0]); }
+    R(g, w / 2 - 1, 8, 2, h - 14, '#4a2e1c');
+  },
+  granite(g, w, h) {
+    const rnd = mulberry(222);
+    R(g, 0, 0, w, h, '#76696a');
+    for (let i = 0; i < 700; i++) R(g, (rnd() * w) | 0, (rnd() * h) | 0, 1, 1, ['#8a7c7c', '#665a5c', '#9a8e8c', '#584c4e'][(rnd() * 4) | 0]);
+    for (let r = 0; r < 4; r++) { R(g, 0, r * 16 + 15, w, 1, 'rgba(0,0,0,0.4)'); R(g, ((r % 2) * 32 + 16) % 64, r * 16, 1, 15, 'rgba(0,0,0,0.35)'); }
+  },
+  water(g, w, h) {
+    const rnd = mulberry(223);
+    R(g, 0, 0, w, h, '#3f7b92');
+    for (let i = 0; i < 40; i++) { const y = (rnd() * h) | 0; g.fillStyle = rnd() < 0.5 ? 'rgba(255,255,255,0.18)' : 'rgba(10,40,60,0.2)'; g.fillRect((rnd() * w) | 0, y, 6 + ((rnd() * 14) | 0), 1); }
+  },
+  gravel(g, w, h) {
+    const rnd = mulberry(224);
+    R(g, 0, 0, w, h, '#b9a888');
+    for (let i = 0; i < 520; i++) R(g, (rnd() * w) | 0, (rnd() * h) | 0, 1 + ((rnd() * 2) | 0), 1, ['#a89878', '#cbbb9a', '#8e7e60', '#d8caa8'][(rnd() * 4) | 0]);
+  },
+  domeGreen2(g, w, h) { shingles(g, w, h, ['#4f8a78', '#5a9684', '#477a69', '#62a090'], 250); },
+  ironRed: (g, w, h) => ironRoof(g, w, h, '#a8483a', 230),
+  ironGreen: (g, w, h) => ironRoof(g, w, h, '#4f7a5e', 231),
+  ironGrey: (g, w, h) => ironRoof(g, w, h, '#7a8186', 232),
+  sidingYellow: (g, w, h) => siding(g, w, h, '#dcb95a', 240),
+  sidingGreen: (g, w, h) => siding(g, w, h, '#6f9a7a', 241),
+  sidingBlue: (g, w, h) => siding(g, w, h, '#6f8eb8', 242),
+  sidingRed: (g, w, h) => siding(g, w, h, '#b05a48', 243),
+});
+function ironRoof(g, w, h, base, seed) {
+  const rnd = mulberry(seed);
+  R(g, 0, 0, w, h, base);
+  for (let x = 0; x < w; x += 8) { R(g, x, 0, 1, h, 'rgba(255,255,255,0.22)'); R(g, x + 1, 0, 1, h, 'rgba(0,0,0,0.3)'); }
+  for (let i = 0; i < 200; i++) R(g, (rnd() * w) | 0, (rnd() * h) | 0, 1, 2, rnd() < 0.5 ? 'rgba(0,0,0,0.12)' : 'rgba(255,255,255,0.1)');
+}
+function siding(g, w, h, base, seed) {
+  const rnd = mulberry(seed);
+  R(g, 0, 0, w, h, base);
+  for (let y = 0; y < h; y += 8) { R(g, 0, y, w, 1, 'rgba(255,255,255,0.25)'); R(g, 0, y + 6, w, 2, 'rgba(0,0,0,0.28)'); }
+  for (let i = 0; i < 160; i++) R(g, (rnd() * w) | 0, (rnd() * h) | 0, 3, 1, 'rgba(0,0,0,0.07)');
+}
 function grdv(g, y, h, [a, b]) { const gr = g.createLinearGradient(0, y, 0, y + h); gr.addColorStop(0, a); gr.addColorStop(1, b); return gr; }
 
 // Text signs (Cyrillic works if the browser has a font for it)
@@ -453,7 +530,7 @@ const cache = {};
 export function tex(name) {
   if (!cache[name]) {
     const sizes = { panel: [128, 128], panelLoggia: [128, 128], ribbon: [128, 128], stalin: [128, 128], tramSide: [128, 32], flame: [64, 96], sun: [128, 128], skyBlue: [512, 256], steam: [128, 128], skyGrey: [512, 256], chimney: [32, 64], metalRoof: [32, 32], arcade: [128, 64], awningRed: [32, 32], awningBlue: [32, 32], lattice: [32, 128], clock: [64, 64], treeline: [512, 64], sky: [512, 256], ironDoor: [32, 64] };
-    const [w, h] = sizes[name] || [64, 64];
+    const [w, h] = sizes[name] || (name.startsWith('stucco') ? [128, 128] : [64, 64]);
     const noRepeat = name === 'clock' || name === 'sky' || name === 'skyGrey' || name === 'skyBlue' || name === 'sun' || name === 'flame' || name === 'steam' || name === 'tramSide';
     cache[name] = toTexture(makeCanvas(w, h, painters[name]), !noRepeat);
   }
