@@ -2,6 +2,7 @@
 import { buildLevel as buildMuscovy } from './level.js';
 import { buildSoviet } from './level_soviet.js';
 import { buildPetersburg } from './level_petersburg.js';
+import { buildMetropolis } from './level_metropolis.js';
 import { resetWindows, getWindows } from './geo.js';
 
 // wrap every build so the level also reports its breakable windows
@@ -11,4 +12,5 @@ export const LEVELS = [
   { id: 'muscovy', name: 'Muscovy Street', era: '1550s — hold the street', build: withWindows(buildMuscovy) },
   { id: 'soviet', name: 'Soviet Avenue', era: '1970s — fight to the Motherland monument', build: withWindows(buildSoviet) },
   { id: 'petersburg', name: 'St. Petersburg', era: '1800s — hold the imperial capital', build: withWindows(buildPetersburg) },
+  { id: 'metropolis', name: 'Soviet Metropolis', era: '1980s — the halls of the revolution', build: withWindows(buildMetropolis) },
 ];

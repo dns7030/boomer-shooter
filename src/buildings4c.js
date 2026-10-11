@@ -85,7 +85,7 @@ addPainters({
   },
   s4c_ti(g, w, h) {      // titanium panels
     const r = mulberry(45);
-    g.fillStyle = '#b4bbc2'; g.fillRect(0, 0, 32, 64);
+    g.fillStyle = '#cdd4da'; g.fillRect(0, 0, 32, 64);
     for (let x = 0; x < 32; x++) { g.fillStyle = `rgba(${r() > 0.5 ? '255,255,255' : '60,70,90'},0.12)`; g.fillRect(x, 0, 1, 64); }
     g.fillStyle = '#8a929a'; g.fillRect(0, 0, 32, 1); g.fillRect(0, 32, 32, 1);
     g.fillStyle = '#dfe5ea'; g.fillRect(0, 1, 32, 1); g.fillRect(0, 33, 32, 1);
@@ -284,7 +284,7 @@ export function houseOfSoviets() {
   B(g, 2.2, 1.6, 2.2, color(0x5a5a5a), 18, H + 16.4, 20.5, 1); B(g, 0.18, 8, 0.18, dark(), 18, H + 13, -6, 1);
   B(g, 1.4, 1.2, 1.4, dark(), 18, H + 8.4, -6, 1);
   lim(g, [18, H + 17, 3], [18, H + 17, 21], 0.1, cr, 4);
-  return size(g, 64, 38, H + 18);
+  return size(g, 64, 38, H);
 }
 
 // ======================================================================= 3. Sochi sanatorium
@@ -316,7 +316,7 @@ const prism = (g, w, rise, depth, m, x, y, z) => {
   const o = new THREE.Mesh(uvScale(new THREE.ExtrudeGeometry(s, { depth, bevelEnabled: false }), 0.3), m); o.position.set(x, y, z - depth / 2); g.add(o); return o;
 };
 export function sanatorium() {
-  const g = G(), wh = mat('stuccoWhite'), cream = mat('plainCream'), terr = mat('plainTerra'), cols = [];
+  const g = G(), wh = mat('stuccoWhite'), cream = mat('stuccoWhite'), terr = mat('plainTerra'), cols = [];
   // ---- central block + portico + rotunda
   g.add(place(slab(28, 12, 18, cream, roofM(), 6), 0, 6, -4));
   B(g, 29.2, 0.9, 19.2, wh, 0, 12.45, -4, 3);
@@ -432,40 +432,40 @@ export function workerKolkhozWoman() {
     const f = G(); f.position.set(fx, y0, 0); g.add(f);
     const A = steel, Bm = steel2;
     // legs (striding forward +Z)
-    lim(f, [0, 18, 0.3], [0, 9.3, 2.4], 1.55, Bm, 8); lim(f, [0, 9.3, 2.4], [0, 1.2, 4.4], 1.35, Bm, 8);
-    lim(f, [inn * 0.4, 18, 0], [inn * 0.4, 9.5, -2.0], 1.5, Bm, 8); lim(f, [inn * 0.4, 9.5, -2.0], [inn * 0.4, 1.6, -5.6], 1.3, Bm, 8);
+    lim(f, [0, 18, 0.3], [0, 9.3, 2.4], 2.0, Bm, 8); lim(f, [0, 9.3, 2.4], [0, 1.2, 4.4], 1.7, Bm, 8);
+    lim(f, [inn * 0.4, 18, 0], [inn * 0.4, 9.5, -2.0], 1.9, Bm, 8); lim(f, [inn * 0.4, 9.5, -2.0], [inn * 0.4, 1.6, -5.6], 1.6, Bm, 8);
     S(f, new THREE.BoxGeometry(2.4, 1.2, 4.2), A, 0, 0.6, 5.0); S(f, new THREE.BoxGeometry(2.3, 1.2, 4.0), A, inn * 0.4, 0.9, -6.2, -0.35);
     // torso / head
-    S(f, new THREE.CapsuleGeometry(2.4, 6.4, 3, 10), A, 0, 23.6, 0.3, 0.12);
-    S(f, new THREE.SphereGeometry(1.75, 10, 8), A, 0, 32.2, 0.7);
+    S(f, new THREE.CapsuleGeometry(2.7, 6.2, 3, 10), A, 0, 23.6, 0.3, 0.12).scale.set(1.12, 1, 0.9);
+    S(f, new THREE.SphereGeometry(1.9, 10, 8), A, 0, 32.4, 0.7);
     S(f, new THREE.CylinderGeometry(0.8, 1, 1.4, 8), A, 0, 29.8, 0.6);
     if (isWoman) {
       C(f, 2.5, 4.2, 9.5, 12, steel, 0, 14.2, 0.5, 3); // skirt
       const sk = cloth(7, 5, 0.9, steel, 0.5); sk.position.set(-inn * 0, 11.5, -3.6); sk.rotation.set(0.2, 0, 0); f.add(sk);
-      const sc = cloth(11, 4.5, 1.5, steel, 1.2); sc.position.set(-inn * 4.3, 29, -4.2); sc.rotation.set(0.05, -0.55 * -inn * 0 + inn * 0.4, 0.25 * inn); f.add(sc);
-      const sc2 = cloth(8, 3, 1.1, steel2, 2.2); sc2.position.set(-inn * 3.4, 26.8, -6.2); sc2.rotation.set(0.1, inn * 0.5, -0.15 * inn); f.add(sc2);
+      const sc = cloth(15, 6, 2.2, steel, 1.2); sc.position.set(-inn * 4.3, 29, -4.2); sc.rotation.set(0.05, -0.55 * -inn * 0 + inn * 0.4, 0.25 * inn); f.add(sc);
+      const sc2 = cloth(11, 4, 1.6, steel2, 2.2); sc2.position.set(-inn * 3.4, 26.8, -6.2); sc2.rotation.set(0.1, inn * 0.5, -0.15 * inn); f.add(sc2);
     } else {
       S(f, new THREE.TorusGeometry(2.2, 0.35, 5, 12), Bm, 0, 19.6, 0.3, Math.PI / 2 + 0.1);   // belt
       const sh = cloth(5, 5, 0.8, steel2, 0); sh.position.set(-inn * 2.4, 22, -2.9); sh.rotation.set(0.1, 0, 0); f.add(sh);   // coat flap
     }
     // arms: inner raised, outer swung back
-    lim(f, [inn * 1.9, 27.6, 0.4], [inn * 3.3, 33.5, 1.0], 1.15, A, 7); lim(f, [inn * 3.3, 33.5, 1.0], [inn * 2.7, 39, 0.8], 1.0, A, 7);
+    lim(f, [inn * 1.9, 27.6, 0.4], [inn * 3.3, 33.5, 1.0], 1.4, A, 7); lim(f, [inn * 3.3, 33.5, 1.0], [inn * 2.7, 39, 0.8], 1.25, A, 7);
     S(f, new THREE.SphereGeometry(1.1, 7, 6), A, inn * 2.7, 39.5, 0.8);
-    lim(f, [-inn * 2.1, 27.6, 0.2], [-inn * 3.9, 21.5, -2.6], 1.1, A, 7); lim(f, [-inn * 3.9, 21.5, -2.6], [-inn * 5.0, 16.5, -5.8], 0.95, A, 7);
+    lim(f, [-inn * 2.1, 27.6, 0.2], [-inn * 3.9, 21.5, -2.6], 1.35, A, 7); lim(f, [-inn * 3.9, 21.5, -2.6], [-inn * 5.0, 16.5, -5.8], 1.2, A, 7);
     S(f, new THREE.SphereGeometry(0.95, 7, 6), A, -inn * 5.0, 16.0, -6.1);
     return f;
   };
   worker(-3.3, 1, false); worker(3.3, -1, true);
   // hammer (held by the worker) and sickle (woman): both raised high
   const hx = -0.55, hy = y0 + 39.4;
-  S(g, new THREE.BoxGeometry(0.8, 8.2, 0.8), steel2, hx, hy + 1.6, 0.8);
-  S(g, new THREE.BoxGeometry(5.8, 2.6, 2.4), steel, hx, hy + 5.4, 0.8);
-  S(g, new THREE.BoxGeometry(1.8, 2.2, 2.0), steel2, hx + 3.5, hy + 5.4, 0.8);
+  S(g, new THREE.BoxGeometry(1.0, 8.6, 1.0), steel2, hx, hy + 1.0, 0.8);
+  S(g, new THREE.BoxGeometry(7, 3.2, 3), steel, hx, hy + 5.0, 0.8);
+  S(g, new THREE.BoxGeometry(2.2, 2.6, 2.4), steel2, hx + 4.4, hy + 5.0, 0.8);
   const sx = 0.55;
   S(g, new THREE.CylinderGeometry(0.4, 0.4, 5, 6), steel2, sx, hy + 0.3, 0.8);
-  const sick = new THREE.Mesh(new THREE.TorusGeometry(3.2, 0.55, 5, 16, 4.3), steel); sick.position.set(sx + 0.5, hy + 6.1, 0.8); sick.rotation.z = 0.9; g.add(sick);
+  const sick = new THREE.Mesh(new THREE.TorusGeometry(3.6, 0.75, 5, 16, 4.3), steel); sick.position.set(sx + 0.8, hy + 5.0, 0.8); sick.rotation.z = 0.9; g.add(sick);
   S(g, new THREE.ConeGeometry(0.5, 1.6, 5), steel, sx + 3.4, hy + 4.3, 0.8, 0, 0, -0.4);
-  return size(g, 26, 14, 58, [[-13, 13, -7, 7, 14]]);
+  return size(g, 26, 14, 62, [[-13, 13, -7, 7, 14]]);
 }
 
 // ======================================================================= 5. Monument to the Conquerors of Space

@@ -13,7 +13,7 @@ import { makeKit, flat, tiledPlane } from './levelkit.js';
 import { addSun, addSunlight } from './sky.js';
 
 const FOG = 0xc6e0f8;
-const X0 = -170, X1 = 170, ZN = -130, ZS = 130;
+const X0 = -185, X1 = 185, ZN = -145, ZS = 145;
 
 export function buildMetropolis(scene) {
   scene.background = new THREE.Color(FOG);
@@ -37,9 +37,9 @@ export function buildMetropolis(scene) {
   for (const z of [-2.2, -0.8, 0.8, 2.2]) lay('concreteDark', -5, X0, X1, z - 0.07, z + 0.07, 2);
   for (const z of [-11.4, 11.4]) lay('paving', -6, X0, X1, z - 2.6, z + 2.6, 4);   // sidewalks
   for (const sx of [-60, 60]) for (const o of [-7.2, 7.2]) lay('paving', -6, sx + o - 1.6, sx + o + 1.6, ZN, ZS, 4);
-  lay('paving', -5, -52, 52, -130, -12, 4);                             // VDNKh plaza
-  lay('paving', -5, -52, 52, 12, 74, 4);                                // forecourt of the Palace of Culture
-  lay('paving', -5, 68, 170, -62, -12, 4);                              // Intourist / Seven Sisters square
+  lay('paving', -5, -52, 52, -145, -12, 4);                             // VDNKh plaza
+  lay('paving', -5, -52, 52, 12, 80, 4);                                // forecourt of the Palace of Culture
+  lay('paving', -5, 68, 185, -62, -12, 4);                              // Intourist / Seven Sisters square
   const dashM = new THREE.MeshBasicMaterial({ color: 0xd8d4c4, depthWrite: false });
   for (let x = X0 + 6; x < X1; x += 12) for (const z of [-7.5, 7.5]) { if (Math.abs(Math.abs(x) - 60) < 10) continue; const d = new THREE.Mesh(new THREE.PlaneGeometry(5, 0.3), dashM); d.rotation.x = -Math.PI / 2; d.renderOrder = -4; d.position.set(x, 0, z); scene.add(d); }
 
@@ -49,43 +49,43 @@ export function buildMetropolis(scene) {
   const add = (name, g, x, z, f, o = {}) => { put(g, x, z, f, { size: sizes[name], ...o }); bld[name] = { g, x, z, f, s: o.s || 1 }; return g; };
 
   // NW district: microdistrict
-  add('stalinka', A.stalinka(), -126, -96, 'S', { s: 0.85 });
-  add('school', A.school(), -118, -36, 'S');
-  add('kindergarten', A.kindergarten(), -80, -70, 'W');
+  add('stalinka', A.stalinka(), -148, -112, 'S', { s: 0.85 });
+  add('kindergarten', A.kindergarten(), -98, -118, 'W');
+  add('school', A.school(), -138, -36, 'S');
+  add('planetarium', A.planetarium(), -88, -50, 'S', { s: 0.75 });
   // N-mid: VDNKh plaza
-  add('vdnkh', I.vdnkhPavilion(), 0, -104, 'S');
-  add('workerKolkhoz', C.workerKolkhozWoman(), 0, -56, 'S');
-  add('spaceObelisk', C.spaceObelisk(), -36, -48, 'S');
-  add('eternalFlame', B2.eternalFlame(), 36, -48, 'S', { size: { w: 9.5, d: 9, h: 3 } });
-  add('planetarium', A.planetarium(), -38, -92, 'S');
-  // NE: Seven Sisters and the hotel
-  add('sisters', I.sevenSisters(), 118, -100, 'S', { s: 0.8 });
-  add('intourist', A.hotelIntourist(), 118, -46, 'S');
+  add('vdnkh', I.vdnkhPavilion(), 0, -118, 'S');
+  add('workerKolkhoz', C.workerKolkhozWoman(), 0, -74, 'S');
+  add('spaceObelisk', C.spaceObelisk(), -34, -48, 'S');
+  add('eternalFlame', B2.eternalFlame(), 34, -48, 'S', { size: { w: 9.5, d: 9, h: 3 } });
+  // NE: Seven Sisters, the hotel and the Highways Ministry bridge
+  add('sisters', I.sevenSisters(), 128, -118, 'S', { s: 0.8 });
+  add('intourist', A.hotelIntourist(), 128, -74, 'S');
+  add('highways', BB.highwaysMinistry(), 128, -34, 'S', { s: 0.7 });
   // SW: shops and clubs
-  add('univermag', B2.univermag({ w: 60, d: 24 }), -118, 36, 'N');
-  add('workersClub', B2.workersClub(), -150, 78, 'E');
-  add('pioneers', A.palaceOfPioneers(), -112, 108, 'N');
-  add('metro', B2.metro(), -76, 24, 'N');
+  add('univermag', B2.univermag({ w: 60, d: 24 }), -135, 40, 'N');
+  add('metro', B2.metro(), -90, 26, 'N');
+  add('workersClub', B2.workersClub(), -172, 76, 'E');
+  add('pioneers', A.palaceOfPioneers(), -120, 125, 'N');
   // S-mid: Palace of Culture and the arena
-  add('culture', I.palaceOfCultureHall(), 0, 98, 'N');
-  add('circus', B2.circus(), -30, 46, 'N');
-  add('concerts', C.palaceOfConcertsAndSports(), 32, 46, 'N', { s: 0.8 });
-  // SE: sport and science
-  add('stadium', BB.stadium(), 118, 92, 'N', { s: 0.7 });
-  add('institute', A.researchInstitute(), 118, 36, 'N');
-  add('saucer', BB.flyingSaucer(), 82, 66, 'S');
-  add('matenadaran', BB.matenadaran(), 152, 50, 'W');
-  add('houseOfSoviets', C.houseOfSoviets(), 82, 110, 'N', { s: 0.8 });
-  add('highways', BB.highwaysMinistry(), 150, -76, 'W', { s: 0.8 });
-  add('linnahall', BB.linnahall(), -150, 112, 'E', { s: 0.7 });
-  add('sanatorium', C.sanatorium(), 56, 112, 'N', { s: 0.7 });
+  add('culture', I.palaceOfCultureHall(), 0, 115, 'N');
+  add('circus', B2.circus(), -27, 48, 'N');
+  add('concerts', C.palaceOfConcertsAndSports(), 25, 48, 'N', { s: 0.7 });
+  // SE: science and sport
+  add('institute', A.researchInstitute(), 122, 34, 'N');
+  add('saucer', BB.flyingSaucer(), 88, 72, 'S', { s: 0.8 });
+  add('matenadaran', BB.matenadaran(), 168, 66, 'W', { s: 0.7 });
+  add('stadium', BB.stadium(), 140, 114, 'N', { s: 0.6 });
 
   // ---- the city beyond the walls: atomic plant, factory, TV tower, Motherland, Cosmos, panel blocks ----
   const sky4 = (name, g, x, z, f, s = 1) => { put(g, x, z, f, { solid: false, s }); bld[name] = { g, x, z, f, s }; return g; };
-  sky4('atomic', BB.atomicPlant(), 0, ZN - 100, 'S', 0.7);
-  sky4('factory', B2.factory({ w: 90, d: 30 }), -90, ZS + 40, 'N');
-  sky4('cosmos', B2.hotelCosmos(), 90, ZS + 50, 'N');
-  sky4('tv', B2.tvTower(), X0 - 40, -60, 'S');
+  sky4('houseOfSoviets', C.houseOfSoviets(), 60, ZS + 45, 'N', 0.8);
+  sky4('linnahall', BB.linnahall(), -45, ZS + 50, 'N', 0.7);
+  sky4('sanatorium', C.sanatorium(), 180, ZN - 40, 'S', 0.8);
+  sky4('atomic', BB.atomicPlant(), 0, ZN - 110, 'S', 0.7);
+  sky4('factory', B2.factory({ w: 90, d: 30 }), -140, ZS + 45, 'N');
+  sky4('cosmos', B2.hotelCosmos(), 150, ZS + 55, 'N');
+  sky4('tv', B2.tvTower(), X0 - 40, -80, 'S');
   sky4('motherland', B2.motherland(), X1 + 130, 0, 'W', 0.8);
   const skyline = [() => B2.brezhnevka({ w: 60, d: 14, floors: 9 }), () => B2.towerBlock({ w: 36, d: 16, floors: 16 }), () => B2.khrushchyovka({ w: 50, d: 12, floors: 5 }), () => B2.brezhnevka({ w: 80, d: 14, floors: 12 })];
   for (let i = 0; i < 28; i++) {
@@ -110,12 +110,12 @@ export function buildMetropolis(scene) {
   [[-100, -16], [-30, 16], [30, -16], [100, 16], [-62, 70], [62, -70], [-150, -118], [150, 118]].forEach(([x, z], i) => { const b = B2.billboard(slogans[i % slogans.length], i % 2 ? '#1a3a6a' : '#b8352a'); b.position.set(x, 0, z); b.rotation.y = z < 0 ? 0 : Math.PI; scene.add(b); });
   // little park furniture around the district (colliders where they matter)
   const pg = (x, z) => { const g = C.playground(); g.position.set(x, 0, z); scene.add(g); box(x - 4, x + 4, z - 4, z + 4, 2.2); };
-  pg(-78, -104); pg(-138, 20); pg(100, 70);
-  for (const [x, z] of [[-24, -70], [24, -70], [-20, 70], [20, 70]]) { const f = C.flowerBed(); f.position.set(x, 0, z); scene.add(f); box(x - 2.8, x + 2.8, z - 2.8, z + 2.8, 0.9); }
+  pg(-100, -82); pg(-100, 78); pg(104, 72);
+  for (const [x, z] of [[-24, -90], [24, -90], [-12, 78], [12, 78]]) { const f = C.flowerBed(); f.position.set(x, 0, z); scene.add(f); box(x - 2.8, x + 2.8, z - 2.8, z + 2.8, 0.9); }
   { const l = C.leninStatue(); l.position.set(0, 0, 24); scene.add(l); box(-2, 2, 22, 26, 6); }
   for (const [x, z] of [[-44, 24], [44, 24], [-50, -22], [50, -22]]) { const s = C.sodaMachine(); s.position.set(x, 0, z); scene.add(s); box(x - 0.7, x + 0.7, z - 0.7, z + 0.7, 2); }
-  { const gz = C.gazebo(); gz.position.set(-140, 0, -20); scene.add(gz); box(-143.5, -136.5, -23.5, -16.5, 3); }
-  { const w = C.sovietMosaicWall(); w.position.set(60, 0, -124); scene.add(w); box(50, 70, -125, -123, 6); }
+  { const gz = C.gazebo(); gz.position.set(-84, 0, -96); scene.add(gz); box(-87.7, -80.3, -99.7, -92.3, 3); }
+  { const w = C.sovietMosaicWall(); w.position.set(0, 0, -143); scene.add(w); box(-10, 10, -144, -142, 6); }
 
   // ---- trees and lamps (instanced) ----
   const trees = [];
@@ -160,7 +160,7 @@ export function buildMetropolis(scene) {
   // interiors: a few spawn points and pickups inside the three halls
   const inside = (name, pts, type) => pts.map(([lx, lz, t]) => { const b = bld[name], w = toWorld(b.x, b.z, b.f, lx, lz, b.s); return { type: t, x: w.x, z: w.z }; });
   const hallSpawns = [
-    ...inside('sisters', [[-10, -4], [10, -4], [0, 8]]), ...inside('culture', [[-10, 6], [10, 6], [0, -14]]), ...inside('vdnkh', [[-14, 0], [14, 0], [0, 12]]),
+    ...inside('sisters', [[-10, -4], [10, -4], [0, 8]]), ...inside('culture', [[-25.5, 0], [25.5, 0], [0, 17]]), ...inside('vdnkh', [[-14, 0], [14, 0], [0, 12]]),
   ].map(({ x, z }) => ({ x, z }));
   spawnPoints.push(...hallSpawns);
   const P = (type, x, z) => ({ type, x, z });
@@ -174,7 +174,7 @@ export function buildMetropolis(scene) {
     P('w_ssg', -52, -8), P('w_chaingun', 52, 8), P('w_rocket', 0, -80), P('w_grenade', -100, 24), P('w_flamer', 118, -70),
     P('w_plasma', 60, 80), P('w_frost', -60, 100), P('w_rail', -120, 0), P('w_bfg', 0, 130 - 14),
     ...inside('sisters', [[0, -8, 'w_rocket'], [-18, 4, 'kvass'], [18, 4, 'powder'], [0, 10, 'cells']]),
-    ...inside('culture', [[-14, -2, 'w_plasma'], [14, -2, 'rockets'], [0, 12, 'shot'], [0, -16, 'kvass']]),
+    ...inside('culture', [[-25.5, 6, 'w_plasma'], [25.5, 6, 'rockets'], [0, 17, 'shot'], [-12, 18, 'kvass']]),
     ...inside('vdnkh', [[-18, 10, 'w_bfg'], [18, 10, 'cells'], [-18, -10, 'powder'], [18, -10, 'rockets'], [0, 14, 'kvass']]),
   ];
   const pickupSpawns = wanted.filter((q) => free(q.x, q.z, 1.2));
@@ -195,13 +195,20 @@ export function buildMetropolis(scene) {
   function update(dt, t, camPos) {
     const fl = bld.eternalFlame && bld.eternalFlame.g.userData.flame;
     if (fl) fl.scale.set(2.4 + Math.sin(t * 17) * 0.25 + Math.random() * 0.2, 3.6 + Math.sin(t * 13) * 0.4 + Math.random() * 0.3, 1);
-    const st = bld.atomic && bld.atomic.g.userData.steam; if (st) st.scale.set(st.userData.sx * (1 + Math.sin(t * 0.4) * 0.05), st.userData.sy * (1 + Math.sin(t * 0.3) * 0.05), 1);
+    const st = bld.atomic && bld.atomic.g.userData.steam;
+    if (Array.isArray(st)) st.forEach((sp, i) => { if (!sp.userData.b) sp.userData.b = sp.scale.clone(); sp.scale.set(sp.userData.b.x * (1 + Math.sin(t * 0.4 + i) * 0.05), sp.userData.b.y * (1 + Math.sin(t * 0.3 + i) * 0.05), 1); });
     sunDisc.update(camPos);
     sky.position.copy(camPos);
   }
 
   return {
     boxes, spawnPoints, pickupSpawns, propSpawns, update, fogColor: FOG,
+    // walk-in test routes for the three enterable halls: stand outside the main door, walk to a point inside
+    halls: [['sisters', 44, 0, 8], ['culture', 44, 3.5, 18], ['vdnkh', 40, 0, 12]].map(([name, D, lx, tz]) => {
+      const b = bld[name], a = toWorld(b.x, b.z, b.f, lx, D / 2 + 9 / b.s, b.s), c = toWorld(b.x, b.z, b.f, lx, tz, b.s);
+      return { name, from: a, to: c };
+    }),
+    layout: Object.entries(bld).map(([name, b]) => ({ name, x: b.x, z: b.z, f: b.f, s: b.s, w: (sizes[name] || b.g.userData).w, d: (sizes[name] || b.g.userData).d })),
     navBounds: { x0: X0, x1: X1, z0: ZN, z1: ZS },
     enemyTypes: ['grunt', 'spitter', 'drake', 'bomber', 'gargoyle', 'shield', 'tsar'],
     perches,

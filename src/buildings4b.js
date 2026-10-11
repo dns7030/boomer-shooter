@@ -239,7 +239,7 @@ export function stadium() {
     }
   }
   // canopy ring on top of the stands
-  const pl = (x0, x1, z0, z1) => bb(g, x0, x1, 20.6, 21.4, z0, z1, conc, tar, 4, 4, concD);
+  const pl = (x0, x1, z0, z1) => bb(g, x0, x1, 20.6, 21.4, z0, z1, conc, mat('metalRoof'), 4, 4, concD);
   pl(-HX, HX, -HZ, -(IZ + 9)); pl(-HX, HX, IZ + 9, HZ); pl(-HX, -(IX + 9), -(IZ + 9), IZ + 9); pl(IX + 9, HX, -(IZ + 9), IZ + 9);
   // struts under the canopy
   const strut = (x, z) => bb(g, x - 0.3, x + 0.3, 9, 20.6, z - 0.3, z + 0.3, concD, concD, 2);
@@ -339,12 +339,12 @@ function coolTower(H, rBase, rWaist, yWaist) {
   for (let i = 0; i <= 14; i++) { const y = (i / 14) * H; pts.push(new THREE.Vector2(Math.sqrt(rWaist * rWaist + k * (y - yWaist) * (y - yWaist)), y)); }
   const geo = new THREE.LatheGeometry(pts, 20), uv = geo.attributes.uv;
   for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) * 10, uv.getY(i) * (H / 6));
-  g.add(new THREE.Mesh(geo, mat('concreteDark', { double: true })));
+  g.add(new THREE.Mesh(geo, mat('concrete', { double: true })));
   // inner dark rim and a ring of stripes
   const rim = new THREE.Mesh(new THREE.CylinderGeometry(pts[14].x, pts[14].x, 0.8, 20, 1, true), color(0xc0261d)); rim.position.y = H - 0.4; g.add(rim);
   for (let i = 0; i < 10; i++) { const a = (i / 10) * Math.PI * 2; g.add(place(new THREE.Mesh(new THREE.BoxGeometry(3.4, 2.5, 0.6), color(0x15191d)), Math.sin(a) * (rBase - 0.3), 1.4, Math.cos(a) * (rBase - 0.3))).rotation.y = a; }
   const steam = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex('steam'), transparent: true, opacity: 0.9, depthWrite: false }));
-  steam.scale.set(52, 46, 1); steam.position.set(0, H + 15, 0); g.add(steam); g.userData.steam = steam;
+  steam.scale.set(64, 54, 1); steam.position.set(0, H + 15, 0); g.add(steam); g.userData.steam = steam;
   return g;
 }
 export function atomicPlant() {
@@ -450,39 +450,33 @@ export function highwaysMinistry() {
   // piers
   for (const s of [-1, 1]) {
     const a = s < 0 ? -32 : 6, b = s < 0 ? -6 : 32;
-    bb(g, a, b, 0, 14, -20, 20, slots, roof, 6, 6, concD);
+    bb(g, a, b, 0, 14, -20, 20, slots, roof, 3.5, 3.5, concD);
     // end volumes
     const ea = s < 0 ? -32 : 14, eb = s < 0 ? -14 : 32;
-    bb(g, ea, eb, 24, 30, -20, 20, vs, roof, 6, 6, concD);
+    bb(g, ea, eb, 24, 30, -20, 20, vs, roof, 3.4, 3.4, concD);
   }
   // span A across the passage
-  bb(g, -32, 32, 14, 24, -14, 14, slots, roof, 6, 5, concD);
+  bb(g, -32, 32, 14, 24, -14, 14, slots, roof, 3.4, 3.4, concD);
   // central cross volume
-  bb(g, -9, 9, 24, 34, -20, 20, vs, roof, 6, 5, concD);
+  bb(g, -9, 9, 24, 34, -20, 20, vs, roof, 3.4, 3.4, concD);
   // lower stub cantilevers at the pier ends
-  bb(g, -32, -14, 14, 24, 14, 20, slots, roof, 6, 5, concD);
-  bb(g, 14, 32, 14, 24, -20, -14, slots, roof, 6, 5, concD);
+  bb(g, -32, -14, 14, 24, -20, -14, slots, roof, 3.4, 3.4, concD);
+  bb(g, 14, 32, 14, 24, 14, 20, slots, roof, 3.4, 3.4, concD);
   // shading ledges (deep relief) on span A and the cross
   for (const z of [14.35, -14.35]) for (const y of [16.3, 19.8, 23.2]) bb(g, -32, 32, y, y + 0.35, z - 0.45, z + 0.45, conc, conc, 3);
   for (const x of [-9.35, 9.35]) for (const y of [26.3, 29.8, 33.4]) bb(g, x - 0.45, x + 0.45, y, y + 0.35, -20, 20, conc, conc, 3);
   for (const z of [20.35, -20.35]) for (const y of [26.3, 29.8, 33.4]) bb(g, -9, 9, y, y + 0.35, z - 0.45, z + 0.45, conc, conc, 3);
   // stair / lift core on the right pier front, glazed
-  bb(g, 20, 27, 14, 28, 20, 23, concD, concD, 3);
-  bb(g, 20.4, 26.6, 0, 14, 20, 22.2, concD, concD, 3);
-  g.add(tiledPlane(5.4, 12, 3, 4, mat('glass'), 23.5, 7.4, 22.26));
-  // window decals: pier fronts (shatterable) and fixed on the back and inside the passage
-  wins(g, '+z', 20, [-26, -20, -14, -10, 10, 14, 30], [4.5, 9.5], { sx: 1.7, sy: 2.4, c: '#dcdad0' });
-  wins(g, '+z', 14, [-24, -12, 0, 12, 24], [18.2, 21.7], { sx: 2.2, sy: 1.6, c: '#dcdad0', fixed: false });
-  wins(g, '-z', -20, rng(-28, 28, 5.6), [4.5, 9.5], { sx: 1.7, sy: 2.4, c: '#dcdad0' });
-  wins(g, '-z', -14, rng(-26, 26, 6.5), [18.2, 21.7], { sx: 2.2, sy: 1.6, c: '#dcdad0' });
-  wins(g, '+x', 32, rng(-16, 16, 4), [4.5, 9.5], { sx: 1.7, sy: 2.4, c: '#dcdad0' });
-  wins(g, '-x', -32, rng(-16, 16, 4), [4.5, 9.5], { sx: 1.7, sy: 2.4, c: '#dcdad0' });
-  wins(g, '+x', -6, rng(-15, 15, 5), [5, 10], { sx: 1.7, sy: 2.4, c: '#dcdad0' });
-  wins(g, '-x', 6, rng(-15, 15, 5), [5, 10], { sx: 1.7, sy: 2.4, c: '#dcdad0' });
+  bb(g, 20, 27, 0, 30, 20, 21.6, concD, concD, 3);
+  // window decals: glazed core (shatterable on the front, fixed elsewhere)
+    wins(g, '+z', 21.6, [21.6, 23.5, 25.4], [3.2, 6.6, 10, 16.5, 20, 24, 27.5], { sx: 1.4, sy: 2.4, c: '#dcdad0', lit: (u, y) => y > 5 && u > 22 });
+  bb(g, -27, -20, 0, 24, -21.6, -20, concD, concD, 3);
+  wins(g, '-z', -21.6, [-25.6, -23.5, -21.4], [3.2, 6.6, 10, 16.5, 20], { sx: 1.4, sy: 2.4, c: '#dcdad0' });
+  wins(g, '+x', 32, [-9, 9], [5, 10.5], { sx: 1.4, sy: 2.4, c: '#dcdad0', fixed: false });
+  wins(g, '-x', -32, [-9, 9], [5, 10.5], { sx: 1.4, sy: 2.4, c: '#dcdad0', fixed: false });
   // note: the pier inner faces are x=-6 (faces +x) and x=+6 (faces -x)
   doors(g, '+x', -6, [-10, 10], 2.6, 3.4, '#35474a'); doors(g, '-x', 6, [-10, 10], 2.6, 3.4, '#35474a');
-  doors(g, '+z', 20, [-3.0], 0.01, 0.01);
-  doors(g, '+z', 20, [-22, 28.0 - 32 + 4], 2.8, 3.6, '#2a3a44');
+  doors(g, '+z', 20, [-22, -12], 2.8, 3.6, '#2a3a44');
   doors(g, '-z', -20, [-24, 24], 2.8, 3.6, '#555e58');
   // underside lamps in the passage, paving
   const pv = tiledPlane(12, 40, 3, 10, mat('s4b_paving'), 0, 0.03, 0); pv.rotation.x = -Math.PI / 2; g.add(pv);
@@ -502,7 +496,8 @@ export function highwaysMinistry() {
   g.add(place(cylT(0.08, 0.08, 7, 6, dark, 1), 4.5, 37.5, 0));
   g.add(place(new THREE.Mesh(new THREE.BoxGeometry(2.4, 1.4, 0.05), color(0xc0261d)), 5.7, 40.2, 0));
   const cols = [[-32, -14, -20, 20, 30], [-14, -6, -20, 20, 24], [14, 32, -20, 20, 30], [6, 14, -20, 20, 24]];
-  return size(g, 64, 40, 34, cols);
+  cols.push([20, 27, 20, 21.6, 30], [-27, -20, -21.6, -20, 24]);
+  return size(g, 64, 43.2, 34, cols);
 }
 
 // =====================================================================================================
@@ -511,7 +506,7 @@ export function highwaysMinistry() {
 export function flyingSaucer() {
   const g = G(), conc = mat('concrete'), concD = mat('concreteDark'), ribbed = mat('s4b_ribbed'), white = mat('stuccoWhite'), vs = mat('s4b_vslit');
   const steel = color(0x8a9096), dark = color(0x2a2d31), cols = [];
-  const paving = flatDisc(g, 22.5, 0.03, mat('pavingDark'), 28);
+  const paving = flatDisc(g, 22.5, 0.03, mat('paving'), 28);
   paving.geometry = new THREE.CylinderGeometry(22.5, 22.5, 0.06, 28); const pu = paving.geometry.attributes.uv; for (let i = 0; i < pu.count; i++) pu.setXY(i, pu.getX(i) * 10, pu.getY(i) * 10);
   // central tower
   g.add(place(cylT(5.5, 6.4, 1.2, 10, concD, 3), 0, 0.6, 0));
@@ -582,7 +577,7 @@ export function matenadaran() {
   bb(g, -17.4, 17.4, 20.2, 20.9, 2, 8.4, conc, conc, 3);
   for (let i = 0; i < 8; i++) {
     const x = -14 + i * 4;
-    g.add(place(cylT(1.0, 1.1, 14.2, 10, bas, 3), x, 3 + 7.1, 7));
+    g.add(place(cylT(1.0, 1.1, 14.2, 10, conc, 3), x, 3 + 7.1, 7));
     g.add(place(boxT(2.5, 0.5, 2.5, conc, 2), x, 17.45 - 0.2, 7));
     g.add(place(boxT(2.4, 0.4, 2.4, conc, 2), x, 3.2, 7));
   }
@@ -610,7 +605,7 @@ export function matenadaran() {
   g.add(place(cylT(0.08, 0.08, 6, 6, color(0x2a2d31), 1), 14, 27, -8));
   g.add(place(new THREE.Mesh(new THREE.BoxGeometry(2.4, 1.3, 0.05), color(0xd8451e)), 15.3, 29.2, -8));
   // great stairs
-  for (let i = 0; i < 10; i++) { const z1 = 22 - i * 1.4, top = 3 - i * 0.3 - 0.0; bb(g, -17, 17, 0, top, 8, z1, stone, stone, 3); }
+  for (let i = 0; i < 10; i++) bb(g, -17, 17, 0, 3 - i * 0.3, 8, 8 + (i + 1) * 1.4, stone, stone, 3);
   for (const s of [-1, 1]) { bb(g, s * 17, s * 18.4, 0, 3.6, 8, 22, bas, bas, 3); g.add(place(cylT(0.55, 0.6, 4.4, 8, bas, 2), s * 17.7, 2.2, 22.6)); }
   // statue of Mesrop Mashtots on a plinth, with scribes
   for (const s of [-1, 1]) {
@@ -637,24 +632,24 @@ export function matenadaran() {
 // 6. Linnahall (Tallinn): terraced stone amphitheatre rising over a concrete hall
 // =====================================================================================================
 export function linnahall() {
+  const PL = 11.5;
   const g = G(), lime = mat('s4b_limestone'), lino = mat('s4b_lino'), conc = mat('concrete'), concD = mat('concreteDark'), roof = mat('roofTar'), gran = mat('granite');
   // plateau over the hall (terrace top) and the hall's side wings
-  bb(g, -38, 38, 0, 10.5, -32, -4, lino, lime, 6, 6, concD);
+  bb(g, -38, 38, 0, PL, -32, -4, lino, lime, 6, 6, concD);
   bb(g, -52, -34, 0, 8, -32, -2, lino, roof, 6, 6, concD); bb(g, 34, 52, 0, 8, -32, -2, lino, roof, 6, 6, concD);
   bb(g, -52.4, -33.6, 8, 8.5, -32.4, -1.6, conc, conc, 3); bb(g, 33.6, 52.4, 8, 8.5, -32.4, -1.6, conc, conc, 3);
   // terraces: 19 wide stone steps, narrowing as they climb
-  const N = 19;
+  const N = 18;
   for (let i = 0; i < N; i++) {
-    const z1 = 32 - i * 2, z0 = z1 - 2, hgt = 0.55 * (i + 1), half = 52 - 18 * (i / (N - 1)) * 0.95;
+    const z1 = 32 - i * 2, z0 = z1 - 2, hgt = (PL / N) * (i + 1), half = 52 - 18 * (i / (N - 1)) * 0.95;
     bb(g, -half, half, 0, hgt, z0, z1, i % 2 ? gran : lime, lime, 4, 4);
   }
   // radial aisles (dark strips) and the stage apron
   for (const x of [-34, -17, 0, 17, 34]) for (let i = 0; i < N; i++) {
-    const z1 = 32 - i * 2, hgt = 0.55 * (i + 1), half = 52 - 18 * (i / (N - 1)) * 0.95;
+    const z1 = 32 - i * 2, hgt = (PL / N) * (i + 1), half = 52 - 18 * (i / (N - 1)) * 0.95;
     if (Math.abs(x) > half - 1.5) continue;
     bb(g, x - 0.5, x + 0.5, hgt, hgt + 0.05, z1 - 2, z1, concD, concD, 2);
   }
-  const stage = new THREE.Mesh(new THREE.CylinderGeometry(14, 14, 0.5, 6, 1, false, -Math.PI / 2, Math.PI), lime); stage.position.set(0, 0.25, 31); g.add(stage);
   // flanking stone cheek-walls
   for (const s of [-1, 1]) {
     bb(g, s * 52, s * 54, 0, 3, -2, 31, gran, gran, 3);
@@ -662,14 +657,14 @@ export function linnahall() {
   }
   // angular roofs and hexagonal lantern on the plateau
   for (const x of [-26, 26]) {
-    const rf = gableRoof(20, 16, 3.6, 0.5, roof, conc, 3); rf.position.set(x, 10.5, -17); rf.rotation.y = x < 0 ? 0 : 0; g.add(rf);
-    bb(g, x - 10, x + 10, 10.5, 10.9, -25.5, -8.5, conc, conc, 3);
+    const rf = gableRoof(20, 16, 3.6, 0.5, mat('metalRoof', { double: true }), conc, 3); rf.position.set(x, PL, -17); rf.rotation.y = x < 0 ? 0 : 0; g.add(rf);
+    bb(g, x - 10, x + 10, PL, 10.9, -25.5, -8.5, conc, conc, 3);
   }
-  const lanternBase = G(); lanternBase.position.set(0, 10.5, -18); g.add(lanternBase);
-  lanternBase.add(place(cylT(8, 9, 2, 6, conc, 3), 0, 1, 0));
-  lanternBase.add(place(cylT(7.2, 7.2, 3, 6, mat('glass'), 3), 0, 3.5, 0));
-  const cone = new THREE.Mesh(new THREE.ConeGeometry(8.4, 2.4, 6), roof); cone.position.y = 6.2; lanternBase.add(cone);
-  lanternBase.add(place(cylT(0.1, 0.1, 3, 6, color(0x2a2d31), 1), 0, 8.4, 0));
+  const lanternBase = G(); lanternBase.position.set(0, PL, -18); g.add(lanternBase);
+  lanternBase.add(place(cylT(8, 9, 1.4, 6, conc, 3), 0, 0.7, 0));
+  lanternBase.add(place(cylT(7.2, 7.2, 2.6, 6, mat('glass'), 3), 0, 2.7, 0));
+  const cone = new THREE.Mesh(new THREE.ConeGeometry(8.4, 2.0, 6), conc); cone.position.y = 5.0; lanternBase.add(cone);
+  lanternBase.add(place(cylT(0.1, 0.1, 3, 6, color(0x2a2d31), 1), 0, 7.0, 0));
   // wing + hall front windows (shatterable) and signs
   wins(g, '+z', -2, [-47, -43, -39, 39, 43, 47], [3, 6], { sx: 1.5, sy: 2.2, c: '#dcdad0' });
   wins(g, '+z', -4, [-30, -22, 22, 30], [4, 8], { sx: 1.5, sy: 2.2, c: '#dcdad0', fixed: true });
@@ -685,5 +680,5 @@ export function linnahall() {
   wins(g, '-x', -52, rng(-26, -8, 6), [3, 6], {}); wins(g, '+x', 52, rng(-26, -8, 6), [3, 6], {});
   // flagpoles on the plateau corners
   for (const x of [-36, 36]) { g.add(place(cylT(0.1, 0.1, 8, 6, color(0xcfcfcf), 1), x, 14.5, -6)); g.add(place(new THREE.Mesh(new THREE.BoxGeometry(2.4, 1.4, 0.05), color(0xc0261d)), x + 1.3, 17.5, -6)); }
-  return size(g, 104, 64, 14);
+  return size(g, 104, 64, 15);
 }

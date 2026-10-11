@@ -169,6 +169,52 @@ const run3 = await page.evaluate(() => {
 });
 check('bot holds St. Petersburg through every wave', run3.state === 'won', JSON.stringify(run3));
 
+// --- the three enterable halls: walk in through the main door ---
+const halls = await page.evaluate(() => {
+  const g = window.__game; g.loadLevel(3); g.setState('playing'); g.wave.phase = 'idle';
+  const out = {};
+  for (const h of g.level.halls) {
+    const p = g.p; p.x = h.from.x; p.z = h.from.z; p.y = 0; p.vx = p.vz = 0;
+    for (let t = 0; t < 60 * 14; t++) { p.health = 100; const dx = h.to.x - p.x, dz = h.to.z - p.z; p.yaw = Math.atan2(-dx, -dz); p.pitch = 0; g.keys.add('KeyW'); g.keys.add('ShiftLeft'); g.step(1 / 60); if (Math.hypot(dx, dz) < 1.5) break; }
+    g.keys.clear();
+    out[h.name] = +Math.hypot(h.to.x - p.x, h.to.z - p.z).toFixed(1);
+  }
+  return out;
+});
+for (const [n, d] of Object.entries(halls)) check(`you can walk into the ${n} hall through its door`, d < 3, `(${d} m from the target)`);
+
+const run4 = await page.evaluate(() => {
+  const g = window.__game, W = window.__weapons;
+  g.loadLevel(3); g.setState('playing');
+  const p = g.p;
+  for (const w of W) p.has[w.id] = true;
+  const idx = (id) => W.findIndex((w) => w.id === id);
+  let steps = 0;
+  while (g.state === 'playing' && steps < 60 * 1100) {
+    steps++;
+    p.health = Math.max(p.health, 50);
+    for (const k of Object.keys(p.ammo)) p.ammo[k] = Math.max(p.ammo[k], 60);
+    const alive = g.enemies.filter((e) => ['move', 'attack', 'pain', 'dive', 'perch'].includes(e.state) && g.hasLOS(p.x, p.y + 1.6, p.z, e.x, e.y + (e.cfg.hitH || 2.3) / 2, e.z));
+    // shield lizards and the Tsar can only be hurt from behind: the bot "circles" them by stepping behind
+    for (const e of g.enemies) if ((e.cfg.shield || e.cfg.boss) && ['move', 'attack', 'pain'].includes(e.state) && steps % 30 === 0) {
+      const bx = e.x - Math.sin(e.face) * 8, bz = e.z - Math.cos(e.face) * 8;
+      if (!g.boxes.some((b) => b.h > 1 && bx > b.x0 - 1 && bx < b.x1 + 1 && bz > b.z0 - 1 && bz < b.z1 + 1)) { p.x = bx; p.z = bz; }
+    }
+    if (alive.length) {
+      alive.sort((a, b) => Math.hypot(a.x - p.x, a.z - p.z) - Math.hypot(b.x - p.x, b.z - p.z));
+      const e = alive[0], dx = e.x - p.x, dz = e.z - p.z, d = Math.hypot(dx, dz);
+      p.yaw = Math.atan2(-dx, -dz); p.pitch = Math.atan2((e.cfg.hitH || 2.3) / 2 + e.y - 1.7, d);
+      p.weapon = d < 3 ? idx('sabre') : d < 12 ? idx('ssg') : idx('chaingun'); p.cd = Math.min(p.cd, 0.05); p.switching = 0;
+      g.camera.rotation.set(p.pitch, p.yaw, 0); g.camera.updateMatrixWorld(true);
+      g.fire();
+    }
+    g.step(1 / 60);
+  }
+  return { state: g.state, steps, kills: g.stats.kills, wave: g.wave.index, left: g.remaining() };
+});
+check('bot holds the Soviet metropolis through every wave (incl. the Tsar)', run4.state === 'won', JSON.stringify(run4));
+
+
 // --- new enemies: shield, boss weak spot, gargoyle, egg bombs, corpse physics ---
 const nw = await page.evaluate(async () => {
   const THREE = await import('three');

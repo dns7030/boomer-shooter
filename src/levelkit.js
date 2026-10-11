@@ -1,6 +1,6 @@
 // Shared level-building helpers: ground layers, placing buildings with colliders, scatter filters.
 import * as THREE from 'three';
-import { mat } from './geo.js';
+import { mat, getWindows } from './geo.js';
 
 export const ROT = { S: 0, N: Math.PI, E: Math.PI / 2, W: -Math.PI / 2 };   // where the FRONT looks: S = +z, N = -z, E = +x, W = -x
 
@@ -14,6 +14,47 @@ export function tiledPlane(w, h, u, v, material) {
   return m;
 }
 
+// Merge every static mesh of a building into one mesh per (material, renderOrder): thousands of tiny meshes become a few dozen draw calls.
+// Shatterable windows (geo.getWindows), sprites, instanced meshes and anything flagged userData.keep stay separate.
+export function mergeStatic(root) {
+  root.updateMatrixWorld(true);
+  const skip = new Set(getWindows().map((w) => w.mesh));
+  const inv = new THREE.Matrix4().copy(root.matrixWorld).invert();
+  const buckets = new Map(), dead = [], v = new THREE.Vector3(), nrm = new THREE.Vector3();
+  root.traverse((o) => {
+    if (!o.isMesh || o.isInstancedMesh || o.isSkinnedMesh || skip.has(o) || o.userData.keep || !o.visible) return;
+    const geo = o.geometry, pos = geo.attributes.position; if (!pos) return;
+    const mats = Array.isArray(o.material) ? o.material : [o.material];
+    const m = new THREE.Matrix4().multiplyMatrices(inv, o.matrixWorld), nm = new THREE.Matrix3().getNormalMatrix(m), flip = m.determinant() < 0;
+    const total = geo.index ? geo.index.count : pos.count;
+    const groups = Array.isArray(o.material) ? geo.groups : [{ start: 0, count: total, materialIndex: 0 }];
+    for (const gr of groups) {
+      const mt = mats[gr.materialIndex]; if (!mt) continue;
+      const key = mt.uuid + '|' + o.renderOrder;
+      if (!buckets.has(key)) buckets.set(key, { mt, ro: o.renderOrder, pos: [], nor: [], uv: [] });
+      const b = buckets.get(key), nor = geo.attributes.normal, uv = geo.attributes.uv, idx = geo.index;
+      const end = Math.min(total, gr.start + gr.count);
+      for (let i = gr.start; i + 2 < end + 0; i += 3) {
+        const tri = flip ? [2, 1, 0] : [0, 1, 2];
+        for (const k of tri) {
+          const vi = idx ? idx.getX(i + k) : i + k;
+          v.fromBufferAttribute(pos, vi).applyMatrix4(m); b.pos.push(v.x, v.y, v.z);
+          if (nor) { nrm.fromBufferAttribute(nor, vi).applyMatrix3(nm).normalize(); b.nor.push(nrm.x, nrm.y, nrm.z); } else b.nor.push(0, 1, 0);
+          if (uv) b.uv.push(uv.getX(vi), uv.getY(vi)); else b.uv.push(0, 0);
+        }
+      }
+    }
+    dead.push(o);
+  });
+  for (const o of dead) { o.parent.remove(o); o.geometry.dispose(); }
+  for (const b of buckets.values()) {
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(b.pos, 3)); g.setAttribute('normal', new THREE.Float32BufferAttribute(b.nor, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(b.uv, 2));
+    const mesh = new THREE.Mesh(g, b.mt); mesh.renderOrder = b.ro; root.add(mesh);
+  }
+  return root;
+}
+
 export function makeKit(scene, boxes) {
   const box = (x0, x1, z0, z1, h, hidden = false) => { boxes.push({ x0, x1, z0, z1, h, ...(hidden ? { vis: false } : {}) }); };
   const lay = (name, order, x0, x1, z0, z1, tile = 5) => {
@@ -22,6 +63,7 @@ export function makeKit(scene, boxes) {
   };
   // put a building group at (x,z) facing f; adds colliders from userData.cols (local rects) or the w×d box; s = uniform scale
   function put(g, x, z, f, { s = 1, solid = true, hidden = false, size = null } = {}) {
+    mergeStatic(g);
     g.position.set(x, 0, z); g.rotation.y = ROT[f]; g.scale.setScalar(s); scene.add(g);
     if (!solid) return g;
     const ud = size ? { ...g.userData, ...size } : g.userData, rot = ROT[f], c = Math.cos(rot), sn = Math.sin(rot);
