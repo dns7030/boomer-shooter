@@ -66,6 +66,15 @@ No weapon ever covers the crosshair (the headless test checks that).
    (drop bouncing, rolling explosive eggs) and, in wave 5, the **Great Lizard Tsar** boss (armoured front, glowing weak spot on
    his back, ground stomp you can jump over). Corpses get flung by blasts and shoved by bullets.
 
+4. **Soviet Metropolis (1980s)** — a 370 × 290 m city of free-standing landmarks around three avenues: the VDNKh plaza
+   (Central Pavilion, Worker and Kolkhoz Woman, Space Conquerors obelisk, Eternal Flame), a Seven Sisters tower with a
+   Stalinist lobby, the Palace of Culture with a theatre, Hotel Intourist, the Highways Ministry "bridge", a Stalinka courtyard
+   block, school, kindergarten, Palace of Pioneers, planetarium, Univermag, Workers' Club, metro, circus, Palace of Concerts and
+   Sports, a stadium you can walk into, the Flying Saucer institute, Matenadaran and more; the atomic power plant, TV tower,
+   Motherland monument, Hotel Cosmos, Linnahall, Sanatorium and House of Soviets stand in the skyline. **Three buildings have
+   walkable interiors** (Seven Sisters lobby, Palace of Culture theatre, VDNKh exhibition hall with a Vostok rocket) — all on one
+   level, with pickups inside. Five waves with the whole enemy roster; the Tsar arrives in wave 5.
+
 Pick a level from the title screen; clearing one offers the next.
 
 ## Music
@@ -91,6 +100,9 @@ src/decals.js, src/debris.js, src/props.js  bullet holes / scorch, flying debris
 src/buildings.js  Muscovy façade builders
 src/buildings2.js Soviet building builders (real scale)
 src/buildings3.js, src/landmarks3.js  Imperial Petersburg buildings and landmarks
+src/level_metropolis.js  level 4 (Soviet metropolis); src/levelkit.js (placing buildings, merging static meshes into few draw calls)
+src/interiors.js  hollow halls with doorways + the three enterable Soviet landmarks
+src/buildings4a.js, 4b.js, 4c.js  Soviet landmark builders (see docs/BUILDER_BRIEF.md for the builder contract)
 src/geo.js        geometry helpers, collision + ray helpers
 src/textures.js   procedural tileable textures
 src/sprites.js    lizard / pickup / plasma sprites

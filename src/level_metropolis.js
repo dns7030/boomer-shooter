@@ -204,6 +204,11 @@ export function buildMetropolis(scene) {
   return {
     boxes, spawnPoints, pickupSpawns, propSpawns, update, fogColor: FOG,
     // walk-in test routes for the three enterable halls: stand outside the main door, walk to a point inside
+    // hall interiors as world rectangles (flyers that end up inside while you are outside climb out through the roof)
+    interiors: [['sisters', 60, 44, 38], ['culture', 76, 44, 24], ['vdnkh', 72, 40, 26]].map(([name, W, D, H]) => {
+      const b = bld[name], t = 1.4, c = [[-W / 2 + t, -D / 2 + t], [W / 2 - t, D / 2 - t]].map(([lx, lz]) => toWorld(b.x, b.z, b.f, lx, lz, b.s));
+      return { name, x0: Math.min(c[0].x, c[1].x), x1: Math.max(c[0].x, c[1].x), z0: Math.min(c[0].z, c[1].z), z1: Math.max(c[0].z, c[1].z), top: H * b.s };
+    }),
     halls: [['sisters', 44, 0, 8], ['culture', 44, 3.5, 18], ['vdnkh', 40, 0, 12]].map(([name, D, lx, tz]) => {
       const b = bld[name], a = toWorld(b.x, b.z, b.f, lx, D / 2 + 9 / b.s, b.s), c = toWorld(b.x, b.z, b.f, lx, tz, b.s);
       return { name, from: a, to: c };

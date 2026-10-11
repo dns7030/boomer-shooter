@@ -10,7 +10,7 @@ export class Nav {
     this.queue = new Int32Array(this.nx * this.nz);
     this.last = -1; this.t = 0;
     for (const bx of boxes) {
-      if (bx.h <= 1.0) continue;
+      if (bx.h <= 0.5) continue;   // (lizards cannot hop low walls, so anything above ankle height is an obstacle)
       const i0 = Math.max(0, Math.floor((bx.x0 - inflate - this.x0) / cell)), i1 = Math.min(this.nx - 1, Math.floor((bx.x1 + inflate - this.x0) / cell));
       const j0 = Math.max(0, Math.floor((bx.z0 - inflate - this.z0) / cell)), j1 = Math.min(this.nz - 1, Math.floor((bx.z1 + inflate - this.z0) / cell));
       for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) this.blocked[j * this.nx + i] = 1;
