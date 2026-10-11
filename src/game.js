@@ -928,8 +928,10 @@ export class Game {
           e.want = e.type === 'grunt' && (mx || mz) ? Math.atan2(mx, mz) : Math.atan2(nx, nz);
           // slow turning: they only move at full speed while facing where they are going (grunts steer along their facing)
           const wantA = Math.atan2(mx, mz), turnErr = Math.abs(angDiff(wantA, e.face));
-          speed *= Math.max(0.18, Math.cos(Math.min(turnErr, 1.4)));
-          if (e.type === 'grunt' || e.pathing) { mx = Math.sin(e.face); mz = Math.cos(e.face); }
+          if (!(e.slideT > 0)) {   // (when sliding off an obstacle just move, don't wait to turn)
+            speed *= Math.max(0.18, Math.cos(Math.min(turnErr, 1.4)));
+            if (e.type === 'grunt' || e.pathing) { mx = Math.sin(e.face); mz = Math.cos(e.face); }
+          }
           const pos = { x: e.x + mx * speed * dt, z: e.z + mz * speed * dt, y: e.y };
           for (const o of this.enemies) {
             if (o === e || !ALIVE.has(o.state)) continue;
