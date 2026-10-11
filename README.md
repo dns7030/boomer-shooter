@@ -46,6 +46,8 @@ Open <http://localhost:8000> and click **PLAY**. (A local server is required: br
 | 8 | Railgun | cells, pierces every lizard in a line |
 | 9 | BFG 9000 | 25 cells, huge splash |
 
+When only the last 5 lizards of a wave are left, a radar appears above the health panel (red = grunt, orange = spitter, blue ring = flyer, gold = boss, arrows at the rim = far away).
+
 No weapon ever covers the crosshair (the headless test checks that).
 
 ## Levels

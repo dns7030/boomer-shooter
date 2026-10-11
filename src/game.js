@@ -1314,7 +1314,45 @@ export class Game {
     this.updateHud();
   }
 
+  // ---- radar: appears when the last few lizards of a wave are left, so the last one is easy to find ----
+  drawRadar() {
+    const cv = this.ui.radar; if (!cv) return;
+    const left = this.remaining(), show = this.state === 'playing' && left > 0 && left <= 5 && !this.wave.toSpawn.length;
+    if (!show) { if (cv.style.display !== 'none') cv.style.display = 'none'; return; }
+    if (cv.style.display !== 'block') cv.style.display = 'block';
+    const g = cv.getContext('2d'), W = cv.width, c = W / 2, R = c - 6, range = 100, k = R / range, p = this.p;
+    const cy = Math.cos(p.yaw), sy = Math.sin(p.yaw);                 // forward = (-sy, -cy), right = (cy, -sy)
+    const map = (x, z) => { const dx = x - p.x, dz = z - p.z; return [c + (dx * cy - dz * sy) * k, c + (dx * sy + dz * cy) * k]; };
+    g.clearRect(0, 0, W, W); g.save(); g.beginPath(); g.arc(c, c, R + 2, 0, 7); g.clip();
+    g.fillStyle = 'rgba(30,50,30,.35)'; g.fillRect(0, 0, W, W);
+    g.strokeStyle = 'rgba(217,166,42,.25)'; g.lineWidth = 1; for (const r of [R / 3, (2 * R) / 3]) { g.beginPath(); g.arc(c, c, r, 0, 7); g.stroke(); }
+    g.fillStyle = 'rgba(205,190,140,.38)';                              // buildings
+    for (const b of this.boxes) {
+      if (b.h < 3 || b.vis === false || b.x1 - b.x0 < 3 || b.z1 - b.z0 < 3) continue;
+      if (b.x1 < p.x - range || b.x0 > p.x + range || b.z1 < p.z - range || b.z0 > p.z + range) continue;
+      const a = map(b.x0, b.z0), bb = map(b.x1, b.z0), cc = map(b.x1, b.z1), d = map(b.x0, b.z1);
+      g.beginPath(); g.moveTo(a[0], a[1]); g.lineTo(bb[0], bb[1]); g.lineTo(cc[0], cc[1]); g.lineTo(d[0], d[1]); g.closePath(); g.fill();
+    }
+    for (const e of this.enemies) {                                      // lizards
+      if (!ALIVE.has(e.state)) continue;
+      let [x, y] = map(e.x, e.z); const dx = x - c, dy = y - c, d = Math.hypot(dx, dy), far = d > R - 6;
+      if (far) { x = c + (dx / d) * (R - 6); y = c + (dy / d) * (R - 6); }
+      const boss = e.cfg.boss, fly = !!e.cfg.hover, col = e.frozen > 0 ? '#9fdcff' : boss ? '#ffd24a' : fly ? '#5ac8ff' : e.type === 'spitter' ? '#ff9a30' : '#ff3a2a';
+      g.fillStyle = col; g.strokeStyle = '#000'; g.lineWidth = 1.5;
+      g.beginPath();
+      if (far) { const a = Math.atan2(dy, dx); g.moveTo(x + Math.cos(a) * 6, y + Math.sin(a) * 6); g.lineTo(x + Math.cos(a + 2.5) * 6, y + Math.sin(a + 2.5) * 6); g.lineTo(x + Math.cos(a - 2.5) * 6, y + Math.sin(a - 2.5) * 6); g.closePath(); }
+      else g.arc(x, y, boss ? 7 : 4.5, 0, 7);
+      g.fill(); g.stroke();
+      if (fly && !far) { g.beginPath(); g.arc(x, y, 7.5, 0, 7); g.strokeStyle = col; g.stroke(); }
+    }
+    g.restore();
+    g.fillStyle = '#fff'; g.strokeStyle = '#000'; g.lineWidth = 1.5;     // you, always pointing up
+    g.beginPath(); g.moveTo(c, c - 8); g.lineTo(c + 6, c + 7); g.lineTo(c, c + 3); g.lineTo(c - 6, c + 7); g.closePath(); g.fill(); g.stroke();
+    g.fillStyle = '#d9a62a'; g.font = 'bold 12px Georgia'; g.textAlign = 'center'; g.fillText(`${left} LEFT`, c, W - 14);
+  }
+
   updateHud() {
+    this.drawRadar();
     const u = this.ui, p = this.p, w = WEAPONS[p.weapon];
     if (!u.hp) return;
     const set = (el, v) => { if (el.textContent !== v) el.textContent = v; };
