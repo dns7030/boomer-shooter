@@ -192,8 +192,20 @@ const sty = await page.evaluate(() => {
 });
 check('lizard look can be switched live (3D <-> pixel)', sty.a.w > 2.7 && sty.b.pix === true && sty.b.w < 2.5 && sty.c.pix === false && sty.c.w > 2.7, JSON.stringify(sty));
 
+// --- lizards are solid: the player can't walk through one ---
+const solid = await page.evaluate(() => {
+  const g = window.__game; g.loadLevel(2); g.setState('playing'); g.wave.phase = 'idle';
+  const p = g.p; p.x = 0; p.z = -30; p.yaw = Math.PI; p.pitch = 0;   // facing +z
+  const e = g.spawnEnemy('grunt'); Object.assign(e, { x: 0, z: -27, state: 'move', timer: 0, cool: 99 }); e.mesh.visible = true; g.scene.remove(e.beam); e.cfg = { ...e.cfg, speed: 0 };
+  for (let t = 0; t < 120; t++) { g.keys.add('KeyW'); g.step(1 / 60); e.x = 0; e.z = -27; }
+  g.keys.delete('KeyW');
+  return { dist: +Math.hypot(p.x - e.x, p.z - e.z).toFixed(2) };
+});
+check('player cannot walk through a lizard', solid.dist > 0.8, JSON.stringify(solid));
+
 // --- frost gun: freezes a lizard solid for 15 s, then it thaws; frozen drakes drop out of the sky ---
-const ice = await page.evaluate(() => {
+const ice = await page.evaluate(async () => {
+  const THREE = await import('three');
   const g = window.__game, W = window.__weapons;
   g.loadLevel(2); g.setState('playing'); g.wave.phase = 'idle';
   const p = g.p; p.x = 0; p.z = -30; p.yaw = 0; p.pitch = 0; p.health = 100;
@@ -202,18 +214,20 @@ const ice = await page.evaluate(() => {
   const d = g.spawnEnemy('drake'); Object.assign(d, { x: 6, z: -48, y: 4.2, state: 'move', timer: 0, cool: 99 }); d.mesh.visible = true; g.scene.remove(d.beam);
   g.camera.rotation.set(0, 0, 0); g.camera.updateMatrixWorld(true);
   g.fire();
-  let frozenAt = null, x0 = null, moved = 0, thawAt = null;
+  let frozenAt = null, x0 = null, moved = 0, thawAt = null, f0 = null, turned = 0;
   for (let t = 0; t < 60 * 20; t++) {
     p.health = 100; g.step(1 / 60);
-    if (frozenAt === null && e.frozen > 0) { frozenAt = t / 60; x0 = [e.x, e.z]; }
+    if (frozenAt === null && e.frozen > 0) { frozenAt = t / 60; x0 = [e.x, e.z]; f0 = e.face; }
+    if (frozenAt !== null && e.frozen > 0 && t % 120 === 0) { g.damageEnemy(e, 1, new THREE.Vector3(e.x, 1.2, e.z), true, { x: 1, z: 0 }); g.knock(e, 1, 0, 5); }
+    if (frozenAt !== null && e.frozen > 0) turned = Math.max(turned, Math.abs(e.face - f0));
     if (frozenAt !== null && e.frozen > 0) moved = Math.max(moved, Math.hypot(e.x - x0[0], e.z - x0[1]));
     if (frozenAt !== null && thawAt === null && !(e.frozen > 0)) { thawAt = t / 60; break; }
   }
   // freeze the drake directly and check it drops
   g.freezeEnemy(d, 15); for (let t = 0; t < 90; t++) g.step(1 / 60);
-  return { frozenAt, moved: +moved.toFixed(2), frozenFor: thawAt === null ? null : +(thawAt - frozenAt).toFixed(1), drakeY: +d.y.toFixed(2), drakeFrozen: d.frozen > 0 };
+  return { frozenAt, turned: +turned.toFixed(3), moved: +moved.toFixed(2), frozenFor: thawAt === null ? null : +(thawAt - frozenAt).toFixed(1), drakeY: +d.y.toFixed(2), drakeFrozen: d.frozen > 0 };
 });
-check('frost gun freezes a lizard solid for ~15 s, then it thaws', ice.frozenAt !== null && ice.moved < 0.5 && ice.frozenFor > 14 && ice.frozenFor < 15.6, JSON.stringify(ice));
+check('frost gun freezes a lizard solid for ~15 s, then it thaws', ice.frozenAt !== null && ice.moved < 0.01 && ice.turned < 0.001 && ice.frozenFor > 14 && ice.frozenFor < 15.6, JSON.stringify(ice));
 check('a frozen drake falls out of the sky and stays put', ice.drakeY < 0.1 && ice.drakeFrozen, JSON.stringify(ice));
 
 await page.evaluate(() => window.__game.render());

@@ -485,6 +485,12 @@ export class Game {
     if (p.y <= 0) { p.y = 0; p.vy = 0; p.grounded = true; }
     p.x += p.vx * dt; p.z += p.vz * dt;
     resolveCircle(p, 0.45, this.boxes);
+    for (const e of this.enemies) { // lizards are solid: you can't walk through them (flying ones only when you're under/over them)
+      if (!ALIVE.has(e.state) || e.state === 'spawn' || p.y + 1.8 < e.y || p.y > e.y + 2.4) continue;
+      const dx = p.x - e.x, dz = p.z - e.z, d = Math.hypot(dx, dz), min = 0.45 + e.cfg.radius;
+      if (d < min) { const f = d > 1e-4 ? (min - d) / d : 0; p.x += d > 1e-4 ? dx * f : min; p.z += dz * f; }
+    }
+    resolveCircle(p, 0.45, this.boxes);
     const moving = Math.hypot(p.vx, p.vz);
     p.bob += dt * (6 + moving * 0.9) * (p.grounded ? 1 : 0);
     p.bobAmp += ((p.grounded ? Math.min(1, moving / 7) : 0) - p.bobAmp) * Math.min(1, dt * 10);
@@ -710,6 +716,7 @@ export class Game {
 
   // knock a lizard back (it slides and decays)
   knock(e, dx, dz, power) {
+    if (e.frozen > 0) return;   // frozen solid: nothing moves them
     const l = Math.hypot(dx, dz) || 1;
     e.kx = (e.kx || 0) + (dx / l) * power; e.kz = (e.kz || 0) + (dz / l) * power;
   }

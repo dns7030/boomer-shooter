@@ -245,6 +245,20 @@ export function renderLizardAtlases(renderer) {
       for (let k = 0; k < ANGLES; k++) {
         applyPose(model, pose, (k * Math.PI * 2) / ANGLES);
         model.root.updateMatrixWorld(true);
+        // corpses: slide the frame window so the lowest point of the body sits exactly on the ground line
+        let sh = 0;
+        if (pose >= POSE.die0) {
+          cam.updateMatrixWorld(true); cam.matrixWorldInverse.copy(cam.matrixWorld).invert();
+          let low = Infinity; const v = new THREE.Vector3(), m = new THREE.Matrix4();
+          model.root.traverse((o) => {
+            if (!o.isMesh) return;
+            m.multiplyMatrices(cam.matrixWorldInverse, o.matrixWorld);
+            const pos = o.geometry.attributes.position;
+            for (let i = 0; i < pos.count; i += 2) { v.fromBufferAttribute(pos, i).applyMatrix4(m); if (v.y < low) low = v.y; }
+          });
+          sh = low - v.set(0, 0, 0).applyMatrix4(cam.matrixWorldInverse).y;
+        }
+        cam.top = half + sh; cam.bottom = -half + sh; cam.updateProjectionMatrix();
         rt.viewport.set(k * FRAME, pose * FRAME, FRAME, FRAME); rt.scissor.set(k * FRAME, pose * FRAME, FRAME, FRAME);
         renderer.setRenderTarget(rt); renderer.clear(); renderer.render(scene, cam);
       }
