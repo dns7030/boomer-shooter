@@ -975,7 +975,7 @@ export class Game {
       if (cfg.hover && alive && e.state !== 'perch' && this.level.interiors) {
         const inZ = (q, x, z) => x > q.x0 && x < q.x1 && z > q.z0 && z < q.z1;
         const z0 = this.level.interiors.find((q) => inZ(q, e.x, e.z));
-        if (z0 && !inZ(z0, p.x, p.z) && e.y < z0.top + 1.5) { climbing = true; e.y += 9 * dt; e.fall = 0; e.climbTop = z0.top; if (e.state === 'dive') e.state = 'move'; }
+        if (z0 && !inZ(z0, p.x, p.z) && e.y < z0.top + 3) { climbing = true; e.y += 9 * dt; e.fall = 0; e.climbTop = z0.top; if (e.state === 'dive') e.state = 'move'; }
       }
       if (cfg.hover && e.state !== 'perch') {
         if (!alive || iced) { e.fall = Math.min(30, (e.fall || 0) + 26 * dt); e.y = Math.max(0, e.y - e.fall * dt); }
@@ -1014,13 +1014,10 @@ export class Game {
           if (this.nav && dist > 3) { // no line of sight: follow the street grid around the buildings
             e.losT = (e.losT || 0) - dt;
             if (e.losT <= 0) { e.losT = 0.25 + Math.random() * 0.15; e.los = this.hasLOS(e.x, e.y + 1.4, e.z, p.x, p.y + 1.4, p.z); }
-            // stuck for a while (e.g. hugging a wall near a door the line of sight slips through)? follow the street grid regardless
-            e.progT = (e.progT || 0) + dt;
-            if (e.progT > 1.5) { e.progT = 0; if (e.px !== undefined && Math.hypot(e.x - e.px, e.z - e.pz) < 0.6 && dist > 4) { if (cfg.hover) e.rise = 7; else e.forcePath = 3; } e.px = e.x; e.pz = e.z; }
-            if (e.forcePath > 0) e.forcePath -= dt;
+            if (e.forcePath > 0) e.forcePath -= dt;   // (set when blocked for a while: follow the street grid even if the line of sight slips through a gap)
             if (e.rise > 0) e.rise -= dt;
             if (e.rise > 0) e.pathing = false;   // flyers that got boxed in climb high and fly straight over the buildings
-            else if (!e.los || e.forcePath > 0) { const nd = this.nav.dir(e.x, e.z); if (nd) { nx = nd.x; nz = nd.z; e.pathing = true; } else e.pathing = false; } else e.pathing = false;
+            else if (!e.los || e.forcePath > 0 || e.pathHold > 0) { if (!e.los) e.pathHold = 1.2; else e.pathHold -= dt; const nd = this.nav.dir(e.x, e.z); if (nd) { nx = nd.x; nz = nd.z; e.pathing = true; } else e.pathing = false; } else e.pathing = false;
           } else e.pathing = false;
           const faceErr = Math.abs(angDiff(Math.atan2(nx, nz), e.face));
           const flyer = !!cfg.hover, dy = Math.abs((e.y + 1) - (p.y + 1));
@@ -1055,7 +1052,7 @@ export class Game {
             speed *= Math.max(0.18, Math.cos(Math.min(turnErr, 1.4)));
             if (steer || e.pathing) { mx = Math.sin(e.face); mz = Math.cos(e.face); }
           }
-          if (climbing && e.y < e.climbTop - 0.3) speed = 0;   // straight up until clear of the walls, then out over the roof
+          if (climbing && e.y < e.climbTop + 0.8) speed = 0;   // straight up until clear of the walls, then out over the roof
           const pos = { x: e.x + mx * speed * dt, z: e.z + mz * speed * dt, y: e.y };
           for (const o of this.enemies) {
             if (o === e || !ALIVE.has(o.state) || o.state === 'perch') continue;
@@ -1069,6 +1066,9 @@ export class Game {
             e.stuck += dt;
             if (e.stuck > 0.25) { e.slide = e.slide ? -e.slide : (Math.random() < 0.5 ? 1 : -1); e.slideT = 1.2; e.stuck = 0; }
           } else e.stuck = 0;
+          // blocked for a long time (hugging a wall, boxed in)? ground units follow the street grid; flyers climb over the buildings
+          if (speed > 0.4 && dist > 4 && Math.hypot(pos.x - e.x, pos.z - e.z) < speed * dt * 0.35) e.blockedT = (e.blockedT || 0) + dt; else e.blockedT = Math.max(0, (e.blockedT || 0) - dt * 2);
+          if (e.blockedT > 2.5) { e.blockedT = 0; if (cfg.hover) e.rise = 7; else e.forcePath = 3; }
           e.x = pos.x; e.z = pos.z;
           const a0 = Math.floor(e.anim);
           e.anim += dt * (e.type === 'grunt' || e.type === 'shield' ? 9 : cfg.boss ? 4 : flyer ? 8 : 6);
