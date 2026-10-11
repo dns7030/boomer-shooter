@@ -3,12 +3,13 @@ import * as THREE from 'three';
 import { mat, color, plane } from './geo.js';
 import * as B from './buildings.js';
 import { tex } from './textures.js';
+import { addSun, addSunlight } from './sky.js';
 
 export const STREET_HALF = 6.4;   // walkable half-width
 const FRONT_X = 7.0;              // x of the building facade line
 export const BOUNDS = { zNear: 38.6, zFar: -57.6 };
 
-const FOG = 0xe59a64;
+const FOG = 0xc4defa;
 
 function tiled(w, h, u, v, material, rotX = true) {
   const g = new THREE.PlaneGeometry(w, h);
@@ -21,18 +22,17 @@ function tiled(w, h, u, v, material, rotX = true) {
 
 export function buildLevel(scene) {
   scene.background = new THREE.Color(FOG);
-  scene.fog = new THREE.Fog(FOG, 22, 135);
+  scene.fog = new THREE.Fog(FOG, 45, 260);
 
-  scene.add(new THREE.HemisphereLight(0xc8b0d8, 0x7a5640, 1.05));
-  const sun = new THREE.DirectionalLight(0xffb878, 1.25);
-  sun.position.set(-30, 26, -20);
-  scene.add(sun);
+  scene.add(new THREE.HemisphereLight(0xbcd6ff, 0x8a7a60, 1.25));
+  addSunlight(scene, 1.7);
+  const sunDisc = addSun(scene, 330, 190);
 
   const boxes = [];
   const box = (x0, x1, z0, z1, h) => boxes.push({ x0, x1, z0, z1, h });
 
   // ---- sky, ground, treeline ----
-  const skyMat = new THREE.MeshBasicMaterial({ map: tex('sky'), side: THREE.BackSide, fog: false, depthWrite: false });
+  const skyMat = new THREE.MeshBasicMaterial({ map: tex('skyBlue'), side: THREE.BackSide, fog: false, depthWrite: false });
   const sky = new THREE.Mesh(new THREE.SphereGeometry(380, 24, 16), skyMat);
   sky.renderOrder = -10;
   scene.add(sky);
@@ -130,25 +130,6 @@ export function buildLevel(scene) {
   box(-90, 90, -90, BOUNDS.zFar, 60);
   box(-90, 90, BOUNDS.zNear, 90, 60);
 
-  // ---- UFOs hanging in the sky ----
-  const ufos = [];
-  const ufoMat = new THREE.MeshBasicMaterial({ color: 0x1c2030, fog: false });
-  const glow = new THREE.MeshBasicMaterial({ color: 0x66ff88, fog: false });
-  for (let i = 0; i < 4; i++) {
-    const u = new THREE.Group();
-    const disc = new THREE.Mesh(new THREE.SphereGeometry(1, 16, 8), ufoMat);
-    disc.scale.set(16, 3.2, 16); u.add(disc);
-    const dome = new THREE.Mesh(new THREE.SphereGeometry(1, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2), ufoMat);
-    dome.scale.set(6, 4, 6); dome.position.y = 2.2; u.add(dome);
-    for (let k = 0; k < 8; k++) {
-      const a = (k / 8) * Math.PI * 2;
-      const l = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.5, 1.2), glow);
-      l.position.set(Math.cos(a) * 12, -1.4, Math.sin(a) * 12); u.add(l);
-    }
-    u.userData = { r: 90 + i * 25, h: 85 + (i % 2) * 22, a: (i / 4) * Math.PI * 2, sp: 0.02 + i * 0.006 };
-    scene.add(u); ufos.push(u);
-  }
-
   const spawnPoints = [];
   for (let z = 32; z >= -52; z -= 6) for (const x of [-3.6, 0, 3.6]) spawnPoints.push({ x: x + (z % 2 ? 0.8 : -0.8), z });
 
@@ -167,11 +148,7 @@ export function buildLevel(scene) {
 
   function update(dt, t, camPos) {
     if (windmill) windmill.userData.blades.rotation.z -= dt * 0.7;
-    for (const u of ufos) {
-      u.userData.a += dt * u.userData.sp;
-      const { r, h, a } = u.userData;
-      u.position.set(camPos.x * 0.3 + Math.cos(a) * r, h, camPos.z * 0.6 + Math.sin(a) * r * 0.8);
-    }
+    sunDisc.update(camPos);
     sky.position.copy(camPos);
     trees.position.x = camPos.x; trees.position.z = camPos.z;
   }

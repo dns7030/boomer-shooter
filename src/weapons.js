@@ -13,7 +13,7 @@ export const WEAPONS = [
   { id: 'sabre', name: 'Shashka', slot: 1, kind: 'melee', melee: true, cooldown: 0.5, damage: 45, range: 2.7 },
   { id: 'pistol', name: 'Pistol', slot: 2, kind: 'hitscan', cooldown: 0.38, damage: 30, pellets: 1, spread: 0.004, ammo: 'bullets', use: 1, sfx: 'pistol', kick: 0.03, starter: 20 },
   { id: 'shotgun', name: 'Pump Shotgun', slot: 3, kind: 'hitscan', cooldown: 0.72, damage: 11, pellets: 9, spread: 0.075, ammo: 'shells', use: 1, sfx: 'shotgun', kick: 0.08, starter: 8 },
-  { id: 'ssg', name: 'Super Shotgun', slot: 3, kind: 'hitscan', cooldown: 1.05, damage: 12, pellets: 20, spread: 0.12, ammo: 'shells', use: 2, sfx: 'ssg', kick: 0.14, starter: 10 },
+  { id: 'ssg', name: 'Super Shotgun', slot: 3, kind: 'hitscan', cooldown: 1.15, damage: 12, pellets: 20, spread: 0.12, ammo: 'shells', use: 2, sfx: 'ssg', kick: 0.14, starter: 10 },
   { id: 'chaingun', name: 'Chaingun', slot: 4, kind: 'hitscan', cooldown: 0.085, damage: 11, pellets: 1, spread: 0.035, ammo: 'bullets', use: 1, sfx: 'chaingun', kick: 0.012, auto: true, starter: 40 },
   { id: 'rocket', name: 'Rocket Launcher', slot: 5, kind: 'projectile', cooldown: 0.85, ammo: 'rockets', use: 1, sfx: 'rocket', kick: 0.11, starter: 6,
     shot: { type: 'rocket', speed: 34, radius: 5.5, damage: 130 } },

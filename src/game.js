@@ -281,7 +281,9 @@ export class Game {
   updateWeapon(dt) {
     const p = this.p;
     p.cd = Math.max(0, p.cd - dt);
+    const prevSince = p.since;
     p.since += dt;
+    if (WEAPONS[p.weapon].id === 'ssg') for (const [th, name] of [[0.3, 'ssgOpen'], [0.5, 'shellIn'], [0.67, 'shellIn'], [0.9, 'ssgClose']]) if (prevSince < th && p.since >= th) sfx[name]();
     p.flash = Math.max(0, p.flash - dt * 12);
     p.firing = p.firing && p.since < 0.12;
     if (p.swing >= 0) { p.swing += dt / 0.38; if (p.swing >= 1) p.swing = -1; }

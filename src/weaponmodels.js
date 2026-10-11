@@ -35,6 +35,7 @@ function makeMaterials() {
     glowCyan: new THREE.MeshBasicMaterial({ color: 0x5ae0ff }),
     glowGreen: new THREE.MeshBasicMaterial({ color: 0x6aff7a }),
     glowRed: new THREE.MeshBasicMaterial({ color: 0xff5030 }),
+    shellRed: S(0xb8352a, 0.0, 0.5),
   };
 }
 
@@ -143,25 +144,39 @@ function buildShotgun(M) {
   return { group: g, muzzle, flash: 0.26, tint: 'orange', tip: [0.15, -0.18], rot: [0.3, 0.04, 0], recoil: 2.2, pump, pumpZ: -0.34 };
 }
 
+function shellMesh(M) {
+  const g = new THREE.Group();
+  g.add(at(zcyl(0.0095, 0.0095, 0.036, M.shellRed, 12), 0, 0, -0.012));
+  g.add(at(zcyl(0.0102, 0.0102, 0.014, M.brass, 12), 0, 0, 0.002));
+  g.scale.setScalar(1.5);
+  g.visible = false;
+  return g;
+}
 function buildSSG(M) {
   const g = new THREE.Group();
   g.add(at(rbox(0.06, 0.06, 0.2, 0.008, M.blued), 0, 0.0, -0.1));
-  for (const s of [-1, 1]) {
-    const b = zcyl(0.0165, 0.0175, 0.46, M.steel, 16); b.position.set(s * 0.0185, 0.012, -0.2); g.add(b);
-    g.add(at(new THREE.Mesh(new THREE.CircleGeometry(0.0125, 14), M.dark), s * 0.0185, 0.012, -0.6605));
-  }
-  g.add(at(box(0.006, 0.006, 0.46, M.steel), 0, 0.03, -0.43));
-  g.add(sphere(0.0035, M.brass, 0, 0.0345, -0.655));
-  g.add(at(rbox(0.07, 0.042, 0.17, 0.012, M.wood), 0, -0.03, -0.32));
   g.add(at(rbox(0.016, 0.014, 0.02, 0.003, M.brass), 0, 0.03, -0.205));
-  g.add(hand(M, 0, 0.0, -0.31, 0.058, 0.034, 0.09));
+  // barrels + forend + left hand hinge on the receiver so the gun can "break open" for the reload
+  const PIV = [0, 0.012, -0.2];
+  const hinge = new THREE.Group(); hinge.position.set(...PIV); g.add(hinge);
+  const H = (o, x, y, z) => { o.position.set(x - PIV[0], y - PIV[1], z - PIV[2]); hinge.add(o); return o; };
+  for (const sd of [-1, 1]) {
+    H(zcyl(0.0165, 0.0175, 0.46, M.steel, 16), sd * 0.0185, 0.012, -0.2);
+    H(new THREE.Mesh(new THREE.CircleGeometry(0.0125, 14), M.dark), sd * 0.0185, 0.012, -0.6605);
+  }
+  H(box(0.006, 0.006, 0.46, M.steel), 0, 0.03, -0.43);
+  H(sphere(0.0035, M.brass, 0, 0, 0), 0, 0.0345, -0.655);
+  H(rbox(0.07, 0.042, 0.17, 0.012, M.wood), 0, -0.03, -0.32);
+  const lh = hand(M, 0, 0.0, -0.31, 0.058, 0.034, 0.09); lh.position.set(-PIV[0], -PIV[1], -PIV[2]); hinge.add(lh);
+  const la = arm(M, [0, -0.02, -0.26], [-0.5, -0.4, 0.77], 0.55, 0.024); la.position.set(-PIV[0], -PIV[1], -PIV[2]); hinge.add(la);
   const grip = rbox(0.042, 0.1, 0.05, 0.01, M.wood); grip.position.set(0, -0.075, 0.02); grip.rotation.x = -0.3; g.add(grip);
   g.add(at(box(0.004, 0.012, 0.05, M.poly), 0, -0.04, -0.03));
   g.add(hand(M, 0.006, -0.065, 0.075, 0.06, 0.046, 0.09));
   g.add(arm(M, [0.012, -0.085, 0.12], [0.2, -0.35, 0.91], 0.5, 0.026));
-  g.add(arm(M, [0, -0.02, -0.26], [-0.5, -0.4, 0.77], 0.55, 0.024));
+  const spent = [shellMesh(M), shellMesh(M)], fresh = [shellMesh(M), shellMesh(M)];
+  for (const sh of [...spent, ...fresh]) g.add(sh);
   const muzzle = new THREE.Object3D(); muzzle.position.set(0, 0.012, -0.69); g.add(muzzle);
-  return { group: g, muzzle, flash: 0.34, tint: 'orange', tip: [0.16, -0.18], rot: [0.3, 0.04, 0], recoil: 3 };
+  return { group: g, muzzle, flash: 0.34, tint: 'orange', tip: [0.16, -0.18], rot: [0.3, 0.04, 0], recoil: 3, ssg: { hinge, spent, fresh } };
 }
 
 function buildChaingun(M) {
@@ -407,6 +422,27 @@ export class WeaponView {
     }
     const t = st.since;
     if (cur.pump) { const u = Math.min(1, Math.max(0, (t - 0.1) / 0.26)); cur.pump.position.z = cur.pumpZ + Math.sin(u * Math.PI) * 0.12; }
+    if (cur.ssg) {
+      const { hinge, spent, fresh } = cur.ssg, clamp = (v) => Math.min(1, Math.max(0, v)), ease = (u) => u * u * (3 - 2 * u);
+      const open = ease(clamp((t - 0.14) / 0.2)), shut = ease(clamp((t - 0.9) / 0.08));
+      const o = open * (1 - shut);
+      hinge.rotation.x = -0.3 * o;
+      r.position.y += 0.05 * o; r.rotation.x += 0.16 * o;   // lift the gun while it is broken open
+      spent.forEach((sh, i) => {
+        const te = t - 0.34 - i * 0.03, sd = i ? 1 : -1;
+        sh.visible = te > 0 && te < 0.4;
+        if (sh.visible) { sh.position.set(sd * 0.0185 + sd * 0.07 * te, 0.012 + 0.45 * te - 4.2 * te * te, -0.2 + 0.7 * te); sh.rotation.set(te * 9, te * 4 * sd, te * 6); }
+      });
+      fresh.forEach((sh, i) => {
+        const ts = 0.5 + i * 0.17, u = clamp((t - (ts - 0.16)) / 0.3), sd = i ? 1 : -1;
+        sh.visible = u > 0 && u < 1;
+        if (sh.visible) {
+          const e = ease(u);
+          sh.position.set(sd * 0.0185 + sd * 0.09 * (1 - e), 0.012 - 0.11 * (1 - e), -0.2 + 0.2 * (1 - e));
+          sh.rotation.set(0.5 * (1 - e), 0, 0);
+        }
+      });
+    }
     if (cur.spinner) cur.spinner.rotation.z = st.spin;
     if (cur.warhead) cur.warhead.visible = t > 0.32 || t < 0;
     if (cur.drum) { const u = Math.min(1, Math.max(0, (t - 0.04) / 0.22)); cur.drum.rotation.z = (st.shotN - 1 + u * u * (3 - 2 * u)) * (Math.PI / 3); }

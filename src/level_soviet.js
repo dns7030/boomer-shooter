@@ -4,11 +4,12 @@ import * as THREE from 'three';
 import { mat, color } from './geo.js';
 import { tex, mulberry } from './textures.js';
 import * as B from './buildings2.js';
+import { addSun, addSunlight } from './sky.js';
 
 const HALF = 20.5;       // walkable half-width of the avenue
 const FRONT = 22;        // x of the facade line
 const Z_NEAR = 50, Z_FAR = -306, GOAL_Z = -296;
-const FOG = 0xb7b3a6;
+const FOG = 0xc6e0f8;
 
 // flat ground layers: drawn first, in order, without touching the depth buffer (no z-fighting at any distance)
 const flat = (name, order) => { const m = mat(name).clone(); m.depthWrite = false; m.userData.order = order; return m; };
@@ -24,18 +25,17 @@ function tiled(w, h, u, v, material) {
 
 export function buildSoviet(scene) {
   scene.background = new THREE.Color(FOG);
-  scene.fog = new THREE.Fog(FOG, 90, 820);
-  scene.add(new THREE.HemisphereLight(0xd0d8e0, 0x6d685e, 1.25));
-  const sun = new THREE.DirectionalLight(0xfff0d8, 1.05);
-  sun.position.set(90, 130, 60);
-  scene.add(sun);
+  scene.fog = new THREE.Fog(FOG, 220, 1700);
+  scene.add(new THREE.HemisphereLight(0xb8d4ff, 0x8a8f70, 1.3));
+  addSunlight(scene, 1.8);
+  const sunDisc = addSun(scene, 1700, 760);
 
   const boxes = [];
   const box = (x0, x1, z0, z1, h) => boxes.push({ x0, x1, z0, z1, h });
   const rnd = mulberry(2024);
 
   // ---- sky and ground ----
-  const sky = new THREE.Mesh(new THREE.SphereGeometry(1900, 24, 16), new THREE.MeshBasicMaterial({ map: tex('skyGrey'), side: THREE.BackSide, fog: false, depthWrite: false }));
+  const sky = new THREE.Mesh(new THREE.SphereGeometry(1900, 24, 16), new THREE.MeshBasicMaterial({ map: tex('skyBlue'), side: THREE.BackSide, fog: false, depthWrite: false }));
   sky.renderOrder = -10;
   scene.add(sky);
   const ground = tiled(5000, 5000, 1000, 1000, flat('grass', -9)); ground.position.y = 0; scene.add(ground);
@@ -158,19 +158,6 @@ export function buildSoviet(scene) {
   box(-600, 600, -700, Z_FAR, 400);
   box(-600, 600, Z_NEAR, 120, 400);
 
-  // ---- UFOs ----
-  const ufos = [];
-  const ufoMat = new THREE.MeshBasicMaterial({ color: 0x1c2030, fog: false });
-  const glow = new THREE.MeshBasicMaterial({ color: 0x66ff88, fog: false });
-  for (let i = 0; i < 5; i++) {
-    const u = new THREE.Group();
-    const disc = new THREE.Mesh(new THREE.SphereGeometry(1, 16, 8), ufoMat); disc.scale.set(34, 6, 34); u.add(disc);
-    const dome = new THREE.Mesh(new THREE.SphereGeometry(1, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2), ufoMat); dome.scale.set(13, 8, 13); dome.position.y = 4; u.add(dome);
-    for (let k = 0; k < 10; k++) { const a = (k / 10) * Math.PI * 2; const l = new THREE.Mesh(new THREE.BoxGeometry(2.4, 1, 2.4), glow); l.position.set(Math.cos(a) * 26, -2.8, Math.sin(a) * 26); u.add(l); }
-    u.userData = { r: 200 + i * 60, h: 170 + (i % 3) * 45, a: (i / 5) * Math.PI * 2, sp: 0.014 + i * 0.004 };
-    scene.add(u); ufos.push(u);
-  }
-
   // ---- spawn points and pickups ----
   const spawnPoints = [];
   for (let z = 42; z > -302; z -= 10) for (const x of [-16, -8, 0, 8, 16]) {
@@ -203,11 +190,7 @@ export function buildSoviet(scene) {
   function update(dt, t, camPos) {
     flame.userData.flame.scale.set(2.4 + Math.sin(t * 17) * 0.25 + Math.random() * 0.2, 3.6 + Math.sin(t * 13) * 0.4 + Math.random() * 0.3, 1);
     for (const ct of [ct1, ct2]) ct.userData.steam.scale.set(70 + Math.sin(t * 0.4 + ct.position.x) * 6, 56 + Math.sin(t * 0.3) * 5, 1);
-    for (const u of ufos) {
-      u.userData.a += dt * u.userData.sp;
-      const { r, h, a } = u.userData;
-      u.position.set(camPos.x * 0.2 + Math.cos(a) * r, h, camPos.z * 0.5 + Math.sin(a) * r * 0.8 - 80);
-    }
+    sunDisc.update(camPos);
     sky.position.copy(camPos);
   }
 
