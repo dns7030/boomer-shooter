@@ -626,10 +626,17 @@ export class Game {
     this.hitProps(pt, dmg);
   }
 
-  // muzzle position in the world (right hand side, slightly low)
+  // muzzle position in the world: the tip of the weapon model as it appears on screen, brought `forward` metres in front of the eye
   muzzlePos(forward = 0.7) {
-    const { dir, right, up } = this.basis();
-    return this.eye().addScaledVector(dir, forward).addScaledVector(right, 0.22).addScaledVector(up, -0.2);
+    const { dir, right, up } = this.basis(), eye = this.eye(), wv = this.wview, m = wv && wv.models[WEAPONS[this.p.weapon].id];
+    if (m && m.muzzle) {
+      m.muzzle.updateWorldMatrix(true, false);
+      const ndc = m.muzzle.getWorldPosition(new THREE.Vector3()).project(wv.camera);
+      this.camera.updateMatrixWorld(true);
+      const rd = new THREE.Vector3(ndc.x, ndc.y, 0.5).unproject(this.camera).sub(this.camera.position).normalize();
+      return eye.clone().addScaledVector(rd, forward / Math.max(0.2, rd.dot(dir)));
+    }
+    return eye.clone().addScaledVector(dir, forward).addScaledVector(right, 0.22).addScaledVector(up, -0.2);
   }
 
   fireProjectile(w) {
@@ -678,7 +685,7 @@ export class Game {
       if (t < wall) hits.push([t, e]);
     }
     for (const [t, e] of hits) this.damageEnemy(e, w.damage, eye.clone().addScaledVector(dir, t));
-    const a = eye.clone().addScaledVector(dir, 0.6).addScaledVector(right, 0.2).addScaledVector(up, -0.16);
+    const a = this.muzzlePos(0.6);
     const end = eye.clone().addScaledVector(dir, Math.min(wall, 200));
     const len = a.distanceTo(end);
     const mesh = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 1, 8), this.beamMat.clone());
