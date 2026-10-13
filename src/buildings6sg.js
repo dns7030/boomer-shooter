@@ -338,22 +338,22 @@ export function marinaBaySands() {
     Bx(g, 24, 0.5, 12, C(0xe8eef2), cx, TH + 0.25, 0, 3);
   });
   // ---- SkyPark ----
-  const deckPts = [[-55, 0], [-49, 6.4], [30, 6.8], [48, 6.4], [55, 0], [48, -6.4], [30, -6.8], [-49, -6.4]];
-  const hullPts = [[-48, 0], [-42, 4.2], [40, 4.6], [47, 0], [40, -4.6], [-42, -4.2]];
+  const deckPts = [[-55, 0], [-49, 8.2], [30, 8.8], [48, 8.2], [55, 0], [48, -8.2], [30, -8.8], [-49, -8.2]];
+  const hullPts = [[-48, 0], [-42, 6.0], [40, 6.4], [47, 0], [40, -6.4], [-42, -6.0]];
   const deck = new THREE.Mesh(scaleUV(new THREE.ExtrudeGeometry(hullShape(deckPts), { depth: 2.8, bevelEnabled: false }), 0.1), mat('s6sg_hallOuter'));
   deck.rotation.x = -Math.PI / 2; deck.position.y = 112.2; g.add(deck);                       // y 112.2..115, shape y -> -z
   const hull = new THREE.Mesh(scaleUV(new THREE.ExtrudeGeometry(hullShape(hullPts), { depth: 2.6, bevelEnabled: false }), 0.1), mat('s6sg_hallOuter'));
   hull.rotation.x = -Math.PI / 2; hull.position.y = 109.6; g.add(hull);
-  Bx(g, 62, 0.22, 0.22, glow(NEO), 3, 113.6, 6.9, 1);                                          // neo accent strip on the deck edge
+  Bx(g, 62, 0.22, 0.22, glow(NEO), 3, 113.6, 8.95, 1);                                          // neo accent strip on the deck edge
   // top surface: pale paving, infinity pool, wood decks, hedges
-  Bx(g, 90, 0.12, 10.4, mat('s6sg_paver'), 2, 115.06, 0, 3);
-  Bx(g, 52, 0.18, 3.6, C(0xf4f4f0), 8, 115.1, 3.2, 1); Bx(g, 51.2, 0.2, 2.8, basic(0x38c8dc), 8, 115.12, 3.2, 1);
+  Bx(g, 90, 0.12, 14.6, mat('s6sg_paver'), 2, 115.06, 0, 3);
+  Bx(g, 52, 0.18, 3.8, C(0xf4f4f0), 8, 115.1, 4.8, 1); Bx(g, 51.2, 0.2, 3.0, basic(0x38c8dc), 8, 115.12, 4.8, 1);
   Bx(g, 12, 0.14, 4, mat('s6sg_deckWood'), -34, 115.1, 0, 3); Bx(g, 14, 0.14, 4, mat('s6sg_deckWood'), -9, 115.1, -3.5, 3);
-  Bx(g, 80, 0.8, 0.14, glassM(0xbfe4ee, 0.5), 0, 115.5, 6.2, 1);                              // glass edge screen
+  Bx(g, 80, 0.8, 0.14, glassM(0xbfe4ee, 0.5), 0, 115.5, 8.3, 1);                              // glass edge screen
   const trunks = [], crowns = [], r = mulberry(31);
   for (let i = 0; i < 26; i++) {
-    const x = -44 + i * 3.6 + r() * 1.2, z = (i % 3 - 1) * 2.8 - 1.2 + r(), hh = 2.2 + r() * 2.4;
-    if (x > -24 && x < 34 && z > 1) continue;
+    const x = -44 + i * 3.6 + r() * 1.2, z = (i % 3 - 1) * 4.2 - 1.2 + r(), hh = 2.2 + r() * 2.4;
+    if (x > -24 && x < 34 && z > 2.5) continue;
     trunks.push(gT(new THREE.CylinderGeometry(0.1, 0.16, hh, 5), x, 115.1 + hh / 2, z));
     crowns.push(gT(SPH(1, 7, 5), x, 115.1 + hh + 0.5, z, 1.4 + r() * 0.8, 1.0 + r() * 0.5, 1.4 + r() * 0.8));
   }
@@ -402,6 +402,7 @@ export function mbsConferenceHall() {
     doors: [{ side: 'S', at: 0, w: 9, h: 6 }, { side: 'N', at: 0, w: 9, h: 6 }, { side: 'E', at: 0, w: 7, h: 5.2 }] });
   g.add(base); cols.push(...base.userData.cols);
   const ix = base.userData.inside, dk = C(0x20252c);
+  Bx(g, ix.x1 - ix.x0, 0.05, ix.z1 - ix.z0, mat('s6sg_carpet'), 0, 0.025, 0, 8);                 // solid carpet slab (floor plane alone sorts under the ground)
   // ---- exterior ----
   Bx(g, W + 1.2, 0.8, D + 1.2, C(0xc8ced2), 0, H + 0.4, 0, 3);
   Bx(g, 9.6, 0.5, 2.2, C(0xf4f6f6), 0, 6.5, D / 2 + 0.9, 2);                                   // door canopies (above head height)
@@ -488,14 +489,14 @@ export function conferenceBooth(opts = {}) {
     Bx(g, 0.5, 0.55, 0.5, C(0x2a3a60), -3.3, 0.28, 1.6, 1); Bx(g, 0.5, 0.55, 0.5, C(0x2a3a60), -3.3, 0.28, 0.8, 1);
     rollup(3.0, 2.0, 'WELCOME', '#14264a');
   } else {                                                                                       // curved-wall booth with a hanging ring
-    const arc = new THREE.Mesh(new THREE.CylinderGeometry(3.3, 3.3, 3.0, 14, 1, true, Math.PI * 0.5, Math.PI), keyed('boothArc', () => new THREE.MeshLambertMaterial({ color: 0xf0f4f6, side: THREE.DoubleSide })));
-    arc.position.set(0, 1.5, -0.2); g.add(arc); cols.push([-2.2, 2.2, -3.6, -2.6, 3], [-3.4, -2.2, -2.6, -0.2, 3], [2.2, 3.4, -2.6, -0.2, 3]);
-    const led = new THREE.Mesh(new THREE.CylinderGeometry(3.18, 3.18, 1.8, 12, 1, true, Math.PI * 0.62, Math.PI * 0.76), flatMapD('s6sg_led3')); led.position.set(0, 1.7, -0.2); g.add(led);
-    Ms(g, new THREE.TorusGeometry(2.4, 0.12, 6, 20), glow(NEO), 0, 3.5, 0.2, 1, 1, 1, Math.PI / 2);
-    for (const a of [0.5, 2.6, 4.7]) rods(g, [[[Math.cos(a) * 2.4, 3.5, 0.2 + Math.sin(a) * 2.4], [Math.cos(a) * 2.4, 4.0, 0.2 + Math.sin(a) * 2.4]]], 0.02, dk, 3);
-    sgn(g, 'FUTURE SUMMIT', 2.2, 0.6, 0, 3.52, 2.64, 0, { bg: '#0e2a4a', fg: '#fff' });
-    Cy(g, 1.1, 1.1, 1.0, 14, wh, 0.2, 0.5, 0.8, 1); Cy(g, 1.2, 1.2, 0.08, 14, dk, 0.2, 1.04, 0.8, 1); cols.push([-0.9, 1.3, -0.3, 1.9, 1.1]);
-    rollup(-3.4, 1.8, 'WELCOME', '#3a0e5a'); rollup(3.5, 1.8, 'KEYNOTE', '#0a4a40');
+    const arc = new THREE.Mesh(new THREE.CylinderGeometry(2.4, 2.4, 3.0, 14, 1, true, Math.PI * 0.5, Math.PI), keyed('boothArc', () => new THREE.MeshLambertMaterial({ color: 0xf0f4f6, side: THREE.DoubleSide })));
+    arc.position.set(0, 1.5, 0); arc.scale.x = 1.6; g.add(arc); cols.push([-1.8, 1.8, -2.5, -1.6, 3], [-3.9, -1.8, -1.6, 0, 3], [1.8, 3.9, -1.6, 0, 3]);
+    const led = new THREE.Mesh(new THREE.CylinderGeometry(2.3, 2.3, 1.8, 12, 1, true, Math.PI * 0.62, Math.PI * 0.76), flatMapD('s6sg_led3')); led.position.set(0, 1.7, 0); led.scale.x = -1.6; g.add(led);
+    Ms(g, new THREE.TorusGeometry(1.9, 0.12, 6, 20), glow(NEO), 0, 3.5, 0.5, 1, 1, 1, Math.PI / 2);
+    for (const a of [0.5, 2.6, 4.7]) rods(g, [[[Math.cos(a) * 1.9, 3.5, 0.5 + Math.sin(a) * 1.9], [Math.cos(a) * 1.9, 4.0, 0.5 + Math.sin(a) * 1.9]]], 0.02, dk, 3);
+    sgn(g, 'FUTURE SUMMIT', 2.2, 0.6, 0, 3.52, 2.44, 0, { bg: '#0e2a4a', fg: '#fff' });
+    Cy(g, 1.0, 1.0, 1.0, 14, wh, 0.2, 0.5, 1.0, 1); Cy(g, 1.1, 1.1, 0.08, 14, dk, 0.2, 1.04, 1.0, 1); cols.push([-0.8, 1.2, 0, 2, 1.1]);
+    rollup(-3.4, 1.9, 'WELCOME', '#3a0e5a'); rollup(3.5, 1.9, 'KEYNOTE', '#0a4a40');
   }
   return size(g, 8, 5, v === 0 ? 4.0 : 4.2, cols);
 }
@@ -537,7 +538,7 @@ export function ledWall(opts = {}) {
 // 6. Supertree
 // =====================================================================
 function stCanopy(g, y0, Rm, H, nRibs, cols3) {
-  const rr = (t) => 0.9 + (Rm - 0.9) * Math.pow(Math.sin(t * Math.PI / 2), 1.15), yy = (t) => y0 + H * t;
+  const rr = (t) => 0.9 + (Rm - 0.9) * Math.pow(Math.sin(t * Math.PI / 2), 0.62), yy = (t) => y0 + H * t;
   const ribs = [], T = [0, 0.25, 0.5, 0.75, 1];
   for (let i = 0; i < nRibs; i++) {
     const a = i / nRibs * Math.PI * 2;
@@ -563,13 +564,13 @@ export function superTree(opts = {}) {
   Cy(g, 1.7, 2.1, 3, 12, tm, 0, 1.5, 0, 5);
   Ms(g, new THREE.CylinderGeometry(4.6, 4.8, 0.08, 20), mat('grass'), 0, 0.04, 0, 1, 1, 1);
   if (!v) {
-    Cy(g, 1.0, 1.6, 24, 12, tm, 0, 15, 0, 5);
-    stCanopy(g, 27, 8.7, 15, 14, cl);
-    Cy(g, 0.05, 0.4, 8, 6, C(0xb8bcc0), 0, 46, 0, 1); Sg(g, glow(NEO), 0, 50.1, 0, 0.3);
+    Cy(g, 1.0, 1.6, 26, 12, tm, 0, 16, 0, 5);
+    stCanopy(g, 29, 8.8, 12, 16, cl);
+    Cy(g, 0.05, 0.4, 9, 6, C(0xb8bcc0), 0, 45.5, 0, 1); Sg(g, glow(NEO), 0, 50.1, 0, 0.3);
   } else {
     Cy(g, 0.9, 1.6, 36, 12, tm, 0, 21, 0, 5);
     Cy(g, 0.5, 0.9, 10, 10, tm, 0, 43, 0, 5);
-    stCanopy(g, 22, 8.6, 11, 14, cl); stCanopy(g, 37, 5.4, 9, 10, [cl[1], cl[2], cl[0]]);
+    stCanopy(g, 22, 8.6, 9, 16, cl); stCanopy(g, 37, 5.4, 8, 12, [cl[1], cl[2], cl[0]]);
     Cy(g, 0.05, 0.3, 4, 6, C(0xb8bcc0), 0, 48, 0, 1); Sg(g, glow(0xff3d9a), 0, 50.1, 0, 0.3);
   }
   return size(g, 18, 18, 50.4, [[-2.0, 2.0, -2.0, 2.0, 50]]);
@@ -613,7 +614,7 @@ export function flowerDome() {
 // 8. ArtScience museum (lotus)
 // =====================================================================
 export function artScienceMuseum() {
-  const g = G(), zc = -5, cols = [], lot = mat('s6sg_lotus'), cap = C(0xdfe6ea);
+  const g = G(), zc = -4, cols = [], lot = mat('s6sg_lotus'), cap = C(0xdfe6ea);
   Cy(g, 9.7, 10, 6, 14, lot, 0, 3, zc, 6); Cy(g, 10.3, 10.3, 0.4, 14, C(0xc9ced0), 0, 6.2, zc, 2);
   Ms(g, new THREE.SphereGeometry(1, 14, 6, 0, Math.PI * 2, 0, Math.PI / 2), glassM(0x9fd0e4, 0.55), 0, 6.4, zc, 6.4, 5, 6.4);
   const petal = (r0, ang, L, tilt, th, hw) => {
@@ -624,8 +625,8 @@ export function artScienceMuseum() {
     const tg = new THREE.ConeGeometry(hw * 0.3, 1.2, 4); tg.rotateY(Math.PI / 4); const tip = new THREE.Mesh(tg, cap); tip.scale.set(th, 1, 1); tip.rotation.z = -tilt;
     tip.position.set(Math.sin(tilt) * (L + 0.5), Math.cos(tilt) * (L + 0.5), 0); piv.add(tip);
   };
-  for (let i = 0; i < 9; i++) petal(7.4, i / 9 * Math.PI * 2 + 0.2, 20, 0.3, 0.38, 2.5);
-  for (let i = 0; i < 6; i++) petal(3.6, i / 6 * Math.PI * 2, 19.2, 0.1, 0.34, 2.0);
+  for (let i = 0; i < 9; i++) petal(7.4, i / 9 * Math.PI * 2 + 0.2, 20, 0.28, 0.5, 3.0);
+  for (let i = 0; i < 6; i++) petal(3.6, i / 6 * Math.PI * 2, 19.2, 0.1, 0.45, 2.3);
   // entrance portal facing +Z, glass lobby
   Bx(g, 8, 4.6, 2.6, glassM(0x7fb8d8, 0.85), 0, 2.3, zc + 10.6, 3); cols.push([-4, 4, zc + 9.3, zc + 11.9, 4.6]);
   Bx(g, 8.8, 0.4, 3.2, cap, 0, 4.8, zc + 10.6, 2);
@@ -712,7 +713,7 @@ export function singaporeFlyer() {
   sgn(g, 'OBSERVATION WHEEL', 8, 0.9, 0, 3.4, 4.36, 0, { bg: '#0e2a4a', fg: '#fff', border: '#00E599' });
   door(g, 2.4, 2.8, -5, 1.4, 4.35, 0, '#4a5a68'); door(g, 2.4, 2.8, 5, 1.4, 4.35, 0, '#4a5a68');
   Cy(g, 0.06, 0.1, 2.4, 5, steel, 0, cy + R_ + 1.6, 0, 1); Sg(g, glow(0xff3030), 0, cy + R_ + 2.9, 0, 0.3, 0.3, 0.3, 0, 0, 0, 6).userData.keep = true;
-  return size(g, 50, 10, 59.5, cols);
+  return size(g, 50, 10, 60.2, cols);
 }
 
 // =====================================================================
@@ -797,7 +798,7 @@ export function hdbBlock(opts = {}) {
   }
   if (arms.length) rods(g, arms, 0.04, C(0x8a6a3a), 3);
   cl.forEach((l, i) => { if (l.length) mg(g, l, C(palette[i])); });
-  return size(g, 50, 14, 40.4);
+  return size(g, 50, 14, 41.6);
 }
 
 // =====================================================================
@@ -865,6 +866,7 @@ export function rafflesHotel() {
   for (let b = 0; b < 11; b++) win(g, 1.3, 2.3, -15 + b * 3, 10.6, -0.93, 0, { c: '#ffffff', lit: b % 4 === 1 });
   for (let b = 0; b < 12; b++) for (const yy of [2.4, 6.6, 10.8]) { win(g, 1.4, 2.4, -16.5 + b * 3, yy, -15.06, Math.PI, { fixed: true, c: '#ffffff' }); }
   for (const s of [-1, 1]) for (let b = 0; b < 4; b++) for (const yy of [2.4, 6.6, 10.8]) { win(g, 1.4, 2.4, s * 22.06, yy, 0.5 + b * 3, s * Math.PI / 2, { fixed: true, c: '#ffffff' }); }
+  for (const s of [-1, 1]) for (const b of [-1, 1]) for (const yy of [2.4, 6.6, 10.8]) win(g, 1.5, 2.5, s * 18 + b * 2, yy, 12.07, 0, { c: '#ffffff', lit: yy > 8 && b > 0 });
   // palm court: lawn, path, fountain, palms, hedges, gate
   Bx(g, 28, 0.08, 15.4, mat('grass'), 0, 0.04, 6.3, 6); Bx(g, 4.4, 0.1, 15.4, mat('s6sg_paver'), 0, 0.06, 6.3, 3);
   Cy(g, 2.4, 2.5, 0.7, 14, C(0xe8e8e0), 0, 0.35, 6.5, 2); Ms(g, new THREE.CircleGeometry(2.1, 14), mat('water'), 0, 0.72, 6.5, 1, 1, 1, -Math.PI / 2);
@@ -941,7 +943,7 @@ export function merlion() {
   const sp = tubeMesh([[0, 9.9, 3.0], [0, 10.6, 3.8], [0, 10.1, 4.5], [0, 7.5, 5.1], [0, 3.0, 5.4], [0, 0.8, 5.5]], 0.17, 18, 5, basicA(0xd8f4ff, 0.75));
   sp.renderOrder = 3; g.add(sp);
   Ms(g, new THREE.TorusGeometry(0.9, 0.08, 4, 14), basicA(0xffffff, 0.7), 0, 0.74, 5.5, 1, 1, 1, Math.PI / 2);
-  Bx(g, 3, 0.8, 0.08, glow(NEO), 0, 0.5, 6.64, 1);
+  Bx(g, 3.6, 0.1, 0.08, glow(NEO), 0, 0.62, 6.64, 1).userData.keep = true;
   return size(g, 14, 14, 14, ellCols(0, 0, 6.7, 6.7, 0.9, 6));
 }
 
@@ -954,7 +956,7 @@ export function helixBridge() {
   const s1 = [], s2 = [], rung = [];
   for (let i = 0; i < N; i++) { s1.push([A[i], A[i + 1]]); s2.push([B[i], B[i + 1]]); }
   for (let i = 0; i <= N; i += 2) rung.push([A[i], B[i]]);
-  rods(g, s1, 0.17, steel, 5); rods(g, s2, 0.17, C(0xc4cacd), 5); rods(g, rung, 0.06, steel, 3);
+  rods(g, s1, 0.26, steel, 5); rods(g, s2, 0.26, C(0xc4cacd), 5); rods(g, rung, 0.06, steel, 3);
   Bx(g, 44, 0.45, 6.4, mat('s6sg_paver'), 0, 2.35, 0, 4);
   for (const s of [-1, 1]) { Bx(g, 44, 0.3, 0.3, C(0x6a747a), 0, 2.7, s * 3.2, 1); Bx(g, 44, 0.5, 0.2, C(0xcfd6d8), 0, 2.0, s * 3.1, 1); }
   const tr = []; for (let i = 0; i < 11; i++) { const x = -20 + i * 4; tr.push([[x, 2.1, -2.8], [x + 2, 1.0, 0]], [[x + 2, 1.0, 0], [x + 4, 2.1, 2.8]], [[x, 2.1, 2.8], [x + 2, 1.0, 0]], [[x + 2, 1.0, 0], [x + 4, 2.1, -2.8]]); }
@@ -997,10 +999,10 @@ export function financeTower(opts = {}) {
     lobby(22, 22, 6, 'TRADE CENTRE');
     const o1 = cylT(8.6, 9.0, 100, 8, glass, 8), o2 = cylT(7.4, 7.8, 76, 8, glass, 8);
     o1.geometry.rotateY(Math.PI / 8); o2.geometry.rotateY(Math.PI / 8);
-    o1.position.set(-3.5, 56, -2.5); o2.position.set(5.0, 44, 3.5); g.add(o1, o2);
-    Cy(g, 9.2, 9.2, 0.8, 8, wh, -3.5, 106.4, -2.5, 3).geometry.rotateY(Math.PI / 8); Cy(g, 8.0, 8.0, 0.8, 8, wh, 5.0, 82.4, 3.5, 3).geometry.rotateY(Math.PI / 8);
-    rods(g, [[[-3.5, 107, -2.5], [-3.5, 112, -2.5]]], 0.12, wh, 4);
-    cols.push([-11.8, 4.8, -10.8, 5.8, 106], [-2, 12.3, -3.3, 10.3, 82]);
+    o1.position.set(-2, 56, -2.5); o2.position.set(3.5, 44, 3.5); g.add(o1, o2);
+    Cy(g, 9.2, 9.2, 0.8, 8, wh, -2, 106.4, -2.5, 3).geometry.rotateY(Math.PI / 8); Cy(g, 8.0, 8.0, 0.8, 8, wh, 3.5, 82.4, 3.5, 3).geometry.rotateY(Math.PI / 8);
+    rods(g, [[[-2, 107, -2.5], [-2, 112, -2.5]]], 0.12, wh, 4);
+    cols.push([-10.3, 6.3, -10.8, 5.8, 106], [-3.7, 10.7, -3.7, 10.7, 82]);
   } else if (v === 2) {
     lobby(22, 22, 6, 'HARBOUR PLAZA');
     Bx(g, 20, 50, 20, glass, 0, 31, 0, 8); Bx(g, 20.8, 0.8, 20.8, wh, 0, 56.4, 0, 2);

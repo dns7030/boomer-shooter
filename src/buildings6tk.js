@@ -664,6 +664,7 @@ export function skytreeTower() {
   Cy(g, 4.6, 4.6, 2.0, 12, white, 0, 126, 0, 4); Cy(g, 4.8, 4.8, 2.6, 12, glow(0x9fe0ff), 0, 128.2, 0, 4); Cy(g, 4.6, 3.0, 2.0, 12, white, 0, 130.5, 0, 4);
   Cy(g, 1.4, 2.4, 40, 8, white, 0, 152, 0, 6); Cy(g, 0.25, 1.4, 28, 6, C(0xd8d8e0, 0x404048), 0, 186, 0, 6);
   Ms(g, SPH(6, 4), glow(0xff2a2a), 0, 200, 0, 0.5);
+  for (const [x, , z] of ring(0, 11)) Bx(g, 2.6, 1.0, 2.6, mat('s6tk_conc'), x, 0.5, z, 3);
   const cols = ring(0, 10.5).map(([x, , z]) => [x - 1.8, x + 1.8, z - 1.8, z + 1.8, 24]);
   return size(g, 24, 24, 200, cols);
 }
@@ -867,7 +868,7 @@ export function godzillaHotel() {
     Ms(H, new THREE.BoxGeometry(1.8, 0.45, 1.8), skin, s * 2.2, 1.7, 3.0, 1, 1, 1, 0.2, 0, s * -0.25);   // brow ridge
     Sg(H, C(0x161a18), s * 0.8, -0.1, 7.8, 0.28, 0.22, 0.3, 6);
   }
-  for (let i = 0; i < 7; i++) { const z = -2.5 - i * 1.1, y = 2.6 + i * 0.1 - 1.0; Ms(H, new THREE.ConeGeometry(0.9 - i * 0.05, 2.6 - i * 0.1, 5), dorsal, 0, y + 2.2 - i * 0.4, z, 1, 1, 1, -0.5, 0, 0); }
+  for (let i = 0; i < 7; i++) { const z = -2.5 - i * 0.8, y = 2.6 + i * 0.1 - 1.0; Ms(H, new THREE.ConeGeometry(0.9 - i * 0.05, 2.6 - i * 0.1, 5), dorsal, 0, y + 2.2 - i * 0.4, z, 1, 1, 1, -0.5, 0, 0); }
   Cy(H, 3.0, 3.6, 10, 10, skin, 0, -4.5, -3.5, 4).rotation.x = -0.45;         // neck sloping back down into the roof
   H.position.set(-3, 43.6, -0.4); H.rotation.x = 0.12; H.scale.setScalar(1.3); g.add(H);
   Bx(g, 9, 3.2, 6, C(0x4a4640), -3, 38.6 + 0.2, 0.0, 3);                     // pedestal box under the neck (hidden mostly)

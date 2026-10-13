@@ -79,7 +79,7 @@ export function buildCity(scene, S) {
 
   // ---- the Neo tower ----
   const B = S.base, tower = S.tower();
-  put(tower, B.x, B.z, 'S', {});
+  put(tower, B.x, B.z, B.f || 'S', {});
   const tr = tower.userData.rect;
   const baseRect = { x0: B.x - tr.w / 2, x1: B.x + tr.w / 2, z0: B.z - tr.d / 2, z1: B.z + tr.d / 2 };
 
