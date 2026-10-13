@@ -23,6 +23,7 @@ export function tiledPlane(w, h, u, v, material, x, y, z) {
 }
 const signMats = {};
 export function sign(text, w, h, opts = {}) {
+  if (globalThis.__noCyrillic && /[\u0400-\u04FF]/.test(text)) return new THREE.Group();   // Neo game: no Russian signs/banners at all
   const key = `${text}|${opts.bg || ''}|${opts.fg || ''}`;
   if (!signMats[key]) signMats[key] = new THREE.MeshBasicMaterial({ map: textTexture(text, 512, Math.max(32, Math.round((512 * h) / w)), { font: `bold ${Math.round((512 * h) / w * 0.62)}px Arial, Helvetica, sans-serif`, ...opts }) });
   return new THREE.Mesh(new THREE.PlaneGeometry(w, h), signMats[key]);

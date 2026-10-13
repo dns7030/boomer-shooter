@@ -286,6 +286,7 @@ export function stadium() {
     wins(g, f, at, wu, [4.5, 10, 15], { sx: 1.5, sy: 2.3, lit: (u, y) => ((u * 3 + y) | 0) % 7 === 0 });
     const bu = zf ? [24.5, 38.5] : [24.5];
     for (const u of bu) for (const s of [-1, 1]) {
+      if (globalThis.__noCyrillic) continue;   // Neo game: no red star banners
       const bn = new THREE.Mesh(new THREE.PlaneGeometry(3, 9), banner);
       if (zf) bn.position.set(s * u, 11, at + sgn * 1.0); else { bn.position.set(at + sgn * 1.0, 11, s * u); bn.rotation.y = Math.PI / 2; }
       if (f === '-z') bn.rotation.y = Math.PI; g.add(bn);

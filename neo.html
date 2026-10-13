@@ -76,6 +76,7 @@
 </div>
 <script>
   // Neo game: no Russian-language signs anywhere, so players must read the city from its architecture
+  globalThis.__noCyrillic = true;
   (() => {
     const cyr = /[\u0400-\u04FF]/, P = CanvasRenderingContext2D.prototype;
     for (const fn of ['fillText', 'strokeText']) { const o = P[fn]; P[fn] = function (t, ...a) { if (cyr.test(String(t))) return; return o.call(this, t, ...a); }; }
