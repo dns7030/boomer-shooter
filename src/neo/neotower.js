@@ -89,10 +89,11 @@ export function makeNeoTower({ w, d, h, rectPad = 2, build }) {
 // ---------- Moscow: a Stalinist stepped tower with green-glass strips, a glowing crown and a halo ----------
 export function neoTowerMoscow() {
   return makeNeoTower({
-    w: 30, d: 30, h: 66,
+    w: 30, d: 30, h: 66, rectPad: 3,
     build(T) {
       const conc = mat('concrete'), stalin = mat('stalin');
       // plinth + steps
+      T.cols.push([-15, 15, -15, 15, 66], [-18, 18, -18, 18, 2.2]);
       T.add(boxT(36, 1.2, 36, mat('granite'), 3)).position.set(0, 0.6, 0);
       T.add(boxT(33, 0.8, 33, mat('granite'), 3)).position.set(0, 1.6, 0);
       const tiers = [{ w: 30, d: 30, h: 26 }, { w: 22, d: 22, h: 16 }, { w: 15, d: 15, h: 12 }];
@@ -102,7 +103,6 @@ export function neoTowerMoscow() {
         T.add(place(boxT(t.w + 1.4, 1.0, t.d + 1.4, conc, 2), 0, y + t.h + 0.5, 0));
         // glowing green glass strips on the corners and the middle of each face
         for (const sx of [-1, 1]) for (const sz of [-1, 1]) T.add(place(new THREE.Mesh(new THREE.BoxGeometry(0.9, t.h - 1.5, 0.9), T.glow), sx * t.w / 2, y + t.h / 2, sz * t.d / 2));
-        for (const [ax, az, rw, rd] of [[0, 1, t.w * 0.5, 0.5], [0, -1, t.w * 0.5, 0.5], [1, 0, 0.5, t.d * 0.5], [-1, 0, 0.5, t.d * 0.5]]) T.add(place(new THREE.Mesh(new THREE.BoxGeometry(rw, t.h - 3, rd), T.glow), ax * (t.w / 2 + 0.05), y + t.h / 2, az * (t.d / 2 + 0.05)));
         y += t.h + 1.0;
       });
       // the crown: spire, orb and halo ring (tilts and breaks apart as the node is hurt)
@@ -128,9 +128,10 @@ export function neoTowerMoscow() {
 // ---------- Dubai: a twisting golden-glass spire in the Burj tradition, ringed with green light ----------
 export function neoTowerDubai() {
   return makeNeoTower({
-    w: 26, d: 26, h: 90,
+    w: 26, d: 26, h: 90, rectPad: 3,
     build(T) {
       const gold = mat('s5d_goldclad'), glass = mat('s5d_glass');
+      T.cols.push([-13, 13, -13, 13, 90], [-16, 16, -16, 16, 1.9]);
       T.add(boxT(32, 1.0, 32, mat('s5d_sandstone'), 3)).position.set(0, 0.5, 0);
       T.add(boxT(29, 0.8, 29, mat('s5d_sandstone'), 3)).position.set(0, 1.4, 0);
       let y = 1.8;
