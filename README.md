@@ -129,6 +129,6 @@ all three waves, and writes screenshots. It cannot judge game feel — playtest 
 
 ## Neo community game (`neo.html`)
 
-A second game on the same engine: defend the glowing green **Neo node** (a landmark tower in each city) from lizards.
-About 40% of lizards attack the node, the rest hunt you; node uptime never repairs and the chain halts at zero.
+A second game on the same engine: defend the glowing green **Neo** tower (a landmark tower in each city) from lizards.
+About 40% of lizards attack the node, the rest hunt you; Neo blockchain health never repairs and the chain halts at zero.
 Levels (`src/neo/`): Moscow, Seattle, Dubai. Health pickups are **NEO** and **GAS**. Check with `node tests/neo.mjs <outdir> <level>` and `node tests/neo_fail.mjs`.

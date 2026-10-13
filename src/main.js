@@ -58,8 +58,8 @@ function showOverlay(s) {
   renderLevels(s !== 'paused' && s !== 'playing');
   renderSettings();
   if (music) music.setMode(s === 'playing' ? 'play' : s === 'paused' ? 'pause' : s === 'won' ? 'win' : s === 'dead' ? 'dead' : 'pause');
-  if (s === 'paused') { title.textContent = 'PAUSED'; body.textContent = 'Click to resume.'; btn.textContent = 'RESUME'; }
-  else if (s === 'dead' && game.failReason === 'chain') { title.textContent = 'THE CHAIN HAS HALTED'; body.textContent = `The Neo node went offline. Lizards slain: ${game.stats.kills}.`; btn.textContent = 'TRY AGAIN'; }
+  if (s === 'paused') { title.textContent = 'PAUSED'; body.textContent = 'Press ESC or click to resume.  (P = developer freeze)'; btn.textContent = 'RESUME'; }
+  else if (s === 'dead' && game.failReason === 'chain') { title.textContent = 'THE CHAIN HAS HALTED'; body.textContent = `Neo went offline. Lizards slain: ${game.stats.kills}.`; btn.textContent = 'TRY AGAIN'; }
   else if (s === 'dead') { title.textContent = 'YOU DIED'; body.textContent = `Lizards slain: ${game.stats.kills}. The invaders win this round.`; btn.textContent = 'TRY AGAIN'; }
   else if (s === 'won') {
     const t = Math.round(game.stats.time);
@@ -100,6 +100,8 @@ window.addEventListener('keydown', (e) => {
   game.keys.add(e.code);
   if (game.state === 'playing' && /^Digit[1-9]$/.test(e.code)) game.selectSlot(Number(e.code.slice(5)));
   if (game.state === 'playing' && e.code === 'KeyQ') game.cycleWeapon(-1);
+  if (e.code === 'Escape' && game.state === 'paused') start();
+  if (e.code === 'KeyP' && game.state === 'playing') game.setMessage((game.freeze = !game.freeze) ? 'DEV MODE: LIZARDS FROZEN  (P)' : 'DEV MODE OFF', 2);
   if (e.code === 'KeyG') { game.setMessage(`GRAPHICS: ${game.cycleQuality()}`, 2); renderSettings(); }
   if (e.code === 'KeyL') { game.setMessage(`LIZARDS: ${game.toggleLizStyle()}`, 2); renderSettings(); }
   if (e.code === 'KeyM' && music) game.setMessage(music.toggleMute() ? 'MUSIC OFF' : 'MUSIC ON', 1.5);

@@ -119,7 +119,7 @@ export function neoTowerMoscow() {
       // entrance (faces +Z): a bright green gate and the sign
       T.add(place(new THREE.Mesh(new THREE.BoxGeometry(7, 9, 0.5), T.glow), 0, 6.5, 15.2));
       T.add(place(new THREE.Mesh(new THREE.BoxGeometry(5.4, 7.6, 0.6), color(0x04261c)), 0, 5.8, 15.25));
-      const sg = sign('N E O  N O D E', 16, 1.6, { bg: '#04261c', fg: '#00e599' }); sg.position.set(0, 12.8, 15.3); T.add(sg);
+      const sg = sign('N E O', 16, 1.6, { bg: '#04261c', fg: '#00e599' }); sg.position.set(0, 12.8, 15.3); T.add(sg);
       T.smoke(-8, 20, 15.5); T.smoke(9, 28, -9); T.smoke(0, 52, 5);
     },
   });
@@ -152,7 +152,7 @@ export function neoTowerDubai() {
       beam.position.set(0, y + 85, 0); T.add(beam, { hideAt: 3 });
       T.add(place(new THREE.Mesh(new THREE.BoxGeometry(7, 9, 0.5), T.glow), 0, 6.5, 13.2));
       T.add(place(new THREE.Mesh(new THREE.BoxGeometry(5.4, 7.6, 0.6), color(0x04261c)), 0, 5.8, 13.25));
-      const sg = sign('N E O  N O D E', 16, 1.6, { bg: '#04261c', fg: '#00e599' }); sg.position.set(0, 12.8, 13.3); T.add(sg);
+      const sg = sign('N E O', 16, 1.6, { bg: '#04261c', fg: '#00e599' }); sg.position.set(0, 12.8, 13.3); T.add(sg);
       T.smoke(-8, 18, 13.5); T.smoke(9, 30, -9); T.smoke(0, 60, 5);
     },
   });
@@ -183,7 +183,7 @@ export function neoTowerSeattle() {
       beam.position.set(0, 170, 0); T.add(beam, { hideAt: 3 });
       T.add(place(new THREE.Mesh(new THREE.BoxGeometry(6, 7, 0.5), T.glow), 0, 4.5, 3.3));
       T.add(place(new THREE.Mesh(new THREE.BoxGeometry(4.6, 6.2, 0.6), color(0x04261c)), 0, 4, 3.35));
-      const sg = sign('N E O  N O D E', 16, 1.6, { bg: '#04261c', fg: '#00e599' }); sg.position.set(0, 9.5, 3.4); T.add(sg);
+      const sg = sign('N E O', 16, 1.6, { bg: '#04261c', fg: '#00e599' }); sg.position.set(0, 9.5, 3.4); T.add(sg);
       T.smoke(-3, 20, 3); T.smoke(3, 40, -3); T.smoke(0, 62, 5);
     },
   });

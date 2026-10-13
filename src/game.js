@@ -1196,7 +1196,7 @@ export class Game {
     sfx.explosion(); this.p.kick += 0.12;
     this.flash((r.x0 + r.x1) / 2, 6, (r.z0 + r.z1) / 2, 0x00e599, 260, 0.6);
     for (let k = 0; k < 14; k++) { const px = r.x0 + Math.random() * (r.x1 - r.x0), pz = r.z0 + Math.random() * (r.z1 - r.z0); this.debris.spawn('brick', px, 4 + Math.random() * 8, pz, (Math.random() - 0.5) * 6, 2 + Math.random() * 4, (Math.random() - 0.5) * 6, 1.4); this.burst(px, 3 + Math.random() * 6, pz, 'smoke', 2, 3, 0.4); }
-    this.setMessage(`NODE UPTIME ${Math.round((1 - stage * 0.2) * 100)}%`, 3);
+    this.setMessage(`NEO BLOCKCHAIN HEALTH ${Math.round((1 - stage * 0.2) * 100)}%`, 3);
   }
   baseFail() {
     const b = this.base; b.alive = false; b.hp = 0;
@@ -1349,11 +1349,13 @@ export class Game {
     this.time += dt;
     this.updatePlayer(dt);
     this.updateWeapon(dt);
-    this.updateWaves(dt);
-    this.updateEnemies(dt);
-    this.updateProjectiles(dt);
-    this.updateEggs(dt);
-    this.updateBase(dt);
+    if (!this.freeze) {   // developer mode (P): lizards, their shots and the node attacks all stand still
+      this.updateWaves(dt);
+      this.updateEnemies(dt);
+      this.updateProjectiles(dt);
+      this.updateEggs(dt);
+      this.updateBase(dt);
+    }
     this.updatePShots(dt);
     this.updateFx(dt);
     this.updateLights(dt);
@@ -1448,7 +1450,7 @@ export class Game {
     set(u.wave, wv);
     if (u.uptime) {
       const bs = this.base; u.uptime.style.display = bs ? 'block' : 'none';
-      if (bs) { const pc = Math.max(0, Math.round((bs.hp / bs.maxHp) * 100)); u.uptimeBar.style.width = `${pc}%`; u.uptimeBar.style.background = pc > 50 ? '#00e599' : pc > 25 ? '#e8c030' : '#e0453a'; set(u.uptimeLabel, `NODE UPTIME ${pc}%`); }
+      if (bs) { const pc = Math.max(0, Math.round((bs.hp / bs.maxHp) * 100)); u.uptimeBar.style.width = `${pc}%`; u.uptimeBar.style.background = pc > 50 ? '#00e599' : pc > 25 ? '#e8c030' : '#e0453a'; set(u.uptimeLabel, `NEO BLOCKCHAIN HEALTH ${pc}%`); }
     }
     if (u.boss) {
       const boss = this.enemies.find((e) => e.cfg.boss && ALIVE.has(e.state));

@@ -7,7 +7,7 @@ import { resetWindows, getWindows } from '../geo.js';
 const withWindows = (build) => (scene) => { resetWindows(); const L = build(scene); L.windows = getWindows(); return L; };
 
 export const NEO_LEVELS = [
-  { id: 'moscow', name: 'Moscow', era: 'Stalinist skyline — defend the Neo node', track: 0, build: withWindows(buildNeoMoscow) },
-  { id: 'seattle', name: 'Seattle', era: 'Rainy grey city — defend the Neo node', track: 2, build: withWindows(buildNeoSeattle) },
-  { id: 'dubai', name: 'Dubai', era: 'Golden desert metropolis — defend the Neo node', track: 1, build: withWindows(buildNeoDubai) },
+  { id: 'moscow', name: 'Moscow', era: 'Stalinist skyline — defend Neo', track: 0, build: withWindows(buildNeoMoscow) },
+  { id: 'seattle', name: 'Seattle', era: 'Rainy grey city — defend Neo', track: 2, build: withWindows(buildNeoSeattle) },
+  { id: 'dubai', name: 'Dubai', era: 'Golden desert metropolis — defend Neo', track: 1, build: withWindows(buildNeoDubai) },
 ];

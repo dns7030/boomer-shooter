@@ -167,6 +167,6 @@ export function buildNeoMoscow(scene) {
     ],
     start: { x: 0, z: 34, yaw: 0 }, startWeapons: ['sabre', 'pistol', 'shotgun'],
     spawnRange: [28, 100], maxAlive: 14, range: 300,
-    intro: 'PROTECT THE NEO NODE — KEEP ITS UPTIME ABOVE ZERO',
+    intro: 'PROTECT NEO — KEEP ITS BLOCKCHAIN HEALTH ABOVE ZERO',
   };
 }
