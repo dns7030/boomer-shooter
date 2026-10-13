@@ -137,6 +137,7 @@ export class Game {
     this.scene = new THREE.Scene();
     this.scene.add(this.camera);
     this.level = this.levels[i].build(this.scene);
+    this.indexSurfaces();
     this.boxes = this.level.boxes;
     this.ensureAtlas(this.level.enemyTypes || ['grunt', 'spitter']);
     this.nav = this.level.navBounds ? new Nav(this.boxes, this.level.navBounds) : null;
@@ -619,7 +620,7 @@ export class Game {
     this.burst(pt.x - d.x * 0.1, pt.y, pt.z - d.z * 0.1, 'dust', 2, 2.2, 0.08);
     if (!hit.n) return;
     this.sparks(pt.x, pt.y, pt.z, hit.ground ? 2 : 3, 4, hit.n.x, hit.n.y, hit.n.z);
-    if (mark && !hit.invisible) this.decals.add('bullet', pt, hit.n, 0.16 + Math.random() * 0.08);
+    if (mark && !hit.invisible) this.markAlong('bullet', pt, d, 0.16 + Math.random() * 0.08);
     this.shatterWindowsNear(pt, 0.9);
     this.hitProps(pt, dmg);
   }
@@ -685,7 +686,7 @@ export class Game {
     this.scene.add(mesh);
     this.fx.push({ obj: mesh, t: 0.4, dur: 0.4, kind: 'beam' });
     for (let i = 0; i < 14; i++) { const q = a.clone().lerp(end, Math.random()); this.emit(q.x, q.y, q.z, 'blue', (Math.random() - 0.5) * 2, Math.random() * 2, (Math.random() - 0.5) * 2, 0.4, 0.08, 0); }
-    if (wall < 200) { this.burst(end.x, end.y, end.z, 'blue', 8, 4, 0.12); this.sparks(end.x, end.y, end.z, 14, 7, 0, 0.4, 0); const h = this.hitscan(eye, dir, 200); if (h.n && !h.invisible) this.decals.add('scorch', end, h.n, 1.3); }
+    if (wall < 200) { this.burst(end.x, end.y, end.z, 'blue', 8, 4, 0.12); this.sparks(end.x, end.y, end.z, 14, 7, 0, 0.4, 0); const h = this.hitscan(eye, dir, 200); if (h.n && !h.invisible) this.markAlong('scorch', end, dir, 1.3); }
     this.flash(a.x + dir.x * 3, a.y + dir.y * 3, a.z + dir.z * 3, 0x7ad0ff, 90, 0.18);
   }
 
@@ -700,8 +701,8 @@ export class Game {
     if (tint === 'boom') for (let i = 0; i < 12; i++) this.emit(x + (Math.random() - 0.5), y + 0.4, z + (Math.random() - 0.5), 'smoke', (Math.random() - 0.5) * R, 1 + Math.random() * 2, (Math.random() - 0.5) * R, 1.4 + Math.random() * 0.7, 1.0 + Math.random() * 0.7, -0.5);
     this.flash(x, y + 0.6, z, tint === 'boomBlue' ? 0x70b8ff : tint === 'boomGreen' ? 0x70ff90 : 0xffa040, tint === 'boomBlue' ? 110 : 300, 0.45);
     // scorch marks on the ground and on the wall that was hit
-    if (y < R * 1.2) this.decals.add('scorch', { x, y: 0, z }, { x: 0, y: 1, z: 0 }, Math.min(8, R * 1.7));
-    if (wall && !wall.invisible) this.decals.add('scorch', wall.pt, wall.n, Math.min(6, R * 1.3));
+    if (y < R * 1.2) this.markGround('scorch', x, y + 0.5, z, Math.min(8, R * 1.7), R * 1.3 + 1.5);
+    this.markWall('scorch', x, y + 0.4, z, R * 1.3 + 0.5, Math.min(6, R * 1.3));
     this.p.kick += Math.max(0, 0.06 * (1 - Math.hypot(x - this.p.x, z - this.p.z) / (R * 5)));
     for (const e of this.enemies) {
       if (!ALIVE.has(e.state) && (e.state === 'dying' || e.state === 'dead')) {   // corpses get flung about
@@ -720,6 +721,46 @@ export class Game {
     this.shatterWindowsNear({ x, y, z }, R * 1.5);
     const dp = Math.hypot(this.p.x - x, this.p.y + 1 - y, this.p.z - z);
     if (dp < R && tint !== 'boomBlue') this.hurt(Math.min(35, dmg * 0.25 * (1 - dp / R)));
+  }
+
+  // ---- real-surface decal placement: rays against the visible meshes (not the simplified colliders) ----
+  indexSurfaces() {
+    this.surfaces = []; this._ray = new THREE.Raycaster();
+    this.scene.updateMatrixWorld(true);
+    this.scene.traverse((o) => {
+      if (!o.isMesh || o.isInstancedMesh || !o.geometry || (o.material && o.material.side === THREE.BackSide)) return;   // skip sky, trees (instanced)
+      const b = new THREE.Box3().setFromObject(o);
+      if (isFinite(b.min.x) && b.max.y > -0.5) this.surfaces.push({ o, b });
+    });
+  }
+  // nearest visible surface along a ray: { pt, n (facing the ray origin), dist } or null
+  surfaceRay(o, d, far) {
+    const ray = this._ray, tmp = this._tmp || (this._tmp = new THREE.Vector3());
+    ray.set(o, d); ray.near = 0; ray.far = far;
+    const cand = [];
+    for (const s of this.surfaces) { if (s.b.containsPoint(o) || (ray.ray.intersectBox(s.b, tmp) && tmp.distanceTo(o) <= far + 0.05)) cand.push(s.o); }
+    if (!cand.length) return null;
+    const h = ray.intersectObjects(cand, false)[0];
+    if (!h || !h.face) return null;
+    const n = h.face.normal.clone().transformDirection(h.object.matrixWorld);
+    if (n.dot(d) > 0) n.negate();
+    return { pt: h.point, n, dist: h.distance };
+  }
+  markGround(kind, x, yTop, z, size, depth = 2) {
+    const h = this.surfaceRay(new THREE.Vector3(x, yTop, z), new THREE.Vector3(0, -1, 0), depth);
+    if (h && h.n.y > 0.6) this.decals.add(kind, h.pt, h.n, size);
+  }
+  markWall(kind, x, y, z, reach, size) {
+    let best = null;
+    for (let k = 0; k < 8; k++) {
+      const a = (k / 8) * Math.PI * 2, h = this.surfaceRay(new THREE.Vector3(x, y, z), new THREE.Vector3(Math.cos(a), 0, Math.sin(a)), reach);
+      if (h && Math.abs(h.n.y) < 0.5 && (!best || h.dist < best.dist)) best = h;
+    }
+    if (best) this.decals.add(kind, best.pt, best.n, size);
+  }
+  markAlong(kind, pt, d, size) {
+    const h = this.surfaceRay(new THREE.Vector3(pt.x - d.x * 0.5, pt.y - d.y * 0.5, pt.z - d.z * 0.5), d, 1.3);
+    if (h) this.decals.add(kind, h.pt, h.n, size);
   }
 
   // which face of a collider is (x,z) closest to? (for putting a scorch on the wall a rocket hit)
@@ -921,7 +962,7 @@ export class Game {
     }
     if (crit && this.time > (this.critMsgT || 0)) { this.critMsgT = this.time + 3; this.setMessage('WEAK SPOT!', 1.2); }
     if (dir && !blocked && !cfg.boss) this.knock(e, dir.x, dir.z, Math.min(5, dmg * 0.09));
-    if (!quiet && !blocked && Math.random() < 0.55) this.decals.add('blood', { x: e.x + (Math.random() - 0.5) * 1.4, y: 0, z: e.z + (Math.random() - 0.5) * 1.4 }, { x: 0, y: 1, z: 0 }, 0.45 + Math.random() * 0.6);
+    if (!quiet && !blocked && Math.random() < 0.55) this.markGround('blood', e.x + (Math.random() - 0.5) * 1.4, (e.y || 0) + 1, e.z + (Math.random() - 0.5) * 1.4, 0.45 + Math.random() * 0.6, (e.y || 0) + 2.5);
     if (!blocked) this.burst(pt.x, pt.y, pt.z, quiet ? 'fire' : crit ? 'fire' : 'green', quiet ? 2 : 5, 3.2, 0.12);
     if (!quiet && !blocked) sfx.hit();
     if (e.state === 'perch') this.wakeGargoyle(e);
@@ -936,8 +977,8 @@ export class Game {
     const wasIced = e.frozen > 0;
     e.state = 'dying'; e.deadT = 0; this.stats.kills++; sfx.lizardDie();
     if (wasIced) { sfx.glass(); for (let k = 0; k < 14; k++) this.debris.spawn('glass', e.x + (Math.random() - 0.5), e.y + 0.3 + Math.random() * 1.8, e.z + (Math.random() - 0.5), (Math.random() - 0.5) * 7, 2 + Math.random() * 4, (Math.random() - 0.5) * 7, 1); this.burst(e.x, e.y + 1.2, e.z, 'blue', 12, 4, 0.14); }
-    this.decals.add('blood', { x: e.x, y: 0, z: e.z }, { x: 0, y: 1, z: 0 }, 1.7 + Math.random() * 0.8);
-    for (let k = 0; k < 3; k++) this.decals.add('blood', { x: e.x + (Math.random() - 0.5) * 2.6, y: 0, z: e.z + (Math.random() - 0.5) * 2.6 }, { x: 0, y: 1, z: 0 }, 0.5 + Math.random() * 0.7);
+    this.markGround('blood', e.x, (e.y || 0) + 1, e.z, 1.7 + Math.random() * 0.8, (e.y || 0) + 2.5);
+    for (let k = 0; k < 3; k++) this.markGround('blood', e.x + (Math.random() - 0.5) * 2.6, (e.y || 0) + 1, e.z + (Math.random() - 0.5) * 2.6, 0.5 + Math.random() * 0.7, (e.y || 0) + 2.5);
     this.burst(e.x, 1.2 + e.y, e.z, 'green', 14, 4.5, 0.16);
     e.shadow.visible = false;
     e.cvy = e.cfg.boss ? 0 : 2.8 + Math.random() * 1.5; e.spin = (Math.random() < 0.5 ? -1 : 1) * (4 + Math.random() * 4);
@@ -1230,7 +1271,7 @@ export class Game {
     const sp = new THREE.Sprite(this.shotMats.boom.clone()); sp.position.set(e.x, 0.6, e.z); sp.scale.setScalar(3); this.scene.add(sp);
     this.fx.push({ obj: sp, t: 0.55, dur: 0.55, kind: 'boom', size: 22 });
     for (let k = 0; k < 22; k++) { const a = (k / 22) * Math.PI * 2; this.emit(e.x + Math.cos(a) * 2.5, 0.4, e.z + Math.sin(a) * 2.5, 'smoke', Math.cos(a) * 9, 1.2, Math.sin(a) * 9, 0.9, 1.0, -0.5); }
-    this.decals.add('scorch', { x: e.x, y: 0, z: e.z }, { x: 0, y: 1, z: 0 }, 6);
+    this.markGround('scorch', e.x, (e.y || 0) + 1, e.z, 6, (e.y || 0) + 2.5);
     this.shatterWindowsNear({ x: e.x, y: 1, z: e.z }, 16);
     for (const o of this.enemies) if (o !== e && !ALIVE.has(o.state) && Math.hypot(o.x - e.x, o.z - e.z) < 12) { this.knock(o, o.x - e.x, o.z - e.z, 9); o.cvy = 5; o.spin = 8; }
     if (d < 11 && p.y < 0.9) this.hurt(Math.round(32 * (1 - d / 13)) + 4);
