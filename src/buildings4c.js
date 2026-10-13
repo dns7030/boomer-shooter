@@ -561,7 +561,7 @@ export function leninStatue() {
   const g = G(), gran = mat('granite'), br = color(0x62634f), br2 = color(0x74755f);
   B(g, 5.6, 0.5, 5.6, gran, 0, 0.25, 0, 3); B(g, 4.8, 0.5, 4.8, gran, 0, 0.75, 0, 3); B(g, 3.6, 3.2, 3.6, gran, 0, 2.6, 0, 3); B(g, 4.2, 0.4, 4.2, gran, 0, 4.4, 0, 3);
   { const s = sign('В. И. ЛЕНИН', 3, 0.7, { bg: '#c9a640', fg: '#2a2418', border: '#2a2418' }); s.position.set(0, 2.8, 1.82); g.add(s); }
-  { const s = sign('1870 · 1924', 2.4, 0.5, { bg: '#c9a640', fg: '#2a2418', border: '#2a2418' }); s.position.set(0, 2.8, -1.82); s.rotation.y = Math.PI; g.add(s); }
+  if (!globalThis.__noCyrillic) { const s = sign('1870 · 1924', 2.4, 0.5, { bg: '#c9a640', fg: '#2a2418', border: '#2a2418' }); s.position.set(0, 2.8, -1.82); s.rotation.y = Math.PI; g.add(s); }
   const y = 4.6;
   C(g, 0.55, 0.62, 1.2, 8, br, -0.2, y + 0.6, 0, 1); C(g, 0.55, 0.62, 1.2, 8, br, 0.25, y + 0.6, 0.05, 1);
   C(g, 0.9, 1.0, 2.6, 10, br2, 0, y + 2.1, 0, 2);                       // coat

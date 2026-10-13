@@ -49,16 +49,16 @@ export function buildNeoMoscow(scene) {
   const add = (name, g, x, z, f, o = {}) => { put(g, x, z, f, o); bld[name] = { g, x, z, f, s: o.s || 1 }; return g; };
   add('sisters', I.sevenSisters(), -64, -68, 'S', { s: 0.6 });
   add('school', A.school(), -66, -33, 'S', { s: 0.7 });
-  add('kindergarten', A.kindergarten(), -100, -45, 'E', { s: 0.8 });
+  add('kindergarten', A.kindergarten(), -100, -36, 'E', { s: 0.8 });
   add('vdnkh', I.vdnkhPavilion(), 66, -68, 'S', { s: 0.6 });
-  add('stalinka', A.stalinka(), 80, -32, 'S', { s: 0.6 });
+  add('stalinka', A.stalinka(), 80, -28, 'S', { s: 0.6 });
   add('workerKolkhoz', C.workerKolkhozWoman(), 0, -60, 'S', { s: 0.8 });
   add('culture', I.palaceOfCultureHall(), -64, 68, 'N', { s: 0.6 });
   add('univermag', B2.univermag({ w: 60, d: 24 }), -66, 30, 'N', { s: 0.8, size: { w: 60, d: 24, h: 23 } });
   add('metro', B2.metro(), -100, 26, 'N', { s: 0.8, size: { w: 25, d: 18, h: 15 } });
   add('planetarium', A.planetarium(), -100, 56, 'S', { s: 0.6 });
-  add('stadium', BB.stadium(), 72, 66, 'N', { s: 0.4 });
-  add('matenadaran', BB.matenadaran(), 96, 28, 'W', { s: 0.6 });
+  add('stadium', BB.stadium(), 72, 68, 'N', { s: 0.4 });
+  add('matenadaran', BB.matenadaran(), 96, 20, 'W', { s: 0.6 });
   add('workersClub', B2.workersClub(), 56, 28, 'N', { s: 0.8, size: { w: 39, d: 22, h: 25 } });
   add('sanatorium', C.sanatorium(), 4, 70, 'N', { s: 0.5 });
 
@@ -77,7 +77,8 @@ export function buildNeoMoscow(scene) {
   const pg = (x, z) => { const g = C.playground(); g.position.set(x, 0, z); scene.add(g); box(x - 4, x + 4, z - 4, z + 4, 2.2); };
   pg(-100, -75); pg(100, 75);
   for (const [x, z] of [[-20, -60], [20, -60], [-12, 58], [12, 58]]) { const f = C.flowerBed(); f.position.set(x, 0, z); scene.add(f); box(x - 2.8, x + 2.8, z - 2.8, z + 2.8, 0.9); }
-  { const l = C.leninStatue(); l.position.set(0, 0, 44); scene.add(l); box(-2, 2, 42, 46, 6); }
+  { const l = C.leninStatue(); l.position.set(0, 0, 44); l.rotation.y = Math.PI;   // faces the Neo tower
+   scene.add(l); box(-2, 2, 42, 46, 6); }
   const trees = [];
   for (const sx of [-1, 1]) for (let z = ZN + 6; z < ZS; z += 10) { trees.push([sx * 12.8 + (rnd() - 0.5), z + rnd() * 3]); }
   for (let x = X0 + 6; x < X1; x += 10) { trees.push([x + rnd() * 3, -12.8]); trees.push([x + rnd() * 3, 12.8]); }

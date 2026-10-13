@@ -461,7 +461,12 @@ export class Game {
   collect(type) {
     const p = this.p;
     if (type === 'kvass') { if (p.health >= 100) return false; p.health = Math.min(100, p.health + 30); this.setMessage('KVASS  +30 HEALTH'); return true; }
-    if (type === 'neo' || type === 'gas') { if (p.health >= 100) return false; p.health = Math.min(100, p.health + 30); this.setMessage(`${type.toUpperCase()}  +30 HEALTH`); return true; }
+    if (type === 'gas') {   // GAS: +5% of the maximum for every ammo type of the weapons you carry
+      const kinds = [...new Set(WEAPONS.filter((w) => p.has[w.id] && w.ammo).map((w) => w.ammo))];
+      let any = false; for (const k of kinds) if (this.addAmmo(k, Math.ceil(AMMO[k].max * 0.05))) any = true;
+      if (!any) return false; this.setMessage('GAS  +5% AMMO', 2); return true;
+    }
+    if (type === 'neo') { if (p.health >= 100) return false; p.health = Math.min(100, p.health + 30); this.setMessage('NEO  +30 HEALTH'); return true; }
     const ammoPickups = {
       powder: ['bullets', 24, 'POWDER KEG  +24 BULLETS'], shot: ['shells', 6, 'SHOT POUCH  +6 SHELLS'],
       rockets: ['rockets', 4, 'ROCKET CRATE  +4 ROCKETS'], cells: ['cells', 30, 'ENERGY CELL  +30'], fuel: ['fuel', 60, 'FUEL CAN  +60'],
@@ -1350,6 +1355,11 @@ export class Game {
     this.time += dt;
     this.updatePlayer(dt);
     this.updateWeapon(dt);
+    if (this.freeze) {   // developer mode: show where you are and the nearest building, so problems can be reported precisely
+      const lay = this.level.layout || []; let best = null, bd = 1e9;
+      for (const b of lay) { const d = Math.hypot(b.x - this.p.x, b.z - this.p.z); if (d < bd) { bd = d; best = b; } }
+      this.setMessage(`DEV  x ${this.p.x.toFixed(0)}  z ${this.p.z.toFixed(0)}${best ? `  near: ${best.name.toUpperCase()} (${bd.toFixed(0)} m)` : ''}`, 0.5);
+    }
     if (!this.freeze) {   // developer mode (P): lizards, their shots and the node attacks all stand still
       this.updateWaves(dt);
       this.updateEnemies(dt);
