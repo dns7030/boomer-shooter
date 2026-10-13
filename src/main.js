@@ -3,11 +3,13 @@ import { initAudio, getAudio } from './audio.js';
 import { createMusic } from './music.js';
 import { WEAPONS } from './weapons.js';
 import { LEVELS as DEFAULT_LEVELS } from './levels.js';
+import { createProfile, scoreOf } from './profile.js';
 
 const CFG = window.GAME_CONFIG || {};
 const LEVELS = CFG.levels || DEFAULT_LEVELS;
 
 const $ = (id) => document.getElementById(id);
+const profile = createProfile(CFG.profileKey || 'rus');
 const canvas = $('view');
 const overlay = $('overlay');
 const slots = [...document.querySelectorAll('#slots .slot')];
@@ -17,6 +19,7 @@ const game = new Game({
   ui: {
     radar: $('radar'), uptime: $('uptime'), uptimeBar: $('uptime-bar'), uptimeLabel: $('uptime-label'), boss: $('boss'), bossLabel: $('boss-label'), bossBar: $('bossbar'), hp: $('hp'), hpBar: $('hpbar'), ammo: $('ammo'), weapon: $('wname'), wave: $('wave'), msg: $('msg'), hurt: $('hurt'), slots,
     onState(s) { showOverlay(s); },
+    onStat(kind, run) { profile.event(kind, run); },
   },
 });
 window.__game = game; // handy for debugging and the headless smoke test
@@ -51,12 +54,20 @@ function renderLevels(show) {
   });
 }
 
+function renderProfile() {
+  const st = profile.stats(), box = $('mystats'), inp = $('nick');
+  if (document.activeElement !== inp) inp.value = profile.nick;
+  if (!st) { box.textContent = ''; return; }
+  const top = profile.leaderboard().map((p, i) => `${i + 1}. ${p.nick} — ${p.best}`).join('   ');
+  box.innerHTML = `BEST SCORE <b>${st.best}</b> · BOSSES KILLED <b>${st.bosses}</b> · WAVES CLEARED <b>${st.waves}</b><br>${top ? 'TOP (THIS BROWSER): ' + top : ''}`;
+}
 function showOverlay(s) {
   const title = $('ov-title'), body = $('ov-body'), btn = $('ov-btn');
   overlay.style.display = s === 'playing' ? 'none' : 'flex';
   const L = LEVELS[game.levelIndex];
   renderLevels(s !== 'paused' && s !== 'playing');
-  renderSettings();
+  renderSettings(); renderProfile();
+  $('profile').style.display = s === 'paused' ? 'none' : 'block';
   $('ov-menu').style.display = s === 'paused' ? 'inline-block' : 'none';
   if (music) music.setMode(s === 'playing' ? 'play' : s === 'paused' ? 'pause' : s === 'won' ? 'win' : s === 'dead' ? 'dead' : 'pause');
   if (s === 'paused') { title.textContent = 'PAUSED'; body.textContent = 'Click to resume.  (P = developer freeze)'; btn.textContent = 'RESUME'; }
@@ -71,6 +82,12 @@ function showOverlay(s) {
 }
 
 function start(levelIndex) {
+  const fresh = game.state !== 'paused';
+  if (fresh) {   // a nickname is needed to start a run (it keeps your stats)
+    const inp = $('nick'), name = inp.value.trim() || profile.nick;
+    if (!name) { inp.classList.add('bad'); inp.focus(); setTimeout(() => inp.classList.remove('bad'), 400); return; }
+    profile.setNick(name); profile.startRun();
+  }
   initAudio();
   if (typeof levelIndex !== 'number') {
     levelIndex = undefined;
@@ -105,6 +122,7 @@ document.addEventListener('mousedown', (e) => { if (e.button === 0) { game.mouse
 document.addEventListener('mouseup', (e) => { if (e.button === 0) game.mouseDown = false; });
 document.addEventListener('wheel', (e) => { if (game.state === 'playing') game.cycleWeapon(e.deltaY > 0 ? 1 : -1); }, { passive: true });
 window.addEventListener('keydown', (e) => {
+  if (e.target && e.target.tagName === 'INPUT') { if (e.code === 'Enter') start(); return; }   // typing the nickname
   if (['Space', 'ArrowUp', 'ArrowDown'].includes(e.code)) e.preventDefault();
   game.keys.add(e.code);
   if (game.state === 'playing' && /^Digit[1-9]$/.test(e.code)) game.selectSlot(Number(e.code.slice(5)));
@@ -115,7 +133,7 @@ window.addEventListener('keydown', (e) => {
   if (e.code === 'KeyM' && music) game.setMessage(music.toggleMute() ? 'MUSIC OFF' : 'MUSIC ON', 1.5);
   if ((game.state === 'dead' || game.state === 'won') && e.code === 'Enter') start();
 });
-window.addEventListener('keyup', (e) => game.keys.delete(e.code));
+window.addEventListener('keyup', (e) => { if (!(e.target && e.target.tagName === 'INPUT')) game.keys.delete(e.code); });
 window.addEventListener('blur', () => { game.keys.clear(); game.mouseDown = false; game.pause(); });
 window.addEventListener('resize', () => game.resize(canvas.clientWidth, canvas.clientHeight));
 

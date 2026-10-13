@@ -198,7 +198,7 @@ export class Game {
       switching: 0, switchTo: 1, flash: 0, swing: -1, pendingMelee: 0, shotN: 0,
       bob: 0, bobAmp: 0, kick: 0, hurt: 0, roll: 0, spin: 0, spinV: 0,
     };
-    this.stats = { kills: 0, time: 0, shots: 0 };
+    this.stats = { kills: 0, time: 0, shots: 0, waves: 0, bosses: 0 };
     this.wave = { index: -1, phase: L.mode === 'waves' ? 'intro' : 'fight', timer: 2.5, toSpawn: [], spawnTimer: 0, enc: 0 };
     this.messageT = 0;
     for (const s of L.pickupSpawns) this.addPickup(s.type, s.x, s.z);
@@ -993,6 +993,7 @@ export class Game {
   killEnemy(e) {
     const wasIced = e.frozen > 0;
     e.state = 'dying'; e.deadT = 0; this.stats.kills++; sfx.lizardDie();
+    if (this.ui.onStat) { this.ui.onStat('kill', this.stats); if (e.cfg.boss) { this.stats.bosses++; this.ui.onStat('boss', this.stats); } }
     if (wasIced) { sfx.glass(); for (let k = 0; k < 14; k++) this.debris.spawn('glass', e.x + (Math.random() - 0.5), e.y + 0.3 + Math.random() * 1.8, e.z + (Math.random() - 0.5), (Math.random() - 0.5) * 7, 2 + Math.random() * 4, (Math.random() - 0.5) * 7, 1); this.burst(e.x, e.y + 1.2, e.z, 'blue', 12, 4, 0.14); }
     this.markGround('blood', e.x, (e.y || 0) + 1, e.z, 1.7 + Math.random() * 0.8, (e.y || 0) + 2.5);
     for (let k = 0; k < 3; k++) this.markGround('blood', e.x + (Math.random() - 0.5) * 2.6, (e.y || 0) + 1, e.z + (Math.random() - 0.5) * 2.6, 0.5 + Math.random() * 0.7, (e.y || 0) + 2.5);
@@ -1367,7 +1368,8 @@ export class Game {
     this.queue(this.level.waves[i]);
     this.setMessage(`WAVE ${i + 1} / ${this.level.waves.length}`, 3); sfx.wave();
   }
-  win() { this.wave.phase = 'done'; this.stats.time = this.time; sfx.win(); this.setState('won'); }
+  win() { this.waveCleared(); this.wave.phase = 'done'; this.stats.time = this.time; sfx.win(); this.setState('won'); }
+  waveCleared() { this.stats.waves++; if (this.ui.onStat) this.ui.onStat('wave', this.stats); }
   trySpawn(dt) {
     const w = this.wave;
     w.spawnTimer -= dt;
@@ -1393,7 +1395,7 @@ export class Game {
       this.trySpawn(dt);
       if (!w.toSpawn.length && this.aliveCount() === 0) {
         if (w.index >= L.waves.length - 1) this.win();
-        else { w.phase = 'between'; w.timer = 5; this.setMessage('WAVE CLEARED — REARM', 4); }
+        else { this.waveCleared(); w.phase = 'between'; w.timer = 5; this.setMessage('WAVE CLEARED — REARM', 4); }
       }
     }
   }

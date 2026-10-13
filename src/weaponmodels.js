@@ -217,7 +217,7 @@ function buildChaingun(M) {
 
 function buildRocket(M) {
   const g = new THREE.Group();
-  g.add(at(zcyl(0.05, 0.052, 0.62, M.olive, 20), 0, 0, -0.08));
+  g.add(at(zcyl(0.05, 0.052, 0.70, M.olive, 20), 0, 0, 0.0));   // runs right back into the rear flare (no gap), total length unchanged
   const flare = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.07, 0.09, 20, 1, true), M.olive); flare.rotation.x = Math.PI / 2; flare.position.set(0, 0, 0.0); g.add(flare);
   g.add(at(zcyl(0.055, 0.055, 0.016, M.poly, 20), 0, 0, -0.68));
   g.add(at(rbox(0.012, 0.03, 0.2, 0.004, M.poly), 0, 0.063, -0.3));
