@@ -83,6 +83,13 @@ function start(levelIndex) {
 $('ov-btn').addEventListener('click', () => start());
 overlay.addEventListener('click', (e) => { if (e.target === overlay) start(); });
 
+// re-capture the mouse: any click on the game while it is running but unlocked (e.g. Esc-resume refused by the browser) locks it again
+function lockMouse() {
+  if (!canvas.requestPointerLock || document.pointerLockElement === canvas) return;
+  try { const r = canvas.requestPointerLock(); if (r && r.catch) r.catch(() => {}); } catch (e) { /* ignore */ }
+}
+canvas.addEventListener('mousedown', () => { if (game.state === 'playing') lockMouse(); });
+document.addEventListener('pointerlockerror', () => { if (game.state === 'playing') game.pause(); });   // browser refused: back to the pause menu
 document.addEventListener('pointerlockchange', () => {
   if (document.pointerLockElement !== canvas) game.pause();
 });
