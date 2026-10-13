@@ -416,14 +416,23 @@ export class Game {
 
   // ---------------- pickups ----------------
   addPickup(type, x, z, toss = false) {
-    const weapon = type.startsWith('w_');
-    const mesh = new THREE.Mesh(weapon ? new THREE.PlaneGeometry(2.3, 1.15) : new THREE.PlaneGeometry(0.8, 0.8), new THREE.MeshBasicMaterial({ map: this.pickTex[type], transparent: true, alphaTest: 0.4, side: THREE.DoubleSide }));
+    const weapon = type.startsWith('w_'), model = weapon && this.wview.models[type.slice(2)];
+    let mesh;
+    if (model) {   // weapons lie in the world as real 3D models you can walk around (no billboard spin)
+      mesh = new THREE.Group();
+      const gun = model.group.clone(true);
+      gun.traverse((o) => { if (o.isSprite || (o.userData && o.userData.skip)) o.visible = false; });
+      gun.scale.setScalar(2.4); gun.rotation.set(0.12, Math.random() * 6.283, 0.0);
+      gun.updateMatrixWorld(true);
+      const box = new THREE.Box3().setFromObject(gun, true), c = box.getCenter(new THREE.Vector3());
+      gun.position.set(-c.x, -c.y, -c.z); mesh.add(gun);
+    } else mesh = new THREE.Mesh(new THREE.PlaneGeometry(0.8, 0.8), new THREE.MeshBasicMaterial({ map: this.pickTex[type], transparent: true, alphaTest: 0.4, side: THREE.DoubleSide }));
     mesh.position.set(x, 0.7, z);
     this.scene.add(mesh);
     const glow = new THREE.Mesh(new THREE.CircleGeometry(weapon ? 0.9 : 0.45, 14), new THREE.MeshBasicMaterial({ color: weapon ? 0xffd060 : 0xffffff, transparent: true, opacity: 0.25, depthWrite: false }));
-    glow.rotation.x = -Math.PI / 2; glow.position.set(0, weapon ? -0.8 : -0.65, 0); mesh.add(glow);
+    glow.rotation.x = -Math.PI / 2; glow.position.set(0, model ? -0.5 : -0.65, 0); mesh.add(glow);
     mesh.rotation.order = 'YXZ';
-    const k = { type, mesh, x, z, t: Math.random() * 6, py: toss ? 1.0 : 0.75, vx: 0, vy: 0, vz: 0, rise: toss ? 0 : 1, toss, roll: 0 };
+    const k = { type, mesh, solid: !!model, x, z, t: Math.random() * 6, py: toss ? 1.0 : 0.75, vx: 0, vy: 0, vz: 0, rise: toss ? 0 : 1, toss, roll: 0 };
     if (toss) { const a = Math.random() * 6.283, sp = 2.5 + Math.random() * 2.5; k.vx = Math.cos(a) * sp; k.vz = Math.sin(a) * sp; k.vy = 4 + Math.random() * 3; }
     this.pickups.push(k);
   }
@@ -432,7 +441,7 @@ export class Game {
     for (let i = this.pickups.length - 1; i >= 0; i--) {
       const k = this.pickups[i];
       k.t += dt;
-      const base = k.type.startsWith('w_') ? 0.95 : 0.75, rad = 0.32;
+      const base = k.solid ? 0.55 : k.type.startsWith('w_') ? 0.95 : 0.75, rad = k.solid ? 0.3 : 0.32;
       if (k.toss && k.rise < 1) {
         // thrown by a lizard / broken crate: falls, bounces, rolls to a stop, then floats up as a normal pickup
         if (k.settling) { k.rise = Math.min(1, k.rise + dt / 0.5); k.py = rad + (base - rad) * k.rise; if (k.rise >= 1) k.toss = false; }
@@ -447,7 +456,7 @@ export class Game {
         }
         k.mesh.position.set(k.x, k.py, k.z);
       } else k.mesh.position.set(k.x, base + Math.sin(k.t * 3) * 0.1, k.z);
-      k.mesh.rotation.y = Math.atan2(this.camera.position.x - k.x, this.camera.position.z - k.z);
+      if (!k.solid) k.mesh.rotation.y = Math.atan2(this.camera.position.x - k.x, this.camera.position.z - k.z);
       if (!(k.toss && k.rise < 0.2 && k.py > 0.5 && k.vy > 0) && Math.hypot(p.x - k.x, p.z - k.z) < 1.1 && this.collect(k.type)) {
         this.scene.remove(k.mesh); this.pickups.splice(i, 1); sfx.pickup();
       }

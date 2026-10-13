@@ -180,16 +180,20 @@ function buildSSG(M) {
   g.add(arm(M, [0.012, -0.085, 0.12], [0.2, -0.35, 0.91], 0.5, 0.026));
   const spent = [shellMesh(M), shellMesh(M)], fresh = [shellMesh(M), shellMesh(M)];
   for (const sh of [...spent, ...fresh]) g.add(sh);
+  // the reloading hand: carries each fresh shell up to the open breech, then drops away again
+  const rh = new THREE.Group(); rh.visible = false; g.add(rh);
+  rh.add(hand(M, 0, 0, 0, 0.05, 0.04, 0.07)); rh.add(arm(M, [0.0, -0.01, 0.04], [-0.3, -0.3, 0.9], 0.5, 0.026));
+  rh.userData.skip = true;
   const muzzle = new THREE.Object3D(); muzzle.position.set(0, 0.012, -0.69); g.add(muzzle);
-  return { group: g, muzzle, flash: 0.34, tint: 'orange', tip: [0.16, -0.18], rot: [0.3, 0.04, 0], recoil: 3, ssg: { hinge, spent, fresh } };
+  return { group: g, muzzle, flash: 0.34, tint: 'orange', tip: [0.16, -0.18], rot: [0.3, 0.04, 0], recoil: 3, ssg: { hinge, spent, fresh, rh } };
 }
 
 function buildChaingun(M) {
   const g = new THREE.Group();
   g.add(at(rbox(0.1, 0.085, 0.2, 0.012, M.blued), 0, -0.04, -0.1));              // housing
   g.add(at(rbox(0.05, 0.02, 0.12, 0.005, M.poly), 0, 0.012, -0.1));             // top block
-  g.add(at(zcyl(0.052, 0.054, 0.09, M.steel, 20), 0, 0, -0.17));                  // fixed breech collar (joins housing and barrels)
-  const spinner = new THREE.Group(); spinner.position.set(0, 0, -0.26); g.add(spinner);
+  g.add(at(zcyl(0.052, 0.054, 0.09, M.steel, 20), 0, -0.03, -0.17));                  // fixed breech collar (joins housing and barrels)
+  const spinner = new THREE.Group(); spinner.position.set(0, -0.03, -0.26); g.add(spinner);
   spinner.add(zcyl(0.02, 0.02, 0.5, M.poly, 12));                                  // hub
   for (let k = 0; k < 3; k++) {
     const a = (k * Math.PI * 2) / 3 + Math.PI / 6;
@@ -210,7 +214,7 @@ function buildChaingun(M) {
   g.add(at(rbox(0.04, 0.09, 0.05, 0.008, M.poly), 0.012, -0.11, -0.02));
   g.add(hand(M, 0.012, -0.095, 0.03, 0.062, 0.05, 0.09));
   g.add(arm(M, [0.012, -0.115, 0.07], [0.1, -0.3, 0.95], 0.55, 0.032));
-  const muzzle = new THREE.Object3D(); muzzle.position.set(0, 0, -0.78); g.add(muzzle);
+  const muzzle = new THREE.Object3D(); muzzle.position.set(0, -0.03, -0.78); g.add(muzzle);
   return { group: g, muzzle, flash: 0.2, tint: 'orange', tip: [0.21, -0.18], rot: [0.28, 0.06, 0], recoil: 0.7, spinner };
 }
 
@@ -486,7 +490,7 @@ export class WeaponView {
     const t = st.since;
     if (cur.pump) { const u = Math.min(1, Math.max(0, (t - 0.1) / 0.26)); cur.pump.position.z = cur.pumpZ + Math.sin(u * Math.PI) * 0.12; }
     if (cur.ssg) {
-      const { hinge, spent, fresh } = cur.ssg, clamp = (v) => Math.min(1, Math.max(0, v)), ease = (u) => u * u * (3 - 2 * u);
+      const { hinge, spent, fresh, rh } = cur.ssg, clamp = (v) => Math.min(1, Math.max(0, v)), ease = (u) => u * u * (3 - 2 * u);
       const open = ease(clamp((t - 0.14) / 0.2)), shut = ease(clamp((t - 0.9) / 0.08));
       const o = open * (1 - shut);
       hinge.rotation.x = -0.3 * o;
@@ -505,6 +509,15 @@ export class WeaponView {
           sh.rotation.set(0.5 * (1 - e), 0, 0);
         }
       });
+      // reloading hand: follows whichever fresh shell is on its way in, arrives from below and leaves again
+      const ent = ease(clamp((t - 0.22) / 0.14)), ext = ease(clamp((t - 0.82) / 0.14));
+      rh.visible = t > 0.22 && t < 0.97;
+      if (rh.visible) {
+        const sh = fresh[1].visible ? fresh[1] : fresh[0].visible ? fresh[0] : (t > 0.6 ? fresh[1] : fresh[0]);
+        const base = sh.visible ? sh.position : new THREE.Vector3(sh === fresh[1] ? 0.0185 : -0.0185, 0.012, -0.2);
+        rh.position.set(base.x - 0.035 - 0.04 * (1 - ent) - 0.04 * ext, base.y - 0.012 - 0.1 * (1 - ent) - 0.1 * ext, base.z + 0.035 + 0.1 * (1 - ent) + 0.1 * ext);
+        rh.rotation.set(-0.2, 0, 0);
+      }
     }
     if (cur.spinner) cur.spinner.rotation.z = st.spin;
     if (cur.warhead) cur.warhead.visible = t > 0.32 || t < 0;
