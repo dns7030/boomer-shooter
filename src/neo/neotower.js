@@ -193,3 +193,134 @@ export function neoTowerSeattle() {
     },
   });
 }
+
+// ---------- shared: the glowing door + NEO sign on a small dark entrance block, in front of anything that could poke through ----------
+function entrance(T, zFront, w = 8) {
+  T.add(place(new THREE.Mesh(new THREE.BoxGeometry(w, 7.4, 2.4), color(0x0b2a22)), 0, 3.7, zFront - 1.35));
+  T.add(place(new THREE.Mesh(new THREE.BoxGeometry(6, 7, 0.5), T.glow), 0, 3.6, zFront));
+  T.add(place(new THREE.Mesh(new THREE.BoxGeometry(4.6, 6.2, 0.6), color(0x04261c)), 0, 3.1, zFront + 0.05));
+  const sg = sign('N E O', 16, 1.6, { bg: '#04261c', fg: '#00e599' }); sg.position.set(0, 8.4, zFront - 0.05); T.add(sg);
+}
+function beam(T, y, h = 160) {
+  const b = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 2.2, h, 12, 1, true), new THREE.MeshBasicMaterial({ color: new THREE.Color(0, 0.9, 0.6), transparent: true, opacity: 0.22, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, fog: false }));
+  b.position.set(0, y + h / 2, 0); T.add(b, { hideAt: 3 });
+}
+const flare = (x, y, z, ry, w, hh, T) => { const m = new THREE.Mesh(new THREE.ConeGeometry(0.5, 1.6, 4), T.glow); m.position.set(x, y, z); m.rotation.set(0.6 * Math.cos(ry), 0, -0.6 * Math.sin(ry)); return m; };
+
+// ---------- Shanghai: a glass pagoda with upturned green-lit eaves ----------
+export function neoTowerShanghai() {
+  return makeNeoTower({
+    w: 26, d: 26, h: 78, rectPad: 3,
+    build(T) {
+      T.cols.push([-11, 11, -11, 11, 78], [-16, 16, -16, 16, 1.8]);
+      T.add(boxT(32, 1.0, 32, mat('granite'), 3)).position.set(0, 0.5, 0);
+      T.add(boxT(29, 0.8, 29, mat('granite'), 3)).position.set(0, 1.4, 0);
+      const glass = mat('neo_glass'), red = color(0x8a1f1a), dark = color(0x1a2a28);
+      let y = 1.8;
+      const tiers = [{ s: 22, h: 14 }, { s: 20, h: 11 }, { s: 18, h: 10 }, { s: 16, h: 9 }, { s: 14, h: 8 }, { s: 12, h: 7 }, { s: 10, h: 6 }];
+      tiers.forEach((t, i) => {
+        T.add(place(new THREE.Mesh(new THREE.BoxGeometry(t.s, t.h, t.s), i % 2 ? glass : red), 0, y + t.h / 2, 0));
+        for (const sx of [-1, 1]) for (const sz of [-1, 1]) T.add(place(new THREE.Mesh(new THREE.BoxGeometry(0.8, t.h, 0.8), T.glow), sx * t.s / 2, y + t.h / 2, sz * t.s / 2));
+        // the eave: a wide thin roof slab with four upturned corner horns (green-lit edge band)
+        const e = t.s + 5;
+        T.add(place(new THREE.Mesh(new THREE.BoxGeometry(e, 0.7, e), dark), 0, y + t.h + 0.35, 0));
+        T.add(place(new THREE.Mesh(new THREE.BoxGeometry(e + 0.2, 0.25, e + 0.2), T.glow), 0, y + t.h + 0.82, 0));
+        for (const sx of [-1, 1]) for (const sz of [-1, 1]) { const h = new THREE.Mesh(new THREE.ConeGeometry(0.55, 2.2, 5), dark); h.position.set(sx * (e / 2 + 0.1), y + t.h + 1.5, sz * (e / 2 + 0.1)); h.rotation.set(sz * 0.7, 0, -sx * 0.7); T.add(h); }
+        y += t.h + 0.9;
+      });
+      const crown = new THREE.Group(); crown.position.set(0, y, 0);
+      const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.9, 16, 8), dark); mast.position.y = 8; crown.add(mast);
+      for (const k of [3, 7, 11]) { const r = new THREE.Mesh(new THREE.TorusGeometry(1.6 - k * 0.08, 0.18, 6, 14), T.glow); r.rotation.x = Math.PI / 2; r.position.y = k; crown.add(r); }
+      const orb = new THREE.Mesh(new THREE.SphereGeometry(1.7, 14, 10), T.glow); orb.position.y = 17.5; crown.add(orb);
+      T.top(crown);
+      beam(T, y);
+      entrance(T, 14.8);
+      T.smoke(-8, 16, 11.5); T.smoke(9, 30, -9); T.smoke(0, 56, 5);
+    },
+  });
+}
+
+// ---------- Tokyo: a red-white-and-green lattice tower with glowing observation decks ----------
+export function neoTowerTokyo() {
+  return makeNeoTower({
+    w: 14, d: 14, h: 72, rectPad: 8,
+    build(T) {
+      T.cols.push([-7, 7, -7, 7, 72], [-15, 15, -15, 15, 1.8]);
+      T.add(boxT(32, 1.0, 32, mat('granite'), 3)).position.set(0, 0.5, 0);
+      T.add(boxT(29, 0.8, 29, mat('granite'), 3)).position.set(0, 1.4, 0);
+      const redM = color(0xd8321e), whiteM = color(0xf0eee8);
+      T.add(place(new THREE.Mesh(new THREE.BoxGeometry(13, 70, 13), mat('neo_glass')), 0, 36.8, 0));
+      // four tapering legs (slim boxes) with cross braces
+      const legH = 56;
+      for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
+        const leg = new THREE.Mesh(new THREE.BoxGeometry(1.4, legH, 1.4), redM);
+        leg.position.set(sx * 9.5, 1.8 + legH / 2, sz * 9.5); leg.rotation.set(sz * -0.14, 0, sx * 0.14); T.add(leg);
+      }
+      for (let i = 0; i < 6; i++) {
+        const k = i / 6, hw = 9.5 * (1 - k * 0.8), yy = 4 + k * 50;
+        for (const [ax, az, w, d] of [[0, 1, hw * 2, 0.5], [0, -1, hw * 2, 0.5], [1, 0, 0.5, hw * 2], [-1, 0, 0.5, hw * 2]]) T.add(place(new THREE.Mesh(new THREE.BoxGeometry(w, 0.7, d), i % 2 ? whiteM : redM), ax * hw, yy, az * hw));
+      }
+      for (const [yy, rr] of [[26, 7.5], [47, 5.6]]) { const deck = new THREE.Mesh(new THREE.CylinderGeometry(rr, rr * 0.8, 3, 20), T.glow); deck.position.y = yy; T.add(deck, { hideAt: 4 }); }
+      const crown = new THREE.Group(); crown.position.set(0, 58, 0);
+      const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 1.0, 22, 8), whiteM); mast.position.y = 11; crown.add(mast);
+      const orb = new THREE.Mesh(new THREE.SphereGeometry(1.4, 12, 8), T.glow); orb.position.y = 23; crown.add(orb);
+      T.top(crown);
+      beam(T, 80);
+      entrance(T, 14.8);
+      T.smoke(-6, 14, 12); T.smoke(8, 30, -7); T.smoke(0, 50, 4);
+    },
+  });
+}
+
+// ---------- Singapore: a giant supertree with a glowing ribbed canopy ----------
+export function neoTowerSingapore() {
+  return makeNeoTower({
+    w: 26, d: 26, h: 64, rectPad: 3,
+    build(T) {
+      T.cols.push([-5, 5, -5, 5, 64], [-16, 16, -16, 16, 1.8]);
+      T.add(boxT(32, 1.0, 32, mat('granite'), 3)).position.set(0, 0.5, 0);
+      T.add(boxT(29, 0.8, 29, mat('granite'), 3)).position.set(0, 1.4, 0);
+      const trunk = new THREE.Mesh(new THREE.CylinderGeometry(3.2, 5.2, 46, 14), mat('concrete')); trunk.position.y = 1.8 + 23; T.add(trunk);
+      const green = color(0x2f7a3a), green2 = color(0x58b050);
+      for (let i = 0; i < 9; i++) { const a = i * 2.4, y = 6 + i * 4.6, r = 5.6 - i * 0.18; const pl = new THREE.Mesh(new THREE.BoxGeometry(2.4, 1.6, 2.4), i % 2 ? green : green2); pl.position.set(Math.cos(a) * r, y, Math.sin(a) * r); pl.rotation.y = a; T.add(pl); }
+      const canopy = new THREE.Group(); canopy.position.set(0, 47, 0);
+      const bowl = new THREE.Mesh(new THREE.CylinderGeometry(15, 3, 6, 16, 1, true), color(0x1d5a30)); bowl.material = bowl.material.clone(); bowl.material.side = THREE.DoubleSide; bowl.position.y = 3; canopy.add(bowl);
+      for (let i = 0; i < 12; i++) { const a = (i / 12) * 6.283, rib = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.35, 15), T.glow); rib.position.set(Math.cos(a) * 7.5, 3.4, Math.sin(a) * 7.5); rib.rotation.set(0.38, -a + Math.PI / 2, 0); canopy.add(rib); }
+      const ring = new THREE.Mesh(new THREE.TorusGeometry(14.6, 0.5, 8, 40), T.glow); ring.rotation.x = Math.PI / 2; ring.position.y = 6; canopy.add(ring);
+      const orb = new THREE.Mesh(new THREE.SphereGeometry(2, 14, 10), T.glow); orb.position.y = 9; canopy.add(orb);
+      T.top(canopy);
+      beam(T, 56);
+      entrance(T, 14.8);
+      T.smoke(-5, 18, 5); T.smoke(6, 32, -4); T.smoke(0, 50, 2);
+    },
+  });
+}
+
+// ---------- Rio: a Niemeyer-style white saucer on a curved pedestal, ringed with carnival lights ----------
+export function neoTowerRio() {
+  return makeNeoTower({
+    w: 26, d: 26, h: 52, rectPad: 3,
+    build(T) {
+      T.cols.push([-5.5, 5.5, -5.5, 5.5, 52], [-16, 16, -16, 16, 1.8]);
+      T.add(boxT(32, 1.0, 32, mat('granite'), 3)).position.set(0, 0.5, 0);
+      T.add(boxT(29, 0.8, 29, mat('granite'), 3)).position.set(0, 1.4, 0);
+      const white = color(0xf4f1ea), blue = color(0x1f6fd0);
+      const ped = new THREE.Mesh(new THREE.CylinderGeometry(2.8, 6, 30, 16), white); ped.position.y = 1.8 + 15; T.add(ped);
+      const saucer = new THREE.Group(); saucer.position.set(0, 33, 0);
+      const lower = new THREE.Mesh(new THREE.CylinderGeometry(15, 3, 5, 24), white); saucer.add(lower);
+      const band = new THREE.Mesh(new THREE.CylinderGeometry(15.2, 15.2, 2.2, 24, 1, true), T.glow); band.position.y = 3.2; saucer.add(band);
+      const upper = new THREE.Mesh(new THREE.CylinderGeometry(9, 15.2, 3.5, 24), white); upper.position.y = 5.9; saucer.add(upper);
+      const dome = new THREE.Mesh(new THREE.SphereGeometry(8.6, 18, 8, 0, 6.283, 0, Math.PI / 2), mat('neo_glass')); dome.position.y = 7.6; saucer.add(dome);
+      const cols4 = [0xffd23c, 0xff2a8a, 0x20c0ff, 0x30e060];
+      for (let i = 0; i < 16; i++) { const a = (i / 16) * 6.283, l = new THREE.Mesh(new THREE.SphereGeometry(0.45, 6, 5), color(cols4[i % 4], { emissive: cols4[i % 4] })); l.position.set(Math.cos(a) * 15.6, -0.6, Math.sin(a) * 15.6); saucer.add(l); }
+      const spire = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.8, 12, 8), white); spire.position.y = 17; saucer.add(spire);
+      const orb = new THREE.Mesh(new THREE.SphereGeometry(1.5, 12, 8), T.glow); orb.position.y = 23.5; saucer.add(orb);
+      T.top(saucer);
+      // a sweeping ramp ring around the pedestal
+      for (let i = 0; i < 14; i++) { const a = i * 0.45, k = i / 14, seg = new THREE.Mesh(new THREE.BoxGeometry(5, 0.5, 2.4), blue); seg.position.set(Math.cos(a) * (9 - k * 3), 2.4 + k * 26, Math.sin(a) * (9 - k * 3)); seg.rotation.y = -a; T.add(seg); }
+      beam(T, 60);
+      entrance(T, 14.8);
+      T.smoke(-6, 12, 7); T.smoke(6, 28, -5); T.smoke(0, 40, 3);
+    },
+  });
+}
