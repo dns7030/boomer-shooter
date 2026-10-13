@@ -335,7 +335,7 @@ function roofClutter(g, w, d, y, seed, n = 4) {
   boxes(g, list, C(0x6a707a));
   Cy(g, 0.05, 0.08, 4 + r() * 3, 5, C(0x777c88), (r() - 0.5) * w * 0.5, y + 2.5, (r() - 0.5) * d * 0.5, 1);
 }
-function ground(g, w, d, m = mat('s6tk_conc')) { Bx(g, w, 0.16, d, m, 0, 0.08, 0, 4); }
+function ground(g, w, d, m = mat('s6tk_conc')) { Bx(g, w, 0.06, d, m, 0, 0.03, 0, 4); }
 
 // =====================================================================
 // 1. izakayaRow  30 x 10 x 12
@@ -348,7 +348,7 @@ export function izakayaRow() {
   ground(g, 30, 10);
   for (let i = 0; i < N; i++) {
     const cx = -12.5 + i * W, lm = i % 2 ? 1 : -1;
-    Bx(g, 4.9, 3.6, DZ, tint('s6tk_plaster', wall[i]), cx, 0.16 + 1.8, zc, 3);
+    Bx(g, 4.9, 3.6, DZ, tint('s6tk_plaster', wall[i]), cx, 0.06 + 1.8, zc, 3);
     Bx(g, 4.9, 3.4, DZ, tint('s6tk_plaster', up[i]), cx, 3.76 + 1.7, zc, 3);
     Bx(g, 4.9, 0.4, DZ + 0.2, wood, cx, 3.76, zc + 0.1, 2);                                        // fascia band between floors
     Bx(g, 5.1, 0.3, DZ + 1.0, tile, cx, 7.3, zc + 0.5, 3);                                         // eave roof
@@ -412,9 +412,9 @@ export function neonTower(opts = {}) {
     fbox(g, 17, 46, 13, 's6tk_offB', 0, 23.1, 0, 12);
     coverWall(g, '+z', 6.56, -8.5, 2.2, 5, 7, 3.4, 6.2, true, 0);
     for (const s of [-1, 1]) coverWall(g, s > 0 ? '+x' : '-x', s * 8.56, -5.5, 2.2, 2, 7, 5.5, 6.2, true, 4);
-    [-1, 1].forEach((s) => { blade(g, s * 9.6, 6.0, 8, 1.8, 5, 1); blade(g, s * 9.6, -1.5, 14, 1.6, 4, 5 + (s > 0 ? 1 : 0)); });
-    panel(g, 's6tk_screen2', 12, 6, 0, 47.2, 6.57, 0);
-    Bx(g, 12.4, 0.4, 0.5, C(0x23202e), 0, 44.2, 6.4, 2); Bx(g, 12.4, 0.4, 0.5, C(0x23202e), 0, 50.2, 6.4, 2);
+    [-1, 1].forEach((s) => { blade(g, s * 8.8, 6.0, 8, 1.8, 5, 1); blade(g, s * 8.8, -1.5, 14, 1.6, 4, 5 + (s > 0 ? 1 : 0)); });
+    panel(g, 's6tk_screen2', 12, 6, 0, 47.2, 6.72, 0); panel(g, 's6tk_screen1', 12, 6, 0, 47.2, 6.68, Math.PI);
+    Bx(g, 12.4, 0.4, 0.5, C(0x23202e), 0, 44.2, 6.7, 2); Bx(g, 12.4, 0.4, 0.5, C(0x23202e), 0, 50.2, 6.7, 2);
     Ms(g, new THREE.TorusGeometry(2.6, 0.18, 6, 20), glow(0xff2d95), 0, 47.2, 0.5, 1, 1, 1);
     Ms(g, new THREE.TorusGeometry(1.7, 0.14, 6, 18), glow(0x19e6ff), 0, 47.2, 0.5, 1, 1, 1);
     Bx(g, 0.12, 8, 0.12, C(0x888c94), -5, 49.5, -4, 1);
@@ -426,12 +426,12 @@ export function neonTower(opts = {}) {
     panel(g, 's6tk_screen2', 15, 7.5, 0, 24.5 + 3.75 + 0.2, 3.97, 0);
     Bx(g, 15.6, 0.3, 0.3, C(0x23202e), 0, 24.4, 3.95, 1); Bx(g, 15.6, 0.3, 0.3, C(0x23202e), 0, 32.3, 3.95, 1);
     for (const s of [-1, 1]) { Bx(g, 0.3, 8, 0.3, C(0x23202e), s * 7.7, 28.4, 3.95, 1); }
-    coverWall(g, '+z', 4.16, -7.5, 33.5, 5, 1, 3, 6, true, 6);
-    const dr = Cy(g, 4.5, 4.5, 5, 18, flatM('s6tk_drum'), 0, 42.6, -1.6, 4); dr.rotation.y = 0.3;
-    Cy(g, 4.7, 4.7, 0.3, 18, C(0x23202e), 0, 40.25, -1.6, 2); Cy(g, 4.7, 4.7, 0.3, 18, C(0x23202e), 0, 45.15, -1.6, 2);
-    Ms(g, new THREE.TorusGeometry(4.6, 0.12, 5, 20), glow(0x19e6ff), 0, 40.5, -1.6, 1, 1, 1, Math.PI / 2);
-    Ms(g, new THREE.TorusGeometry(4.6, 0.12, 5, 20), glow(0xff2d95), 0, 44.9, -1.6, 1, 1, 1, Math.PI / 2);
-    Cy(g, 0.06, 0.1, 5, 5, C(0x888c94), 0, 48, -1.6, 1); Ms(g, SPH(6, 4), glow(0xff2a2a), 0, 50.4, -1.6, 0.25);
+    coverWall(g, '+z', 3.96, -7.5, 33.5, 5, 1, 3, 5.6, true, 6);
+    const dr = Cy(g, 4.5, 4.5, 5, 18, flatM('s6tk_drum'), 0, 41.7, -1.6, 4); dr.rotation.y = 0.3;
+    Cy(g, 4.7, 4.7, 0.3, 18, C(0x23202e), 0, 39.2, -1.6, 2); Cy(g, 4.7, 4.7, 0.3, 18, C(0x23202e), 0, 44.35, -1.6, 2);
+    Ms(g, new THREE.TorusGeometry(4.6, 0.12, 5, 20), glow(0x19e6ff), 0, 39.6, -1.6, 1, 1, 1, Math.PI / 2);
+    Ms(g, new THREE.TorusGeometry(4.6, 0.12, 5, 20), glow(0xff2d95), 0, 44.1, -1.6, 1, 1, 1, Math.PI / 2);
+    Cy(g, 0.06, 0.1, 5, 5, C(0x888c94), 0, 47, -1.6, 1); Ms(g, SPH(6, 4), glow(0xff2a2a), 0, 49.6, -1.6, 0.25);
     for (const x of [-9.65, 9.65]) Bx(g, 0.2, 22, 0.2, glow(x < 0 ? 0xff2d95 : 0x19e6ff), x, 11.1, 7.65, 1);
   }
   roofClutter(g, 17, 13, v === 1 ? 46 : v === 0 ? 44 : 22, 40 + v, 3);
@@ -451,7 +451,7 @@ function lcyl(g, r, h, y, name, seg = 22, tile = 12) {
 }
 export function cylinderMall() {
   const g = G(), R0 = 12.4;
-  Cy(g, 12.9, 12.9, 0.3, 24, mat('s6tk_conc'), 0, 0.15, 0, 4);
+  Cy(g, 12.6, 12.6, 0.3, 24, mat('s6tk_conc'), 0, 0.15, 0, 4);
   lcyl(g, R0, 22.7, 0.3, 's6tk_mall');
   // ground-floor glazing band (bright shop windows)
   Cy(g, R0 + 0.12, R0 + 0.12, 3.2, 22, glow(0xffe0f0), 0, 2.0, 0, 4).material = keyed('shopband', () => new THREE.MeshLambertMaterial({ color: 0xb08aa8, emissive: 0xc08ab0 }));
@@ -474,8 +474,124 @@ export function cylinderMall() {
   }
   // entrance vestibule + canopy
   Bx(g, 5.4, 3.8, 1.8, C(0x3a2f44), 0, 1.9, 12.0, 2);
-  Bx(g, 6.4, 0.35, 2.6, C(0x2a1c30), 0, 4.1, 12.1, 2); Bx(g, 6.4, 0.1, 2.6, glow(0xff4fa8), 0, 3.9, 12.1, 2);
+  Bx(g, 6.4, 0.35, 2.0, C(0x2a1c30), 0, 4.1, 12.0, 2); Bx(g, 6.4, 0.1, 2.0, glow(0xff4fa8), 0, 3.9, 12.0, 2);
   pl(g, basic(0xfff0d8), 3.6, 3.0, 0, 1.6, 12.92); Bx(g, 0.1, 3.0, 0.08, C(0x2a1c30), 0, 1.6, 12.96, 1);
   sgn(g, 'MALL 9', 4.2, 0.9, 0, 4.9, 12.5, 0, { bg: '#2a0a24', fg: '#ff4fa8', border: '#ff4fa8' });
   return size(g, 26, 26, 40, [...circleCols(12.7, 40, 10), [-2.7, 2.7, 11.1, 12.9, 4]]);
+}
+
+// =====================================================================
+// 4. pachinkoParlor  36 x 24 x 18  -- ENTERABLE (hall)
+//    inside = { x0:-17, x1:17, z0:-11, z1:11 }; doors: S(front,+z) at x=0 w9, N(back,-z) at x=0 w9, E at z=0 w6.4
+// =====================================================================
+export function pachinkoParlor() {
+  const W = 36, D = 24, H = 14, CH = 5.6, T = 1.0, g = G(), cols = [];
+  for (const [n, e] of [['s6tk_pachOut', 0x8a8a8a], ['s6tk_pachIn', 0x909090], ['s6tk_carpet', 0x8c8c8c], ['s6tk_ceil', 0x808080]]) { const m = mat(n); m.emissiveMap = m.map; m.emissive.setHex(e); }
+  const base = hall({ w: W, d: D, h: H, ch: CH, t: T, outer: 's6tk_pachOut', inner: 's6tk_pachIn', floor: 's6tk_carpet', ceil: 's6tk_ceil', roof: 'roofTar', tile: 6,
+    doors: [{ side: 'S', at: 0, w: 9, h: 4.8 }, { side: 'N', at: 0, w: 9, h: 4.8 }, { side: 'E', at: 0, w: 6.4, h: 4.4 }] });
+  g.add(base); cols.push(...base.userData.cols);
+  const ix = base.userData.inside, dk = C(0x1a1030), marq = flatM('s6tk_marquee');
+  // ---------------- exterior ----------------
+  const zf = D / 2 + 0.06;
+  for (const s of [-1, 1]) for (let r = 0; r < 2; r++) coverWall(g, '+z', zf, s < 0 ? -17.5 : 5, 0.6 + r * 5.2, 5, 1, 2.5, 5.2, true, r * 3 + (s > 0 ? 2 : 0));
+  Bx(g, 9.2, 0.3, 0.3, dk, 0, 14.0, zf + 0.1, 1);
+  { const t = tiledPlane(0.5, 4.8, 1, 5, marq, -4.75, 2.4, zf + 0.01); g.add(t); const t2 = tiledPlane(0.5, 4.8, 1, 5, marq, 4.75, 2.4, zf + 0.01); g.add(t2); g.add(tiledPlane(10, 0.7, 8, 1, marq, 0, 5.15, zf + 0.01)); }
+  sgn(g, 'PACHINKO', 8.8, 2.6, 0, 8.6, zf + 0.01, 0, { bg: '#12061f', fg: '#ffe81a', border: '#ff2d95' });
+  sgn(g, 'OPEN 24H', 5.2, 1.3, 0, 11.6, zf + 0.01, 0, { bg: '#12061f', fg: '#19e6ff', border: '#19e6ff' });
+  panel(g, 's6tk_nh1', 3, 1.5, -2.9, 6.5 + 0.2, zf + 0.02, 0); panel(g, 's6tk_nh4', 3, 1.5, 2.9, 6.7, zf + 0.02, 0);
+  g.add(tiledPlane(36, 0.9, 18, 1, marq, 0, 12.4, zf + 0.01));
+  Bx(g, W, 3.3, 1.5, dk, 0, 15.55, 11.3, 4);
+  sgn(g, 'PACHINKO', 27, 2.5, 0, 15.6, 12.09, 0, { bg: '#12061f', fg: '#ff2d95', border: '#ffe81a' });
+  g.add(tiledPlane(36, 0.5, 18, 1, marq, 0, 14.3, 12.1)); g.add(tiledPlane(36, 0.5, 18, 1, marq, 0, 16.9, 12.1));
+  Bx(g, W, 0.4, 1.7, C(0x2a1c3a), 0, 17.4, 11.3, 2);
+  for (const x of [-16, -8, 0, 8, 16]) { Sg(g, glow(0xe8eeff), x, 18.15, 11.3, 0.55, 0.55, 0.55, 10); }
+  for (const s of [-1, 1]) { blade(g, s * 18.2, 10.8, 6.5, 1.5, 4, 3 + (s > 0 ? 2 : 0)); sgn(g, 'GAME', 7, 1.4, s * 18.06, 2.4, 0, s * Math.PI / 2, { bg: '#12061f', fg: '#52ff9a', border: '#52ff9a' }); }
+  for (const s of [-1, 1]) coverWall(g, s > 0 ? '+x' : '-x', s * 18.06, -11.5, 4.6, 2, 2, 4.5, 4.4, true, 2 + (s > 0 ? 1 : 0));
+  coverWall(g, '+x', 18.06, 4.5, 0.6, 3, 1, 2.6, 4, true, 4); coverWall(g, '-x', -18.06, -11.5, 0.6, 1, 1, 5, 4, true, 6);
+  // back
+  for (const s of [-1, 1]) coverWall(g, '-z', -D / 2 - 0.06, s < 0 ? -17.5 : 5.5, 0.6, 4, 2, 3.1, 5.3, true, 1 + (s > 0 ? 3 : 0));
+  sgn(g, 'EXIT', 4, 1, 0, 6.2, -D / 2 - 0.07, Math.PI, { bg: '#0a2a14', fg: '#52ff9a', border: '#52ff9a' });
+  g.add(tiledPlane(36, 0.9, 18, 1, marq, 0, 12.4, -D / 2 - 0.07)).rotation.y = Math.PI;
+  roofClutter(g, 30, 18, H, 77, 6);
+  // ---------------- interior ----------------
+  const bodyL = [], trayL = [], lampL = [], scr = [[], [], [], [], []], stools = [];
+  const scrM = [0xff2d95, 0x19e6ff, 0xffe81a, 0x52ff9a, 0xb06cff].map((c) => glow(c));
+  const names = ['LUCKY 7', 'SUPER STAR', 'NYAN NYAN', 'GOLD RUSH'];
+  const island = (cx, cz, n, k) => {
+    for (const dir of [1, -1]) for (let i = 0; i < n; i++) {
+      const x = cx - n / 2 + i + 0.5, zb = cz + dir * 0.4, zfr = cz + dir * 0.8, c = (i + k + (dir > 0 ? 0 : 2)) % 5;
+      bodyL.push([0.92, 1.9, 0.8, x, 0.95, zb]); trayL.push([0.86, 0.1, 0.3, x, 0.95, zfr + dir * 0.15]);
+      scr[c].push([0.6, 0.55, 0.06, x, 1.55, zfr + dir * 0.03]); scr[(c + 2) % 5].push([0.5, 0.05, 0.04, x, 0.55, zfr + dir * 0.02]);
+      lampL.push([0.8, 0.1, 0.14, x, 1.96, zfr]);
+      const st = new THREE.CylinderGeometry(0.2, 0.2, 0.5, 6); st.translate(x, 0.25, zfr + dir * 0.75); stools.push(st);
+    }
+    Bx(g, n + 0.3, 0.25, 2.0, dk, cx, 2.45, cz, 2);
+    for (const sx of [-1, 1]) Bx(g, 0.12, 2.4, 0.12, dk, cx + sx * (n / 2 + 0.1), 1.2, cz, 1);
+    for (const dir of [1, -1]) for (const q of [-1, 1]) sgn(g, names[(k + (q > 0 ? 1 : 0) + (dir > 0 ? 0 : 2)) % 4], 4.2, 0.9, cx + q * n / 4, 2.45, cz + dir * 1.01, dir > 0 ? 0 : Math.PI, { bg: '#16061c', fg: ['#ff2d95', '#19e6ff', '#ffe81a', '#52ff9a'][(k + (q > 0 ? 1 : 0)) % 4], border: '#ffffff' });
+    boxes(g, [[n + 0.3, 0.05, 0.05, cx, 2.28, cz + 1.0], [n + 0.3, 0.05, 0.05, cx, 2.28, cz - 1.0]], glow(0xffffff));
+    cols.push([cx - n / 2 - 0.2, cx + n / 2 + 0.2, cz - 1.8, cz + 1.8, 2.0]);
+  };
+  [[-10.9, -4.8, 0], [-10.9, 4.8, 1], [10.9, -4.8, 2], [10.9, 4.8, 3]].forEach(([x, z, k]) => island(x, z, 9, k));
+  boxes(g, bodyL, C(0x4d4486)); boxes(g, trayL, C(0xc4c8d8)); boxes(g, lampL, glow(0xffffff));
+  scr.forEach((l, i) => boxes(g, l, scrM[i]));
+  g.add(new THREE.Mesh(merge(stools), C(0xa0306a)));
+  // prize kiosk in the middle of the central aisle
+  Cy(g, 1.8, 1.9, 1.1, 12, C(0xb8458c, 0x30102a), 0, 0.55, 0, 2); Ms(g, new THREE.TorusGeometry(1.8, 0.07, 5, 16), glow(0x19e6ff), 0, 1.15, 0, 1, 1, 1, Math.PI / 2);
+  Cy(g, 0.22, 0.22, 3.6, 8, C(0xd9a62a, 0x30200a), 0, 2.4, 0, 1); Bx(g, 1.3, 0.7, 1.3, dk, 0, 2.7, 0, 1);
+  for (const [x, z, ry] of [[0, 0.66, 0], [0, -0.66, Math.PI], [0.66, 0, Math.PI / 2], [-0.66, 0, -Math.PI / 2]]) sgn(g, 'PRIZES', 1.2, 0.55, x, 2.7, z, ry, { bg: '#16061c', fg: '#ffe81a', border: '#ffe81a' });
+  Sg(g, glow(0xffe060), 0, 4.55, 0, 0.55, 0.55, 0.55, 10);
+  cols.push([-1.9, 1.9, -1.9, 1.9, 3]);
+  // wall panels, ceiling light strips
+  for (const z of [-8, -3, 3, 8]) panel(g, `s6tk_nh${(z + 8) % 8 | 0}`, 5, 2.5, ix.x0 + 0.05, 3.2, z, Math.PI / 2);
+  for (const z of [-8, 8]) panel(g, `s6tk_nh${(z + 12) % 8 | 0}`, 5, 2.5, ix.x1 - 0.05, 3.2, z, -Math.PI / 2);
+  for (const x of [-13, -8, 8, 13]) { panel(g, `s6tk_nh${(x + 20) % 8 | 0}`, 4.4, 2.2, x, 3.2, ix.z0 + 0.05, 0); panel(g, `s6tk_nh${(x + 25) % 8 | 0}`, 4.4, 2.2, x, 3.2, ix.z1 - 0.05, Math.PI); }
+  const cy = CH - 0.09;
+  boxes(g, [[34, 0.1, 0.4, 0, cy, 0], [34, 0.1, 0.4, 0, cy, 9], [34, 0.1, 0.4, 0, cy, -9]], glow(0xfff3d0));
+  boxes(g, [[0.4, 0.1, 22, 0, cy, 0], [0.3, 0.1, 22, -11, cy, 0], [0.3, 0.1, 22, 11, cy, 0]], glow(0xff4fa8));
+  boxes(g, [[0.3, 0.1, 22, -14.5, cy, 0], [0.3, 0.1, 22, 14.5, cy, 0], [0.3, 0.1, 22, -7.5, cy, 0], [0.3, 0.1, 22, 7.5, cy, 0]], glow(0x19e6ff));
+  g.userData.inside = ix; g.userData.doors = base.userData.doors;
+  return size(g, W, D, 18, cols);
+}
+
+// =====================================================================
+// 5. konbini  14 x 12 x 6
+// =====================================================================
+export function konbini() {
+  const g = G(), FZ = 2.5, wall = keyed('kwall', () => new THREE.MeshLambertMaterial({ color: 0xe6eaf0, emissive: 0x2c333c })), cols = [];
+  ground(g, 14, 12);
+  Bx(g, 14, 4.5, 8.5, wall, 0, 0.06 + 2.25, -1.75, 4);
+  Bx(g, 14.4, 0.5, 9, C(0x2a2f3a), 0, 4.8, -1.75, 3);
+  Bx(g, 14, 0.8, 0.2, C(0x16222e), 0, 4.15, FZ + 0.1, 2);
+  sgn(g, 'MART', 4.4, 0.7, 0, 4.15, FZ + 0.215, 0, { bg: '#0c1822', fg: '#ffffff', border: '#2fd06a' });
+  [[0xf08a1c, 4.36], [0x2fb05a, 4.15], [0xe02a2a, 3.94]].forEach(([c, y]) => { for (const s of [-1, 1]) pl(g, basic(c), 4.2, 0.15, s * 4.7, y, FZ + 0.215); });
+  // storefront: shelves seen through glass
+  for (const s of [-1, 1]) pl(g, flatM('s6tk_shelf'), 5.1, 2.9, s * 4.05, 1.95, FZ + 0.05);
+  pl(g, basic(0xfff4d8), 2.8, 2.9, 0, 1.95, FZ + 0.05);
+  pl(g, glassM(0x9ad8ff, 0.14), 13.4, 3.0, 0, 1.95, FZ + 0.16);
+  const al = C(0xb8bcc4);
+  for (const x of [-6.7, -4.0, -1.5, 1.5, 4.0, 6.7]) Bx(g, 0.1, 3.0, 0.1, al, x, 1.95, FZ + 0.14, 1);
+  Bx(g, 13.5, 0.1, 0.12, al, 0, 3.45, FZ + 0.14, 1); Bx(g, 13.5, 0.1, 0.12, al, 0, 0.5, FZ + 0.14, 1);
+  Bx(g, 0.05, 2.4, 0.1, al, 0, 1.7, FZ + 0.14, 1);
+  Bx(g, 14, 0.44, 0.2, tint('s6tk_plaster', 0x7a8c9a), 0, 0.28, FZ + 0.1, 3);
+  // canopy + light spill
+  Bx(g, 14.2, 0.14, 1.3, C(0x2fb05a, 0x103a1c), 0, 3.62, FZ + 0.65, 3);
+  Bx(g, 13.4, 0.04, 0.35, glow(0xfff3c8), 0, 3.53, FZ + 0.9, 1);
+  Bx(g, 12.8, 0.04, 0.35, glow(0xfff3c8), 0, 3.53, FZ + 0.35, 1);
+  // pylon sign (MART / 24H)
+  Cy(g, 0.14, 0.16, 5.4, 8, C(0x666c78), -6.2, 2.7, 5.2, 1); cols.push([-6.5, -5.9, 4.9, 5.5, 6]);
+  Bx(g, 2.5, 1.9, 0.3, C(0x16222e), -6.2, 5.0, 5.2, 2);
+  for (const [z, ry] of [[5.36, 0], [5.04, Math.PI]]) { sgn(g, 'MART', 2.3, 0.8, -6.2, 5.35, z, ry, { bg: '#0c1822', fg: '#ffffff', border: '#2fd06a' }); sgn(g, '24H', 2.3, 0.7, -6.2, 4.55, z, ry, { bg: '#0c1822', fg: '#ffe81a', border: '#f08a1c' }); }
+  // forecourt: vending machines, bin, bike rack, stops
+  [[2.6, 3.3], [3.8, 3.3], [5.0, 3.3]].forEach(([x, z], i) => { const v = vendingMachine({ variant: i }); v.position.set(x, 0, z); g.add(v); });
+  cols.push([2.0, 5.6, 2.8, 3.8, 1.9]);
+  Cy(g, 0.3, 0.3, 0.9, 8, C(0x3a6a4a), -3.5, 0.45, 3.5, 1); cols.push([-3.8, -3.2, 3.2, 3.8, 0.9]);
+  boxes(g, [[0.08, 0.7, 0.08, 0.6, 0.35, 4.2], [0.08, 0.7, 0.08, 1.2, 0.35, 4.2], [0.08, 0.7, 0.08, 1.8, 0.35, 4.2], [1.4, 0.06, 0.06, 1.2, 0.7, 4.2]], C(0x9aa0aa));
+  for (let i = 0; i < 6; i++) pl(g, basic(0xf4f4f0), 0.12, 2.2, -2.5 + i * 2.2, 0.075, 4.9, 0, -Math.PI / 2).scale.set(1, 1, 1);
+  for (const x of [-5, 5]) Bx(g, 1.6, 0.14, 0.3, mat('s6tk_conc'), x, 0.1, 5.6, 2);
+  // sides / back
+  for (const s of [-1, 1]) for (const z of [-4, 0]) win(g, 1.6, 1.5, s * 7.07, 2.3, z, s * Math.PI / 2, { fixed: true, lit: z === 0 });
+  win(g, 1.6, 1.5, -3, 2.4, -6.07, Math.PI, { fixed: true, lit: true }); door(g, 1.1, 2.2, 3, 1.2, -6.07, Math.PI, '#5a6068');
+  boxes(g, [[1.2, 0.8, 0.8, -4, 5.45, -3], [1.4, 0.9, 1.0, 3, 5.5, -2], [0.8, 0.6, 0.8, 5, 5.35, -5]], C(0x7a808a));
+  cols.unshift([-7, 7, -6, FZ + 0.3, 6]);
+  return size(g, 14, 12, 6, cols);
 }

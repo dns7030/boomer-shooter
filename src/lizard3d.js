@@ -20,10 +20,15 @@ const PALETTE = {
   gargoyle: { skin: 0x8e9096, belly: 0xa8aab0, dark: 0x4a4c52, eye: 0xff3020, claw: 0x6a6c72 },
   shield: { skin: 0x7a6c4a, belly: 0xc8b890, dark: 0x3a3220, eye: 0xffc820, claw: 0xe0dac0 },
   tsar: { skin: 0x3f5a45, belly: 0xc8b890, dark: 0x1e2a22, eye: 0xff2a20, claw: 0xf0e8d0 },
+  jadewyrm: { skin: 0x2f8f6a, belly: 0xe8e0a0, dark: 0x145040, eye: 0xffd23c, claw: 0xfff0b0 },
+  kaiju: { skin: 0x3b4452, belly: 0x8a8f98, dark: 0x1a1f28, eye: 0xff6a20, claw: 0xd8d8d0 },
+  merlizard: { skin: 0xdde8ee, belly: 0xffffff, dark: 0x4a6a7a, eye: 0x00c0ff, claw: 0xffffff },
+  carnival: { skin: 0x1fa04a, belly: 0xffe14a, dark: 0x6a1a8a, eye: 0xff2a8a, claw: 0xffffff },
   goldwyrm: { skin: 0xc79a22, belly: 0xf3dc8a, dark: 0x6a4a10, eye: 0x00e599, claw: 0xfff2c0 },
   sasquatch: { skin: 0x5a4430, belly: 0x8a7258, dark: 0x2a1e14, eye: 0xff5020, claw: 0xd8d0b8 },
 };
 const WINGED = new Set(['drake', 'bomber', 'gargoyle']);
+const BOSS_KINDS = new Set(['tsar', 'goldwyrm', 'sasquatch', 'jadewyrm', 'kaiju', 'merlizard', 'carnival']);
 
 function scaleTexture(seed) {
   const r = mulberry(seed);
@@ -164,10 +169,15 @@ export function buildLizard(kind) {
     torso.add(at(ell(0.34, 0.07, 0.1, M.dark), 0, 0.14, 0.4));
   }
   // tsar: crown, gold shoulder plates and a glowing weak spot between the spikes on his back
-  if (kind === 'tsar' || kind === 'goldwyrm' || kind === 'sasquatch') {
+  if (BOSS_KINDS.has(kind)) {
     const gold = std(0xd9a62a, { metalness: 0.85, roughness: 0.3 });
-    head.add(at(new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.17, 0.07, 12), gold), 0, 0.15, -0.02));
-    for (let i = 0; i < 7; i++) { const a = (i / 7) * Math.PI * 2, c = cone(0.025, 0.12, gold, 4); head.add(at(c, Math.sin(a) * 0.15, 0.24, Math.cos(a) * 0.15 - 0.02)); }
+    if (kind !== 'kaiju' && kind !== 'jadewyrm' && kind !== 'carnival') {   // crown
+      head.add(at(new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.17, 0.07, 12), gold), 0, 0.15, -0.02));
+      for (let i = 0; i < 7; i++) { const a = (i / 7) * Math.PI * 2, c = cone(0.025, 0.12, gold, 4); head.add(at(c, Math.sin(a) * 0.15, 0.24, Math.cos(a) * 0.15 - 0.02)); }
+    }
+    if (kind === 'jadewyrm') for (const sd of [-1, 1]) { const h = cone(0.03, 0.34, gold, 5); h.rotation.z = sd * 0.5; head.add(at(h, sd * 0.1, 0.3, -0.05)); const w = cone(0.012, 0.4, gold, 4); w.rotation.set(1.3, 0, sd * 0.6); head.add(at(w, sd * 0.12, -0.02, 0.2)); }   // dragon horns and whiskers
+    if (kind === 'carnival') { const cols = [0xff2a8a, 0xffd23c, 0x20c0ff, 0x7a2cff, 0x30e060, 0xff7a20]; for (let i = 0; i < 11; i++) { const a = -1.2 + (i / 10) * 2.4; const f = cone(0.035, 0.42, std(cols[i % cols.length], { roughness: 0.6 }), 4); f.rotation.z = -a * 0.9; head.add(at(f, Math.sin(a) * 0.22, 0.3 + Math.cos(a) * 0.12, -0.04)); } }   // feather headdress
+    if (kind === 'kaiju') for (let i = 0; i < 5; i++) torso.add(tilt(at(cone(0.06 - i * 0.006, 0.2, std(0xff6a20, { roughness: 0.5 }), 5), 0, 0.62 - i * 0.14, -0.42), 'x', -0.9));   // glowing dorsal plates
     head.add(at(new THREE.Mesh(new THREE.SphereGeometry(0.03, 8, 6), new THREE.MeshBasicMaterial({ color: 0xff3030 })), 0, 0.22, 0.13));
     for (const a of arms) a.sh.add(at(new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.12, 0.34), gold), 0, 0.15, 0));
     torso.add(at(new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.1, 0.1), gold), 0, 0.64, 0.3));

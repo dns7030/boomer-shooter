@@ -24,9 +24,13 @@ const ENEMY = {
   shield: { name: 'Shield Lizard', hp: 120, speed: 3.0, radius: 0.65, melee: 16, w: 2.1, h: 2.62, ai: 'melee', reach: 2.3, shield: true, scale: 1.12, hitR: 0.8, hitH: 2.7 },
   tsar: { name: 'Great Lizard Tsar', hp: 1600, speed: 2.5, radius: 1.7, melee: 32, w: 2.1, h: 2.62, ai: 'melee', reach: 4.6, boss: true, scale: 2.8, hitR: 1.6, hitH: 6.0 },
   sasquatch: { name: 'Cascadia Sasquatch', hp: 1500, speed: 2.7, radius: 1.7, melee: 30, w: 2.1, h: 2.62, ai: 'melee', reach: 4.6, boss: true, scale: 2.8, hitR: 1.6, hitH: 6.0 },
+  jadewyrm: { name: 'The Jade Dragon', hp: 1700, speed: 2.9, radius: 1.7, melee: 30, w: 2.1, h: 2.62, ai: 'melee', reach: 4.6, boss: true, scale: 2.8, hitR: 1.6, hitH: 6.0 },
+  kaiju: { name: 'Lizzilla', hp: 2200, speed: 2.4, radius: 2.0, melee: 36, w: 2.1, h: 2.62, ai: 'melee', reach: 5.2, boss: true, scale: 3.4, hitR: 1.9, hitH: 7.2 },
+  merlizard: { name: 'The Merlizard', hp: 1600, speed: 2.9, radius: 1.7, melee: 30, w: 2.1, h: 2.62, ai: 'melee', reach: 4.6, boss: true, scale: 2.8, hitR: 1.6, hitH: 6.0 },
+  carnival: { name: 'Carnival Lizard King', hp: 1800, speed: 3.0, radius: 1.7, melee: 32, w: 2.1, h: 2.62, ai: 'melee', reach: 4.6, boss: true, scale: 2.9, hitR: 1.6, hitH: 6.2 },
   goldwyrm: { name: 'The Golden Wyrm', hp: 1500, speed: 2.9, radius: 1.7, melee: 30, w: 2.1, h: 2.62, ai: 'melee', reach: 4.6, boss: true, scale: 2.8, hitR: 1.6, hitH: 6.0 },
 };
-const TURN = { grunt: 3.4, spitter: 2.8, drake: 2.3, bomber: 1.8, gargoyle: 5, shield: 1.7, tsar: 0.9, sasquatch: 0.9, goldwyrm: 1.0 };   // rad/s: lizards turn slower than you can run around them
+const TURN = { grunt: 3.4, spitter: 2.8, drake: 2.3, bomber: 1.8, gargoyle: 5, shield: 1.7, tsar: 0.9, sasquatch: 0.9, goldwyrm: 1.0, jadewyrm: 1.0, kaiju: 0.8, merlizard: 1.0, carnival: 1.1 };   // rad/s: lizards turn slower than you can run around them
 const hitR = (e) => e.cfg.hitR || 0.6, hitH = (e) => e.cfg.hitH || 2.3;
 
 const angDiff = (a, b) => { const d = a - b; return Math.atan2(Math.sin(d), Math.cos(d)); };
