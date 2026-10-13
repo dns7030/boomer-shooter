@@ -31,7 +31,7 @@ addPainters({
 });
 
 export function makeNeoTower({ w, d, h, rectPad = 2, build }) {
-  const g = new THREE.Group(), cols = [], stagesHide = [], stagesShow = [], tops = [], spinners = [], smokePoints = [];
+  const g = new THREE.Group(), cols = [], stagesHide = [], stagesShow = [], tops = [], spinners = [], wobblers = [], smokePoints = [];
   const glow = new THREE.MeshBasicMaterial({ color: new THREE.Color(NEO_GREEN) });
   const glowBase = new THREE.Color(0, 0.8, 0.45);                      // HDR green so bloom picks it up
   const T = {
@@ -41,6 +41,8 @@ export function makeNeoTower({ w, d, h, rectPad = 2, build }) {
     // a crown group that tilts a little at stage 3 and a lot at stage 4 (pivot = its own origin)
     top(group) { group.userData.keep = true; g.add(group); tops.push(group); group.traverse((o) => { if (o.isMesh) o.userData.keep = true; }); return group; },
     spin(obj, speed = 0.4) { obj.userData.keep = true; obj.userData.spinSpeed = speed; spinners.push(obj); return obj; },
+    // a ring that rocks gently from side to side (no rotation about its own axis): the pivot group tilts about two horizontal axes
+    wobble(pivot, amp = 0.26, speed = 0.8) { pivot.userData.keep = true; pivot.userData.wob = { amp, speed }; wobblers.push(pivot); return pivot; },
     smoke(x, y, z) { smokePoints.push(new THREE.Vector3(x, y, z)); },
   };
   build(T);
@@ -80,6 +82,7 @@ export function makeNeoTower({ w, d, h, rectPad = 2, build }) {
     const dim = DIM[stage] * (stage >= 2 ? 0.75 + 0.25 * Math.sin(t * 17 + Math.sin(t * 3.1) * 4) : 1) * (alive ? 1 : 0.1);
     glow.color.copy(glowBase).multiplyScalar(dim);
     for (const s of spinners) s.rotation.y += 0.016 * s.userData.spinSpeed * (1 - stage * 0.2);
+    for (const w of wobblers) { const { amp, speed } = w.userData.wob; w.rotation.z = amp * Math.sin(t * speed); w.rotation.x = amp * 0.45 * Math.sin(t * speed * 0.7 + 1.3); }
   }
   setStage(0);
   g.userData = { w, d, h, cols: cols.length ? cols : [[-w / 2, w / 2, -d / 2, d / 2, h]], rect: { w: w + rectPad * 2, d: d + rectPad * 2 }, setStage, update, smokePoints, glow };
@@ -179,7 +182,8 @@ export function neoTowerSeattle() {
       const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.9, 16, 8), dark); mast.position.y = 14; crown.add(mast);
       const orb = new THREE.Mesh(new THREE.SphereGeometry(1.2, 12, 8), T.glow); orb.position.y = 22.5; crown.add(orb);
       T.top(crown);
-      const halo = new THREE.Mesh(new THREE.TorusGeometry(14, 0.5, 8, 44), T.glow); halo.rotation.x = Math.PI / 2; halo.position.set(0, 56, 0); T.add(halo, { hideAt: 4 }); T.spin(halo, 0.5);
+      const halo = new THREE.Mesh(new THREE.TorusGeometry(14, 0.5, 8, 44), T.glow); halo.rotation.x = Math.PI / 2; halo.userData.keep = true;
+      const haloPivot = new THREE.Group(); haloPivot.position.set(0, 56, 0); haloPivot.add(halo); T.add(haloPivot, { hideAt: 4 }); T.wobble(haloPivot, 0.26, 0.8);   // wider than the crown, so rocking never clips it
       const beam = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 2.2, 180, 12, 1, true), new THREE.MeshBasicMaterial({ color: new THREE.Color(0, 0.9, 0.6), transparent: true, opacity: 0.28, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, fog: false }));
       beam.position.set(0, 170, 0); T.add(beam, { hideAt: 3 });
       T.add(place(new THREE.Mesh(new THREE.BoxGeometry(6, 7, 0.5), T.glow), 0, 4.5, 3.3));
