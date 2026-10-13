@@ -20,6 +20,8 @@ const PALETTE = {
   gargoyle: { skin: 0x8e9096, belly: 0xa8aab0, dark: 0x4a4c52, eye: 0xff3020, claw: 0x6a6c72 },
   shield: { skin: 0x7a6c4a, belly: 0xc8b890, dark: 0x3a3220, eye: 0xffc820, claw: 0xe0dac0 },
   tsar: { skin: 0x3f5a45, belly: 0xc8b890, dark: 0x1e2a22, eye: 0xff2a20, claw: 0xf0e8d0 },
+  goldwyrm: { skin: 0xc79a22, belly: 0xf3dc8a, dark: 0x6a4a10, eye: 0x00e599, claw: 0xfff2c0 },
+  sasquatch: { skin: 0x5a4430, belly: 0x8a7258, dark: 0x2a1e14, eye: 0xff5020, claw: 0xd8d0b8 },
 };
 const WINGED = new Set(['drake', 'bomber', 'gargoyle']);
 
@@ -162,7 +164,7 @@ export function buildLizard(kind) {
     torso.add(at(ell(0.34, 0.07, 0.1, M.dark), 0, 0.14, 0.4));
   }
   // tsar: crown, gold shoulder plates and a glowing weak spot between the spikes on his back
-  if (kind === 'tsar') {
+  if (kind === 'tsar' || kind === 'goldwyrm' || kind === 'sasquatch') {
     const gold = std(0xd9a62a, { metalness: 0.85, roughness: 0.3 });
     head.add(at(new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.17, 0.07, 12), gold), 0, 0.15, -0.02));
     for (let i = 0; i < 7; i++) { const a = (i / 7) * Math.PI * 2, c = cone(0.025, 0.12, gold, 4); head.add(at(c, Math.sin(a) * 0.15, 0.24, Math.cos(a) * 0.15 - 0.02)); }

@@ -1295,7 +1295,7 @@ export class Game {
     const w = this.wave;
     for (const [type, n] of Object.entries(def)) for (let k = 0; k < n; k++) w.toSpawn.push(type);
     for (let k = w.toSpawn.length - 1; k > 0; k--) { const j = (Math.random() * (k + 1)) | 0; [w.toSpawn[k], w.toSpawn[j]] = [w.toSpawn[j], w.toSpawn[k]]; }
-    w.toSpawn.sort((a, b) => (a === 'tsar') - (b === 'tsar'));   // the boss comes in first (spawn takes from the end)
+    w.toSpawn.sort((a, b) => (!!ENEMY[a].boss) - (!!ENEMY[b].boss));   // the boss comes in first (spawn takes from the end)
   }
   startWave(i) {
     const w = this.wave;

@@ -123,3 +123,36 @@ export function neoTowerMoscow() {
     },
   });
 }
+
+// ---------- Dubai: a twisting golden-glass spire in the Burj tradition, ringed with green light ----------
+export function neoTowerDubai() {
+  return makeNeoTower({
+    w: 26, d: 26, h: 90,
+    build(T) {
+      const gold = mat('s5d_goldclad'), glass = mat('s5d_glass');
+      T.add(boxT(32, 1.0, 32, mat('s5d_sandstone'), 3)).position.set(0, 0.5, 0);
+      T.add(boxT(29, 0.8, 29, mat('s5d_sandstone'), 3)).position.set(0, 1.4, 0);
+      let y = 1.8;
+      const tiers = [{ s: 26, h: 22 }, { s: 22, h: 18 }, { s: 18, h: 16 }, { s: 14, h: 14 }, { s: 10, h: 12 }, { s: 6.5, h: 10 }];
+      tiers.forEach((t, i) => {
+        const m = new THREE.Group(); m.position.set(0, y, 0); m.rotation.y = i * 0.26;
+        const body = new THREE.Mesh(new THREE.BoxGeometry(t.s, t.h, t.s), i % 2 ? gold : glass); body.position.y = t.h / 2; m.add(body);
+        for (const sx of [-1, 1]) for (const sz of [-1, 1]) { const st = new THREE.Mesh(new THREE.BoxGeometry(0.7, t.h, 0.7), T.glow); st.position.set(sx * t.s / 2, t.h / 2, sz * t.s / 2); m.add(st); }
+        const band = new THREE.Mesh(new THREE.BoxGeometry(t.s + 1.2, 0.8, t.s + 1.2), T.glow); band.position.y = t.h; m.add(band);
+        T.add(m); y += t.h + 0.2;
+      });
+      const crown = new THREE.Group(); crown.position.set(0, y, 0);
+      const spire = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 1.1, 24, 8), gold); spire.position.y = 12; crown.add(spire);
+      const orb = new THREE.Mesh(new THREE.SphereGeometry(1.8, 14, 10), T.glow); orb.position.y = 25; crown.add(orb);
+      T.top(crown);
+      const ring = new THREE.Mesh(new THREE.TorusGeometry(13, 0.45, 8, 40), T.glow); ring.rotation.x = Math.PI / 2; ring.position.set(0, 40, 0); T.add(ring, { hideAt: 4 }); T.spin(ring, 0.6);
+      const ring2 = new THREE.Mesh(new THREE.TorusGeometry(9, 0.35, 8, 36), T.glow); ring2.rotation.x = Math.PI / 2.3; ring2.position.set(0, 62, 0); T.add(ring2, { hideAt: 3 }); T.spin(ring2, -0.9);
+      const beam = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 2.2, 160, 12, 1, true), new THREE.MeshBasicMaterial({ color: new THREE.Color(0, 0.9, 0.6), transparent: true, opacity: 0.2, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, fog: false }));
+      beam.position.set(0, y + 85, 0); T.add(beam, { hideAt: 3 });
+      T.add(place(new THREE.Mesh(new THREE.BoxGeometry(7, 9, 0.5), T.glow), 0, 6.5, 13.2));
+      T.add(place(new THREE.Mesh(new THREE.BoxGeometry(5.4, 7.6, 0.6), color(0x04261c)), 0, 5.8, 13.25));
+      const sg = sign('N E O  N O D E', 16, 1.6, { bg: '#04261c', fg: '#00e599' }); sg.position.set(0, 12.8, 13.3); T.add(sg);
+      T.smoke(-8, 18, 13.5); T.smoke(9, 30, -9); T.smoke(0, 60, 5);
+    },
+  });
+}
