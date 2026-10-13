@@ -184,9 +184,11 @@ export function neoTowerSeattle() {
       const haloPivot = new THREE.Group(); haloPivot.position.set(0, 56, 0); haloPivot.add(halo); T.add(haloPivot, { hideAt: 4 }); T.wobble(haloPivot, 0.26, 0.8);   // wider than the crown, so rocking never clips it
       const beam = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 2.2, 180, 12, 1, true), new THREE.MeshBasicMaterial({ color: new THREE.Color(0, 0.9, 0.6), transparent: true, opacity: 0.28, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, fog: false }));
       beam.position.set(0, 170, 0); T.add(beam, { hideAt: 3 });
-      T.add(place(new THREE.Mesh(new THREE.BoxGeometry(6, 7, 0.5), T.glow), 0, 4.5, 3.3));
-      T.add(place(new THREE.Mesh(new THREE.BoxGeometry(4.6, 6.2, 0.6), color(0x04261c)), 0, 4, 3.35));
-      const sg = sign('N E O', 16, 1.6, { bg: '#04261c', fg: '#00e599' }); sg.position.set(0, 9.5, 3.9); T.add(sg);
+      // entrance pavilion in FRONT of the tripod legs (they reach about 6 m out), so no pillar pokes through the door or sign
+      T.add(place(new THREE.Mesh(new THREE.BoxGeometry(8, 7.4, 2.4), color(0x0b2a22)), 0, 3.7, 7.3));
+      T.add(place(new THREE.Mesh(new THREE.BoxGeometry(6, 7, 0.5), T.glow), 0, 3.6, 8.65));
+      T.add(place(new THREE.Mesh(new THREE.BoxGeometry(4.6, 6.2, 0.6), color(0x04261c)), 0, 3.1, 8.7));
+      const sg = sign('N E O', 16, 1.6, { bg: '#04261c', fg: '#00e599' }); sg.position.set(0, 8.4, 8.6); T.add(sg);
       T.smoke(-3, 20, 3); T.smoke(3, 40, -3); T.smoke(0, 62, 5);
     },
   });
