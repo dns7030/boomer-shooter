@@ -126,3 +126,9 @@ all three waves, and writes screenshots. It cannot judge game feel — playtest 
 * A new building: write a builder in `src/buildings.js` / `src/buildings2.js` (front faces +Z) and add a `side(...)` line in the level file.
 * A new level: write a `build(scene)` like `level_soviet.js` (return colliders, spawn points, pickups, rules) and add it to `src/levels.js`.
 * A new weapon: add its stats to `src/weapons.js`, a model in `src/weaponmodels.js` (give it a `muzzle` and a `tip`), and its behaviour in `fire()` in `src/game.js`.
+
+## Neo community game (`neo.html`)
+
+A second game on the same engine: defend the glowing green **Neo node** (a landmark tower in each city) from lizards.
+About 40% of lizards attack the node, the rest hunt you; node uptime never repairs and the chain halts at zero.
+Levels (`src/neo/`): Moscow, Seattle, Dubai. Health pickups are **NEO** and **GAS**. Check with `node tests/neo.mjs <outdir> <level>` and `node tests/neo_fail.mjs`.

@@ -7,6 +7,7 @@ import * as THREE from 'three';
 import { mat, color, boxT, cylT, place } from '../geo.js';
 import { slab, tiledPlane, sign } from '../buildings2.js';
 import { addPainters, mulberry } from '../textures.js';
+import '../buildings5d.js';   // registers the s5d_* textures used by the Dubai and Seattle towers
 
 export const NEO_GREEN = 0x00e599;
 const R = (g, x, y, w, h, c) => { g.fillStyle = c; g.fillRect(x, y, w, h); };
@@ -153,6 +154,37 @@ export function neoTowerDubai() {
       T.add(place(new THREE.Mesh(new THREE.BoxGeometry(5.4, 7.6, 0.6), color(0x04261c)), 0, 5.8, 13.25));
       const sg = sign('N E O  N O D E', 16, 1.6, { bg: '#04261c', fg: '#00e599' }); sg.position.set(0, 12.8, 13.3); T.add(sg);
       T.smoke(-8, 18, 13.5); T.smoke(9, 30, -9); T.smoke(0, 60, 5);
+    },
+  });
+}
+
+// ---------- Seattle: a Space-Needle-style saucer on a tapering tripod with a glowing green halo ----------
+export function neoTowerSeattle() {
+  return makeNeoTower({
+    w: 22, d: 22, h: 80,
+    build(T) {
+      const steel = color(0xd9dde0), dark = color(0x2a3236), glass = mat('s5d_glass');
+      T.add(boxT(26, 0.8, 26, mat('granite'), 3)).position.set(0, 0.4, 0);
+      T.cols.push([-3, 3, -3, 3, 80], [-11, 11, -11, 11, 5]);
+      const leg = (a) => { const m = new THREE.Mesh(new THREE.CylinderGeometry(0.9, 1.6, 40, 8), steel); m.position.set(Math.cos(a) * 5, 20, Math.sin(a) * 5); m.rotation.z = -Math.cos(a) * 0.17; m.rotation.x = Math.sin(a) * 0.17; return m; };
+      for (let i = 0; i < 3; i++) T.add(leg(i * 2.094));
+      const core = new THREE.Mesh(new THREE.CylinderGeometry(2.4, 3.2, 60, 12), steel); core.position.y = 30; T.add(core);
+      const ringG = new THREE.Mesh(new THREE.TorusGeometry(3.5, 0.25, 6, 24), T.glow); ringG.rotation.x = Math.PI / 2; ringG.position.y = 24; T.add(ringG, { hideAt: 3 });
+      const crown = new THREE.Group(); crown.position.set(0, 60, 0);
+      const disc = new THREE.Mesh(new THREE.CylinderGeometry(11, 5, 3, 24), steel); disc.position.y = 0; crown.add(disc);
+      const glassBand = new THREE.Mesh(new THREE.CylinderGeometry(10.2, 10.2, 4.2, 24, 1, true), glass); glassBand.position.y = 3.1; crown.add(glassBand);
+      const roof = new THREE.Mesh(new THREE.CylinderGeometry(8, 11.5, 1.6, 24), steel); roof.position.y = 5.8; crown.add(roof);
+      const glowRim = new THREE.Mesh(new THREE.TorusGeometry(11.3, 0.35, 6, 40), T.glow); glowRim.rotation.x = Math.PI / 2; glowRim.position.y = 1.4; crown.add(glowRim);
+      const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.9, 16, 8), dark); mast.position.y = 14; crown.add(mast);
+      const orb = new THREE.Mesh(new THREE.SphereGeometry(1.2, 12, 8), T.glow); orb.position.y = 22.5; crown.add(orb);
+      T.top(crown);
+      const halo = new THREE.Mesh(new THREE.TorusGeometry(14, 0.5, 8, 44), T.glow); halo.rotation.x = Math.PI / 2; halo.position.set(0, 56, 0); T.add(halo, { hideAt: 4 }); T.spin(halo, 0.5);
+      const beam = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 2.2, 180, 12, 1, true), new THREE.MeshBasicMaterial({ color: new THREE.Color(0, 0.9, 0.6), transparent: true, opacity: 0.28, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, fog: false }));
+      beam.position.set(0, 170, 0); T.add(beam, { hideAt: 3 });
+      T.add(place(new THREE.Mesh(new THREE.BoxGeometry(6, 7, 0.5), T.glow), 0, 4.5, 3.3));
+      T.add(place(new THREE.Mesh(new THREE.BoxGeometry(4.6, 6.2, 0.6), color(0x04261c)), 0, 4, 3.35));
+      const sg = sign('N E O  N O D E', 16, 1.6, { bg: '#04261c', fg: '#00e599' }); sg.position.set(0, 9.5, 3.4); T.add(sg);
+      T.smoke(-3, 20, 3); T.smoke(3, 40, -3); T.smoke(0, 62, 5);
     },
   });
 }

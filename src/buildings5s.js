@@ -295,7 +295,7 @@ export function spaceNeedle() {
   const c = (a) => [Math.cos(a) * 7, Math.sin(a) * 7];
   const cols = [[-1.6, 1.6, -1.6, 1.6, 95], [-7, -2, -4.3, -0.7, 4]];
   A.forEach((a) => { const [x, z] = c(a); cols.push([x - 0.9, x + 0.9, z - 0.9, z + 0.9, 12]); });
-  return size(g, 16, 16, 95, cols);
+  return size(g, 21, 21, 96, cols);
 }
 
 // =====================================================================
