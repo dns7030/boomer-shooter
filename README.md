@@ -131,4 +131,4 @@ all three waves, and writes screenshots. It cannot judge game feel — playtest 
 
 A second game on the same engine: defend the glowing green **Neo** tower (a landmark tower in each city) from lizards.
 About 40% of lizards attack the node, the rest hunt you; Neo blockchain health never repairs and the chain halts at zero.
-Levels (`src/neo/`): Moscow, Seattle, Dubai. Health pickups are **NEO** and **GAS**. Check with `node tests/neo.mjs <outdir> <level>` and `node tests/neo_fail.mjs`.
+Levels (`src/neo/`): Moscow, Seattle, Dubai, Shanghai, Singapore, Tokyo, Rio (new cities are specs for `src/neo/citylevel.js`). Stats server: `server/` (Railway). Health pickups are **NEO** and **GAS**. Check with `node tests/neo.mjs <outdir> <level>` and `node tests/neo_fail.mjs`.

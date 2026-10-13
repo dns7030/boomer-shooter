@@ -1,6 +1,7 @@
 // Level registry for the Neo game (neo.html). Each build(scene) returns colliders, spawn data and rules (see level_moscow.js).
 import { buildNeoMoscow } from './level_moscow.js';
 import { buildNeoSeattle } from './level_seattle.js';
+import { buildNeoSingapore } from './level_singapore.js';
 import { buildNeoTokyo } from './level_tokyo.js';
 import { buildNeoShanghai } from './level_shanghai.js';
 import { buildNeoRio } from './level_rio.js';
@@ -14,6 +15,7 @@ export const NEO_LEVELS = [
   { id: 'seattle', name: 'Seattle', era: 'Rainy grey city — defend Neo', track: 2, build: withWindows(buildNeoSeattle) },
   { id: 'dubai', name: 'Dubai', era: 'Golden desert metropolis — defend Neo', track: 1, build: withWindows(buildNeoDubai) },
   { id: 'shanghai', name: 'Shanghai', era: 'The Bund and Nanjing Road — defend Neo', track: 1, build: withWindows(buildNeoShanghai) },
+  { id: 'singapore', name: 'Singapore', era: 'Marina Bay conference — defend Neo', track: 3, build: withWindows(buildNeoSingapore) },
   { id: 'tokyo', name: 'Tokyo', era: 'Neon dusk in Shibuya — defend Neo', track: 2, build: withWindows(buildNeoTokyo) },
   { id: 'rio', name: 'Rio de Janeiro', era: 'Carnival on the beach — defend Neo', track: 3, build: withWindows(buildNeoRio) },
 ];
