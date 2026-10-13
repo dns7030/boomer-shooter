@@ -57,6 +57,7 @@ function showOverlay(s) {
   const L = LEVELS[game.levelIndex];
   renderLevels(s !== 'paused' && s !== 'playing');
   renderSettings();
+  $('ov-menu').style.display = s === 'paused' ? 'inline-block' : 'none';
   if (music) music.setMode(s === 'playing' ? 'play' : s === 'paused' ? 'pause' : s === 'won' ? 'win' : s === 'dead' ? 'dead' : 'pause');
   if (s === 'paused') { title.textContent = 'PAUSED'; body.textContent = 'Press ESC or click to resume.  (P = developer freeze)'; btn.textContent = 'RESUME'; }
   else if (s === 'dead' && game.failReason === 'chain') { title.textContent = 'THE CHAIN HAS HALTED'; body.textContent = `Neo went offline. Lizards slain: ${game.stats.kills}.`; btn.textContent = 'TRY AGAIN'; }
@@ -81,6 +82,7 @@ function start(levelIndex) {
   if (canvas.requestPointerLock) { try { const r = canvas.requestPointerLock(); if (r && r.catch) r.catch(() => {}); } catch (e) { /* ignore */ } }
 }
 $('ov-btn').addEventListener('click', () => start());
+$('ov-menu').addEventListener('click', (ev) => { ev.stopPropagation(); game.toMenu(); });
 overlay.addEventListener('click', (e) => { if (e.target === overlay) start(); });
 
 // re-capture the mouse: any click on the game while it is running but unlocked (e.g. Esc-resume refused by the browser) locks it again

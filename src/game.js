@@ -217,6 +217,7 @@ export class Game {
   begin() { if (this.state === 'dead' || this.state === 'won') this.reset(); this.setState('playing'); }
   nextLevel() { return this.levelIndex + 1 < this.levels.length ? this.levelIndex + 1 : null; }
   pause() { if (this.state === 'playing') this.setState('paused'); }
+  toMenu() { if (this.state === 'paused') this.setState('title'); }   // pause menu -> main menu (PLAY then restarts the level)
 
   // ---------------- particles ----------------
   // ---------------- breakable world: props, windows, debris, timers ----------------

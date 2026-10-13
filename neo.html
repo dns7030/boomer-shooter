@@ -39,6 +39,8 @@
   #overlay p { max-width: 560px; line-height:1.5; margin: 0 0 18px; }
   #ov-btn { font: inherit; font-size:22px; letter-spacing:3px; padding: 10px 34px; background: var(--red); color: var(--cream); border: 3px solid var(--gold); cursor:pointer; }
   #ov-btn:hover { background:#d04535; }
+  #ov-menu { font: inherit; font-size:16px; letter-spacing:3px; padding: 8px 26px; margin-top:10px; background: transparent; color: var(--cream); border: 2px solid var(--gold); cursor:pointer; }
+  #ov-menu:hover { background:rgba(255,255,255,.12); }
   #levels { display:flex; gap:12px; margin-top:20px; flex-wrap:wrap; justify-content:center; }
   .lvl { font: inherit; background: rgba(26,18,16,.85); color: var(--cream); border: 2px solid #1f6a50; padding: 10px 16px; cursor:pointer; text-align:left; min-width: 230px; }
   .lvl b { display:block; font-size:16px; letter-spacing:1px; } .lvl small { opacity:.7; font-size:12px; }
@@ -68,9 +70,17 @@
   <p id="ov-body">Lizards from space are attacking the city’s Neo tower. Keep its blockchain health above zero, hunt the invaders, and grab every weapon you find.</p>
   <div class="keys"><span><b>WASD</b> move</span><span><b>MOUSE</b> look</span><span><b>CLICK</b> fire / swing</span><span><b>SPACE</b> jump</span><span><b>1–9 / WHEEL / Q</b> weapons (press a number again to cycle)</span><span><b>SHIFT</b> run</span><span><b>M</b> music on / off</span><span><b>G</b> graphics quality</span><span><b>L</b> lizard look (3D / pixel)</span></div>
   <button id="ov-btn">PLAY</button>
+  <button id="ov-menu" style="display:none">MAIN MENU</button>
   <div id="settings"><button class="set" id="set-gfx"></button><button class="set" id="set-liz"></button></div>
   <div id="levels"></div>
 </div>
+<script>
+  // Neo game: no Russian-language signs anywhere, so players must read the city from its architecture
+  (() => {
+    const cyr = /[\u0400-\u04FF]/, P = CanvasRenderingContext2D.prototype;
+    for (const fn of ['fillText', 'strokeText']) { const o = P[fn]; P[fn] = function (t, ...a) { if (cyr.test(String(t))) return; return o.call(this, t, ...a); }; }
+  })();
+</script>
 <script type="module">
   import { NEO_LEVELS } from './src/neo/levels.js';
   window.GAME_CONFIG = { levels: NEO_LEVELS, title: 'NEO: LIZARDS OVER THE CHAIN' };
