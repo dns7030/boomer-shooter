@@ -4,6 +4,7 @@ import { createMusic } from './music.js';
 import { WEAPONS } from './weapons.js';
 import { LEVELS as DEFAULT_LEVELS } from './levels.js';
 import { createProfile, scoreOf } from './profile.js';
+import { BUILD } from './version.js';
 
 const CFG = window.GAME_CONFIG || {};
 const LEVELS = CFG.levels || DEFAULT_LEVELS;
@@ -141,6 +142,20 @@ window.addEventListener('resize', () => game.resize(canvas.clientWidth, canvas.c
 const devEl = document.createElement('div');
 devEl.style.cssText = 'position:fixed;left:50%;bottom:150px;transform:translateX(-50%);padding:6px 12px;background:rgba(0,0,0,.75);color:#7CFFB8;font:14px monospace;z-index:20;pointer-events:none;display:none;white-space:pre';
 document.body.appendChild(devEl);
+// build stamp in the top-left corner while developer mode (P) is on; also asks GitHub whether a newer commit exists (stale cache hint)
+const verEl = document.createElement('div');
+verEl.style.cssText = 'position:fixed;left:8px;top:8px;padding:4px 8px;background:rgba(0,0,0,.75);color:#7CFFB8;font:12px monospace;z-index:20;pointer-events:none;display:none;white-space:pre';
+document.body.appendChild(verEl);
+let latestNote = '';
+async function checkLatest() {
+  try {
+    const r = await fetch('https://api.github.com/repos/dns7030/boomer-shooter/commits/claude%2Ffestive-dirac-8ebprl', { headers: { Accept: 'application/vnd.github+json' } });
+    if (!r.ok) throw new Error(r.status);
+    const j = await r.json(), t = Date.parse(j.commit.committer.date);
+    latestNote = t > Date.parse(BUILD.time) + 180000 ? `NEWER VERSION ON GITHUB (${j.sha.slice(0, 7)}) - HARD REFRESH: CTRL+SHIFT+R` : `up to date (latest ${j.sha.slice(0, 7)})`;
+  } catch (e) { latestNote = 'could not check GitHub'; }
+}
+let checked = false;
 let last = performance.now();
 function frame(now) {
   const dt = (now - last) / 1000; last = now;
@@ -148,6 +163,8 @@ function frame(now) {
   if (music) music.setIntensity(game.intensity());
   game.render();
   devEl.style.display = game.freeze && game.state === 'playing' ? 'block' : 'none'; if (game.freeze) devEl.textContent = game.devText || '';
+  verEl.style.display = game.freeze ? 'block' : 'none';
+  if (game.freeze) { if (!checked) { checked = true; checkLatest(); } verEl.textContent = `build #${BUILD.n}  ${BUILD.time.slice(0, 16).replace('T', ' ')} UTC\n${latestNote}`; }
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
