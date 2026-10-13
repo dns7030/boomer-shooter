@@ -5,12 +5,14 @@ import { WEAPONS } from './weapons.js';
 import { LEVELS as DEFAULT_LEVELS } from './levels.js';
 import { createProfile, scoreOf } from './profile.js';
 import { BUILD } from './version.js';
+import { createOnline } from './online.js';
 
 const CFG = window.GAME_CONFIG || {};
 const LEVELS = CFG.levels || DEFAULT_LEVELS;
 
 const $ = (id) => document.getElementById(id);
 const profile = createProfile(CFG.profileKey || 'rus');
+const online = createOnline(CFG.profileKey === 'neo' ? 'neo' : 'rus');
 const canvas = $('view');
 const overlay = $('overlay');
 const slots = [...document.querySelectorAll('#slots .slot')];
@@ -20,7 +22,7 @@ const game = new Game({
   ui: {
     radar: $('radar'), uptime: $('uptime'), uptimeBar: $('uptime-bar'), uptimeLabel: $('uptime-label'), boss: $('boss'), bossLabel: $('boss-label'), bossBar: $('bossbar'), hp: $('hp'), hpBar: $('hpbar'), ammo: $('ammo'), weapon: $('wname'), wave: $('wave'), msg: $('msg'), hurt: $('hurt'), slots,
     onState(s) { showOverlay(s); },
-    onStat(kind, run) { profile.event(kind, run); },
+    onStat(kind, run) { profile.event(kind, run); const st = profile.stats(); if (online.enabled && st) online.sendStats(profile.nick, st); },
   },
 });
 window.__game = game; // handy for debugging and the headless smoke test
@@ -58,9 +60,11 @@ function renderLevels(show) {
 function renderProfile() {
   const st = profile.stats(), box = $('mystats'), inp = $('nick');
   if (document.activeElement !== inp) inp.value = profile.nick;
-  if (!st) { box.textContent = ''; return; }
+  if (!st) { box.innerHTML = online.enabled && online.online != null ? `PLAYERS ONLINE NOW: <b>${online.online}</b>` : ''; return; }
   const top = profile.leaderboard().map((p, i) => `${i + 1}. ${p.nick} — ${p.best}`).join('   ');
-  box.innerHTML = `BEST SCORE <b>${st.best}</b> · BOSSES KILLED <b>${st.bosses}</b> · WAVES CLEARED <b>${st.waves}</b><br>${top ? 'TOP (THIS BROWSER): ' + top : ''}`;
+  const top2 = online.enabled && online.board.length ? '<br>WORLD TOP: ' + online.board.map((p, i) => `${i + 1}. ${p.nick} — ${p.best}`).join('   ') : '';
+  const on = online.enabled && online.online != null ? `<br>PLAYERS ONLINE NOW: <b>${online.online}</b>` : '';
+  box.innerHTML = `BEST SCORE <b>${st.best}</b> · BOSSES KILLED <b>${st.bosses}</b> · WAVES CLEARED <b>${st.waves}</b><br>${top ? 'TOP (THIS BROWSER): ' + top : ''}${top2}${on}`;
 }
 function showOverlay(s) {
   const title = $('ov-title'), body = $('ov-body'), btn = $('ov-btn');
@@ -87,7 +91,7 @@ function start(levelIndex) {
   if (fresh) {   // a nickname is needed to start a run (it keeps your stats)
     const inp = $('nick'), name = inp.value.trim() || profile.nick;
     if (!name) { inp.classList.add('bad'); inp.focus(); setTimeout(() => inp.classList.remove('bad'), 400); return; }
-    profile.setNick(name); profile.startRun();
+    profile.setNick(name); profile.startRun(); online.setContext(name, LEVELS[game.levelIndex].name);
   }
   initAudio();
   if (typeof levelIndex !== 'number') {
@@ -168,4 +172,5 @@ function frame(now) {
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
+online.start(() => { if (game.state !== 'playing') renderProfile(); });
 showOverlay('title');
