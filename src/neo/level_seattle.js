@@ -9,6 +9,17 @@ import { addSunlight } from '../sky.js';
 import { neoTowerSeattle } from './neotower.js';
 
 const FOG = 0x8f9ba3;
+const GROUND = [new THREE.Plane(new THREE.Vector3(0, 1, 0), 0)];
+// anything of a building that dips below the ground (MoPOP blobs, domes...) is cut off at y = 0, because the ground layers don't write depth
+function clipBelowGround(root) {
+  root.updateMatrixWorld(true);
+  const bb = new THREE.Box3();
+  root.traverse((o) => {
+    if (!o.isMesh || !o.geometry) return;
+    bb.setFromObject(o);
+    if (bb.min.y < -0.05) { const arr = Array.isArray(o.material) ? o.material : [o.material]; const out = arr.map((m) => { const c = m.clone(); c.clippingPlanes = GROUND; return c; }); o.material = Array.isArray(o.material) ? out : out[0]; }
+  });
+}
 const X0 = -110, X1 = 110, ZN = -87.5, ZS = 87.5;
 
 export function buildNeoSeattle(scene) {
@@ -34,7 +45,7 @@ export function buildNeoSeattle(scene) {
   const baseRect = { x0: -tower.userData.rect.w / 2, x1: tower.userData.rect.w / 2, z0: -tower.userData.rect.d / 2, z1: tower.userData.rect.d / 2 };
 
   const bld = {};
-  const add = (name, g, x, z, f, o = {}) => { put(g, x, z, f, o); bld[name] = { g, x, z, f, s: o.s || 1 }; return g; };
+  const add = (name, g, x, z, f, o = {}) => { put(g, x, z, f, o); clipBelowGround(g); bld[name] = { g, x, z, f, s: o.s || 1 }; return g; };
   add('mopop', S.moPOP(), 0, -64, 'S', { s: 0.6 });
   add('columbia', S.columbiaCenter(), -70, -66, 'S', { s: 0.6 });
   add('amazon', S.amazonSpheres(), 68, -66, 'S', { s: 0.8 });
@@ -62,7 +73,7 @@ export function buildNeoSeattle(scene) {
   const mk = [() => S.smithTower(), () => S.columbiaCenter(), () => S.centralLibrary(), () => S.brickWarehouse(), () => S.amazonSpheres(), () => S.moPOP(), () => S.gasWorksPark(), () => S.greatWheel()];
   const slots = [[-85, ZN - 55, 'S'], [75, ZN - 60, 'S'], [X1 + 60, -30, 'W'], [X1 + 60, 50, 'W'], [60, ZS + 55, 'N'], [-70, ZS + 55, 'N'], [X0 - 60, 40, 'E'], [X0 - 60, -45, 'E']];
   const order = [2, 1, 6, 4, 0, 7, 3, 5];   // library, Columbia, gas works, spheres, Smith, wheel, warehouse, MoPOP
-  slots.forEach(([x, z, f], i) => put(mk[order[i]](), x, z, f, { solid: false, s: 1 + ((i * 37) % 5) * 0.08 }));
+  slots.forEach(([x, z, f], i) => { const g = mk[order[i]](); put(g, x, z, f, { solid: false, s: 1 + ((i * 37) % 5) * 0.08 }); clipBelowGround(g); });
   put(S.spaceNeedle(), 150, ZN - 90, 'S', { solid: false, s: 1.2 });
   put(S.mountRainier(), 60, ZN - 520, 'S', { solid: false, s: 3 });
 

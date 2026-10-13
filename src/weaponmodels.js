@@ -174,7 +174,7 @@ function buildSSG(M) {
   H(rbox(0.07, 0.042, 0.17, 0.012, M.wood), 0, -0.03, -0.32);
   // the front hand (+ arm) is NOT part of the hinge: it holds the forend, then lets go during the reload and carries the shells in
   const lhGrp = new THREE.Group(); g.add(lhGrp); lhGrp.userData.skip = true;
-  lhGrp.add(hand(M, 0, 0.0, -0.31, 0.058, 0.034, 0.09)); const armHold = arm(M, [0, -0.02, -0.26], [-0.5, -0.4, 0.77], 0.55, 0.024), armTop = arm(M, [0, 0.03, -0.26], [-0.55, 0.35, 0.45], 0.32, 0.024);
+  lhGrp.add(hand(M, 0, -0.05, -0.31, 0.058, 0.034, 0.09)); const armHold = arm(M, [0, -0.07, -0.26], [-0.5, -0.4, 0.77], 0.55, 0.024), armTop = arm(M, [0, 0.03, -0.26], [-0.55, 0.35, 0.45], 0.32, 0.024);
   lhGrp.add(armHold, armTop); armTop.visible = false;
   const grip = rbox(0.042, 0.1, 0.05, 0.01, M.wood); grip.position.set(0, -0.075, 0.02); grip.rotation.x = -0.3; g.add(grip);
   g.add(at(box(0.004, 0.012, 0.05, M.poly), 0, -0.04, -0.03));
@@ -508,8 +508,13 @@ export class WeaponView {
         if (sh.visible) { sh.position.set(sd * (0.012 + 0.0065 * carry), my, mz); sh.rotation.set(-0.8 * (1 - carry), 0, 0); }
       });
       const away = ease(clamp((t - 0.26) / 0.16)) * (1 - ease(clamp((t - 0.84) / 0.1)));
-      const hy = my + 0.034, hz = mz + 0.03;                                   // hand sits just above / behind the shells
-      lh.position.set(0, -0.033 * o * (1 - away) + hy * away + 0.025 * Math.sin(Math.PI * away) * (1 - carry), (hz + 0.31) * away);   // the arm stays attached from the lower left: only the hand moves over the top
+      // the hand slides out to the LEFT of the gun, rises beside it, then moves in over the top (never through the barrels / forend)
+      const tx = 0, ty = my + 0.034, tz = mz + 0.03;                              // above the shells
+      const side = ease(clamp(away / 0.4)), up = ease(clamp((away - 0.35) / 0.4)), over = ease(clamp((away - 0.75) / 0.25));
+      const hx = -0.085 * side * (1 - over) + tx * over;
+      const hy0 = -0.05 - 0.033 * o * (1 - away), hy = hy0 + (ty - hy0) * up;
+      const hz = -0.31 + (tz + 0.31) * ease(away);
+      lh.position.set(hx, hy + 0.05, hz + 0.31);                                  // offsets from the resting hand (0, -0.05, -0.31)
       armHold.visible = true; armTop.visible = false;
     }
     if (cur.spinner) cur.spinner.rotation.z = st.spin;
