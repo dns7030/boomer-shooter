@@ -41,6 +41,7 @@ export class Game {
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     this.renderer.autoClear = false;
     this.renderer.shadowMap.enabled = true;
+    this.renderer.localClippingEnabled = true;   // some glass domes are clipped at ground level
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.quality = 2;   // 0 = plain, 1 = bloom + grading, 2 = + sun shadows
     try { const q = localStorage.getItem('lor.quality'); if (q !== null) this.quality = Math.min(2, Math.max(0, Number(q))); } catch (e) { /* no storage */ }

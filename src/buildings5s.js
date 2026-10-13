@@ -359,14 +359,18 @@ export function amazonSpheres() {
   const greens = [C(0x2f7a3a), C(0x3f9a45), C(0x1f5a2f), C(0x58b050), C(0x2a6a4a)];
   const brown = C(0x5a3d26), frame = C(0x2c3a36), cols = [];
   const defs = [[-9, -2.5, 13], [9.5, -3, 11], [1, 5.5, 9.5]];
+  const ground = [new THREE.Plane(new THREE.Vector3(0, 1, 0), 0)];   // nothing of the domes may show below the ground (the ground layers don't write depth)
+  const clipM = (m) => { const c = m.clone(); c.clippingPlanes = ground; return c; };
+  const frameC = clipM(frame);
   for (const [cx, cz, r] of defs) {
     const cy = r * 0.62;
     const ico = new THREE.IcosahedronGeometry(r, 1);
-    Ms(g, new THREE.IcosahedronGeometry(r * 0.995, 2), glassM(0x9fd8c8, 0.3), cx, cy, cz).material.flatShading = true;
+    { const gm = Ms(g, new THREE.IcosahedronGeometry(r * 0.995, 2), clipM(glassM(0x9fd8c8, 0.3)), cx, cy, cz); gm.material.flatShading = true; }
     const edges = new THREE.EdgesGeometry(ico).attributes.position.array, list = [];
     for (let i = 0; i < edges.length; i += 6) list.push([[cx + edges[i], cy + edges[i + 1], cz + edges[i + 2]], [cx + edges[i + 3], cy + edges[i + 4], cz + edges[i + 5]]]);
-    rods(g, list, 0.16, frame, 4);
-    const ln = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.IcosahedronGeometry(r * 1.002, 2), 1), new THREE.LineBasicMaterial({ color: 0x1d2a26 })); ln.position.set(cx, cy, cz); g.add(ln);
+    rods(g, list, 0.16, frameC, 4);
+    const lnM = new THREE.LineBasicMaterial({ color: 0x1d2a26 }); lnM.clippingPlanes = ground;
+    const ln = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.IcosahedronGeometry(r * 1.002, 2), 1), lnM); ln.position.set(cx, cy, cz); g.add(ln);
     const n = Math.round(r * 2.4);
     for (let i = 0; i < n; i++) {
       let x, y, z, t = 0;
@@ -998,35 +1002,51 @@ export function rustyFencing() {
 // 15. Mount Rainier (skyline backdrop, non-solid)
 // =====================================================================
 export function mountRainier() {
-  const g = G(), N = 22, rnd = mulberry(1889);
-  const prof = [[150, 0], [134, 8], [112, 24], [92, 44], [72, 70], [54, 94], [38, 114], [24, 128], [14, 136], [8, 138.5], [0, 136]];
-  const noise = []; for (let i = 0; i < N; i++) noise.push(rnd() * 2 - 1);
+  const g = G(), rnd = mulberry(1889), N = 72;
+  const base = [[150, 0], [134, 8], [112, 24], [92, 44], [72, 70], [54, 94], [38, 114], [24, 128], [14, 136], [8, 138.5], [0, 136]];
+  const prof = [];   // double the rows (midpoints) for a more detailed silhouette
+  for (let j = 0; j < base.length; j++) { prof.push(base[j]); if (j < base.length - 1) prof.push([(base[j][0] + base[j + 1][0]) / 2, (base[j][1] + base[j + 1][1]) / 2]); }
+  const ph = []; for (let k = 0; k < 12; k++) ph.push(rnd() * 6.283);
+  const ridge = (a) => { let t = 0; for (let k = 2; k < 12; k++) t += Math.sin(k * a + ph[k]) / k; return t * 0.55; };
   const V = [];
   for (let j = 0; j < prof.length; j++) {
-    const row = [];
+    const row = [], last = j === prof.length - 1, hf = prof[j][1] / 138;
     for (let i = 0; i < N; i++) {
-      const a = i / N * Math.PI * 2, amp = j === 0 ? 0.04 : j < 8 ? 0.16 : 0.08;
-      const r = prof[j][0] * (1 + amp * (noise[i] * 0.6 + Math.sin(a * 3 + j * 0.3) * 0.4) * (j === prof.length - 1 ? 0 : 1)), y = prof[j][1] + (j > 0 ? noise[(i + 5) % N] * 3.5 : 0);
+      const a = (i / N) * Math.PI * 2, amp = j === 0 ? 0.05 : 0.2 * (1 - hf * 0.5);
+      const r = prof[j][0] * (1 + (last ? 0 : amp * (ridge(a) * (0.6 + hf) + (rnd() - 0.5) * 0.25)));
+      const y = prof[j][1] + (j > 0 && !last ? (ridge(a * 2 + j) * 5 + (rnd() - 0.5) * 4) * (1 - hf * 0.4) : 0);
       row.push([Math.cos(a) * r, y, Math.sin(a) * r]);
     }
     V.push(row);
   }
-  const pos = [], col = [], tmp = new THREE.Color();
+  const pos = [], col = [], tmp = new THREE.Color(), sun = new THREE.Vector3(0.5, 0.65, 0.35).normalize();
+  const e1 = new THREE.Vector3(), e2 = new THREE.Vector3(), nn = new THREE.Vector3(), haze = new THREE.Color(0x9aa8b2);
+  const pick = (hexes) => hexes[(rnd() * hexes.length) | 0];
   const tri = (a, b, c, ang) => {
-    const cy = (a[1] + b[1] + c[1]) / 3, snow = 66 + 12 * Math.sin(ang * 3.0 + 1) + 6 * Math.sin(ang * 7);
-    if (cy > snow) tmp.setHex(cy > snow + 12 ? 0xe9f0f6 : 0xd2dde8); else if (cy > 38) tmp.setHex(rnd() < 0.5 ? 0x5e6e82 : 0x56667a); else if (cy > 16) tmp.setHex(0x4a5c58); else tmp.setHex(0x33463c);
+    const cy = (a[1] + b[1] + c[1]) / 3, snow = 78 + 10 * ridge(ang * 1.7) + 8 * Math.sin(ang * 3.0 + 1);
+    e1.set(b[0] - a[0], b[1] - a[1], b[2] - a[2]); e2.set(c[0] - a[0], c[1] - a[1], c[2] - a[2]); nn.crossVectors(e1, e2).normalize();
+    const cx = (a[0] + b[0] + c[0]) / 3, cz = (a[2] + b[2] + c[2]) / 3; if (nn.x * cx + nn.z * cz < 0) nn.negate();   // face outward
+    const steep = 1 - Math.abs(nn.y);
+    if (cy > snow && steep < 0.8) tmp.setHex(cy > snow + 14 ? pick([0xf4f8fb, 0xeaf1f7]) : pick([0xdbe6f0, 0xcfdce9]));
+    else if (cy > snow - 10 && steep < 0.6) tmp.setHex(0xaec3d6);                            // glacier blue
+    else if (cy > 52) tmp.setHex(pick([0x6f6a68, 0x7c726a, 0x5f5c5e, 0x84766a]));              // bare rock
+    else if (cy > 26) tmp.setHex(pick([0x5f6b5c, 0x6a705c, 0x55624f]));                         // alpine meadow / scree
+    else tmp.setHex(pick([0x2f4a36, 0x38543b, 0x2a4231, 0x41603f]));                           // fir forest
+    const lit = 0.62 + 0.55 * Math.max(0, nn.dot(sun)) - 0.12 * steep;
+    tmp.multiplyScalar(lit).lerp(haze, 0.22 + 0.2 * (1 - cy / 140));   // a little atmospheric haze, thicker low down
     for (const p of [a, b, c]) { pos.push(...p); col.push(tmp.r, tmp.g, tmp.b); }
   };
   for (let j = 0; j < prof.length - 1; j++) for (let i = 0; i < N; i++) {
-    const i2 = (i + 1) % N, ang = i / N * Math.PI * 2;
+    const i2 = (i + 1) % N, ang = (i / N) * Math.PI * 2;
     tri(V[j][i], V[j + 1][i], V[j][i2], ang); tri(V[j][i2], V[j + 1][i], V[j + 1][i2], ang);
   }
-  const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); geo.setAttribute('color', new THREE.Float32BufferAttribute(col, 3)); geo.computeVertexNormals();
-  const m = new THREE.Mesh(geo, keyed('rainier', () => new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true })));
+  const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); geo.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+  const m = new THREE.Mesh(geo, keyed('rainier_basic', () => new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.DoubleSide, fog: false })));
+  m.userData.keep = true;   // mergeStatic would drop the vertex colours
   g.add(m);
   // a lesser shoulder peak
-  const sh = new THREE.Mesh(new THREE.ConeGeometry(34, 52, 9), keyed('rainier2', () => new THREE.MeshLambertMaterial({ color: 0x607286, flatShading: true }))); sh.position.set(84, 20, 28); sh.rotation.y = 0.4; g.add(sh);
-  const sc = new THREE.Mesh(new THREE.ConeGeometry(12, 17, 9), keyed('rainier3', () => new THREE.MeshLambertMaterial({ color: 0xe4ecf2, flatShading: true }))); sc.position.set(84, 38, 28); sc.rotation.y = 0.4; g.add(sc);
+  const sh = new THREE.Mesh(new THREE.ConeGeometry(34, 52, 9), keyed('rainier2b', () => new THREE.MeshBasicMaterial({ color: 0x7a7a78, fog: false }))); sh.position.set(84, 20, 28); sh.rotation.y = 0.4; g.add(sh);
+  const sc = new THREE.Mesh(new THREE.ConeGeometry(12, 17, 9), keyed('rainier3b', () => new THREE.MeshBasicMaterial({ color: 0xe6eef5, fog: false }))); sc.position.set(84, 38, 28); sc.rotation.y = 0.4; g.add(sc);
   g.userData.solid = false;
   return size(g, 300, 300, 140, []);
 }

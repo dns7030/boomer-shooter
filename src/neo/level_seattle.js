@@ -58,12 +58,11 @@ export function buildNeoSeattle(scene) {
   add('fence', S.rustyFencing(), 28, 30, 'S', { s: 1 });
   add('neon', S.neonSignPole(), 48, 18, 'S', { s: 1 });
 
-  const ring = [() => S.smithTower(), () => S.columbiaCenter(), () => S.brickWarehouse(), () => S.centralLibrary()];
-  for (let i = 0; i < 16; i++) {
-    const side = i % 4, g = ring[(rnd() * ring.length) | 0]();
-    const x = side === 0 ? X0 - 30 - rnd() * 60 : side === 1 ? X1 + 30 + rnd() * 60 : -100 + rnd() * 200, z = side === 2 ? ZN - 30 - rnd() * 60 : side === 3 ? ZS + 30 + rnd() * 60 : -70 + rnd() * 140;
-    put(g, x, z, ['E', 'W', 'S', 'N'][side], { solid: false, s: 0.8 + rnd() * 0.6 });
-  }
+  // skyline beyond the walls: 8 different landmarks in fixed, well-separated slots (no repeats side by side)
+  const mk = [() => S.smithTower(), () => S.columbiaCenter(), () => S.centralLibrary(), () => S.brickWarehouse(), () => S.amazonSpheres(), () => S.moPOP(), () => S.gasWorksPark(), () => S.greatWheel()];
+  const slots = [[-85, ZN - 55, 'S'], [75, ZN - 60, 'S'], [X1 + 60, -30, 'W'], [X1 + 60, 50, 'W'], [60, ZS + 55, 'N'], [-70, ZS + 55, 'N'], [X0 - 60, 40, 'E'], [X0 - 60, -45, 'E']];
+  const order = [2, 1, 6, 4, 0, 7, 3, 5];   // library, Columbia, gas works, spheres, Smith, wheel, warehouse, MoPOP
+  slots.forEach(([x, z, f], i) => put(mk[order[i]](), x, z, f, { solid: false, s: 1 + ((i * 37) % 5) * 0.08 }));
   put(S.spaceNeedle(), 150, ZN - 90, 'S', { solid: false, s: 1.2 });
   put(S.mountRainier(), 60, ZN - 520, 'S', { solid: false, s: 3 });
 
