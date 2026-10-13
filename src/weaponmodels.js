@@ -500,7 +500,7 @@ export class WeaponView {
         if (sh.visible) { sh.position.set(sd * 0.0185 + sd * 0.07 * te, 0.012 + 0.45 * te - 4.2 * te * te, -0.2 + 0.7 * te); sh.rotation.set(te * 9, te * 4 * sd, te * 6); }
       });
       // one movement: the front hand comes in from ABOVE with both shells and drops them into the open breech together
-      const carry = ease(clamp((t - 0.5) / 0.3)), S = [0, 0.095, -0.07], E = [0, 0.012, -0.2];
+      const carry = ease(clamp((t - 0.5) / 0.3)), S = [0, 0.075, -0.1], E = [0, 0.012, -0.2];
       const my = S[1] + (E[1] - S[1]) * carry, mz = S[2] + (E[2] - S[2]) * carry;
       fresh.forEach((sh, i) => {
         const sd = i ? 1 : -1;
@@ -509,8 +509,8 @@ export class WeaponView {
       });
       const away = ease(clamp((t - 0.26) / 0.16)) * (1 - ease(clamp((t - 0.84) / 0.1)));
       const hy = my + 0.034, hz = mz + 0.03;                                   // hand sits just above / behind the shells
-      lh.position.set(0, -0.033 * o * (1 - away) + hy * away + 0.07 * Math.sin(Math.PI * away) * (1 - carry), (hz + 0.31) * away);
-      armHold.visible = away < 0.5; armTop.visible = away >= 0.5;
+      lh.position.set(0, -0.033 * o * (1 - away) + hy * away + 0.025 * Math.sin(Math.PI * away) * (1 - carry), (hz + 0.31) * away);   // the arm stays attached from the lower left: only the hand moves over the top
+      armHold.visible = true; armTop.visible = false;
     }
     if (cur.spinner) cur.spinner.rotation.z = st.spin;
     if (cur.warhead) cur.warhead.visible = t > 0.32 || t < 0;
