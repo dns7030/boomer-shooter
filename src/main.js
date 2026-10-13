@@ -60,7 +60,7 @@ function showOverlay(s) {
   $('ov-menu').style.display = s === 'paused' ? 'inline-block' : 'none';
   if (music) music.setMode(s === 'playing' ? 'play' : s === 'paused' ? 'pause' : s === 'won' ? 'win' : s === 'dead' ? 'dead' : 'pause');
   if (s === 'paused') { title.textContent = 'PAUSED'; body.textContent = 'Click to resume.  (P = developer freeze)'; btn.textContent = 'RESUME'; }
-  else if (s === 'dead' && game.failReason === 'chain') { title.textContent = 'THE CHAIN HAS HALTED'; body.textContent = `Neo went offline. Lizards slain: ${game.stats.kills}.`; btn.textContent = 'TRY AGAIN'; }
+  else if (s === 'dead' && game.failReason === 'chain') { title.textContent = 'YOU’VE BEEN DEFEATED'; body.textContent = `Neo went offline. Lizards slain: ${game.stats.kills}.`; btn.textContent = 'TRY AGAIN'; }
   else if (s === 'dead') { title.textContent = 'YOU DIED'; body.textContent = `Lizards slain: ${game.stats.kills}. The invaders win this round.`; btn.textContent = 'TRY AGAIN'; }
   else if (s === 'won') {
     const t = Math.round(game.stats.time);
@@ -119,12 +119,17 @@ window.addEventListener('keyup', (e) => game.keys.delete(e.code));
 window.addEventListener('blur', () => { game.keys.clear(); game.mouseDown = false; game.pause(); });
 window.addEventListener('resize', () => game.resize(canvas.clientWidth, canvas.clientHeight));
 
+// developer readout (P): position + nearest building, in its own always-visible element
+const devEl = document.createElement('div');
+devEl.style.cssText = 'position:fixed;left:50%;bottom:150px;transform:translateX(-50%);padding:6px 12px;background:rgba(0,0,0,.75);color:#7CFFB8;font:14px monospace;z-index:20;pointer-events:none;display:none;white-space:pre';
+document.body.appendChild(devEl);
 let last = performance.now();
 function frame(now) {
   const dt = (now - last) / 1000; last = now;
   game.step(dt);
   if (music) music.setIntensity(game.intensity());
   game.render();
+  devEl.style.display = game.freeze && game.state === 'playing' ? 'block' : 'none'; if (game.freeze) devEl.textContent = game.devText || '';
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);

@@ -1358,7 +1358,7 @@ export class Game {
     if (this.freeze) {   // developer mode: show where you are and the nearest building, so problems can be reported precisely
       const lay = this.level.layout || []; let best = null, bd = 1e9;
       for (const b of lay) { const d = Math.hypot(b.x - this.p.x, b.z - this.p.z); if (d < bd) { bd = d; best = b; } }
-      this.setMessage(`DEV  x ${this.p.x.toFixed(0)}  z ${this.p.z.toFixed(0)}${best ? `  near: ${best.name.toUpperCase()} (${bd.toFixed(0)} m)` : ''}`, 0.5);
+      this.devText = `DEV  x ${this.p.x.toFixed(0)}  z ${this.p.z.toFixed(0)}${best ? `  near: ${best.name.toUpperCase()} (${bd.toFixed(0)} m)` : '  (no building list for this level)'}`;
     }
     if (!this.freeze) {   // developer mode (P): lizards, their shots and the node attacks all stand still
       this.updateWaves(dt);
