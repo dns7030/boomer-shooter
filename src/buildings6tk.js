@@ -95,15 +95,17 @@ function loft(g, rings, m, x, y, z, tile = 3) {
   geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); geo.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); geo.computeVertexNormals();
   const me = new THREE.Mesh(geo, m); me.position.set(x, y, z); g.add(me); return me;
 }
-// Japanese curved-eave roof: eave tip at y0, low point, concave rise to a ridge.  hx,hz = half sizes at the eave tip.
-function curvedRoof(g, hx, hz, rise, x, y, z, m = tileRoofM(), ridge = 0.25) {
+// Japanese curved-eave roof: eave tip at y+0.45, low point at y, concave rise to the top ring.  hx,hz = half sizes at the eave tip.
+// o.top = [hx,hz] size of the top ring (default: a short ridge), o.soffit = false to skip the dark underside box.
+function curvedRoof(g, hx, hz, rise, x, y, z, o = {}) {
+  const m = o.m || tileRoofM(), [thx, thz] = o.top || [Math.max(0.25, hx * 0.12), Math.max(0.03, hz * 0.12)];
   const k = (f) => Math.max(0.01, f);
   loft(g, [
     { y: 0.45, hx, hz }, { y: 0, hx: hx - 1.1, hz: hz - 1.1 },
-    { y: rise * 0.45, hx: k(hx * 0.62 - 0.2), hz: k(hz * 0.62 - 0.2) },
-    { y: rise * 0.8, hx: k(hx * 0.3), hz: k(hz * 0.3) }, { y: rise, hx: Math.max(ridge, hx * 0.12), hz: Math.max(0.02, hz * 0.12) },
-  ].map((r) => ({ ...r, y: r.y })), m, x, y, z, 3);
-  Bx(g, 2 * (hx - 1.1) + 0.2, 0.25, 2 * (hz - 1.1) + 0.2, C(0x2b1d17), x, y - 0.1, z, 2);   // dark soffit under the eave
+    { y: rise * 0.45, hx: Math.max(thx, k(hx * 0.62 - 0.2)), hz: Math.max(thz, k(hz * 0.62 - 0.2)) },
+    { y: rise * 0.8, hx: Math.max(thx, hx * 0.3), hz: Math.max(thz, hz * 0.3) }, { y: rise, hx: thx, hz: thz },
+  ], m, x, y, z, 3);
+  if (o.soffit !== false) Bx(g, 2 * (hx - 1.1) + 0.2, 0.25, 2 * (hz - 1.1) + 0.2, C(0x2b1d17), x, y - 0.1, z, 2);   // dark soffit under the eave
 }
 // footprint rectangles approximating a circle (conservative: strip uses the far edge)
 function circleCols(r, h, n = 8) {
@@ -382,8 +384,8 @@ export function izakayaRow() {
   [0, 2, 4].forEach((i, k) => { const cx = -12.5 + i * W; Bx(g, 0.15, 3.2, 0.15, dark, cx - 1, 9.0, 0.5, 1); Bx(g, 0.15, 3.2, 0.15, dark, cx + 1, 9.0, 0.5, 1); Bx(g, 2.4, 0.2, 0.25, dark, cx, 7.5, 0.5, 1); panel(g, `s6tk_nv${(i * 3 + 2) % 8}`, 2.0, 4.0, cx, 9.6, 0.68, 0); panel(g, `s6tk_nv${(i * 3 + 5) % 8}`, 2.0, 4.0, cx, 9.6, 0.32, Math.PI); });
   { const cx = -12.5 + 3 * W; Bx(g, 4.2, 0.3, 0.4, dark, cx, 8.05, 2.5, 1); sgn(g, 'KARAOKE', 4.6, 1.5, cx, 8.9, 2.55, 0, { bg: '#10061c', fg: '#ff2d95', border: '#19e6ff' }); }
   // festival lantern string + wire
-  Bx(g, 30, 0.03, 0.03, dark, 0, 3.55, 4.95, 1);
-  for (let i = 0; i < 25; i++) Ms(g, SPH(8, 5), flatM('s6tk_lantern'), -14.4 + i * 1.2, 3.35, 4.95, 0.16, 0.2, 0.16);
+  Bx(g, 30, 0.03, 0.03, dark, 0, 4.5, 4.95, 1);
+  for (let i = 0; i < 25; i++) Ms(g, SPH(8, 5), flatM('s6tk_lantern'), -14.4 + i * 1.2, 4.3, 4.95, 0.16, 0.2, 0.16);
   // end walls
   for (const s of [-1, 1]) { win(g, 1.2, 1.5, s * 15.07, 5.4, 0, s * Math.PI / 2, { fixed: true, lit: true }); }
   return size(g, 30, 10, 12);
@@ -497,21 +499,22 @@ export function pachinkoParlor() {
   Bx(g, 9.2, 0.3, 0.3, dk, 0, 14.0, zf + 0.1, 1);
   { const t = tiledPlane(0.5, 4.8, 1, 5, marq, -4.75, 2.4, zf + 0.01); g.add(t); const t2 = tiledPlane(0.5, 4.8, 1, 5, marq, 4.75, 2.4, zf + 0.01); g.add(t2); g.add(tiledPlane(10, 0.7, 8, 1, marq, 0, 5.15, zf + 0.01)); }
   sgn(g, 'PACHINKO', 8.8, 2.6, 0, 8.6, zf + 0.01, 0, { bg: '#12061f', fg: '#ffe81a', border: '#ff2d95' });
-  sgn(g, 'OPEN 24H', 5.2, 1.3, 0, 11.6, zf + 0.01, 0, { bg: '#12061f', fg: '#19e6ff', border: '#19e6ff' });
+  sgn(g, 'OPEN 24H', 5.2, 1.3, 0, 11.4, zf + 0.01, 0, { bg: '#12061f', fg: '#19e6ff', border: '#19e6ff' });
   panel(g, 's6tk_nh1', 3, 1.5, -2.9, 6.5 + 0.2, zf + 0.02, 0); panel(g, 's6tk_nh4', 3, 1.5, 2.9, 6.7, zf + 0.02, 0);
-  g.add(tiledPlane(36, 0.9, 18, 1, marq, 0, 12.4, zf + 0.01));
+  g.add(tiledPlane(36, 0.9, 18, 1, marq, 0, 13.0, zf + 0.01));
   Bx(g, W, 3.3, 1.5, dk, 0, 15.55, 11.3, 4);
   sgn(g, 'PACHINKO', 27, 2.5, 0, 15.6, 12.09, 0, { bg: '#12061f', fg: '#ff2d95', border: '#ffe81a' });
   g.add(tiledPlane(36, 0.5, 18, 1, marq, 0, 14.3, 12.1)); g.add(tiledPlane(36, 0.5, 18, 1, marq, 0, 16.9, 12.1));
   Bx(g, W, 0.4, 1.7, C(0x2a1c3a), 0, 17.4, 11.3, 2);
   for (const x of [-16, -8, 0, 8, 16]) { Sg(g, glow(0xe8eeff), x, 18.15, 11.3, 0.55, 0.55, 0.55, 10); }
-  for (const s of [-1, 1]) { blade(g, s * 18.2, 10.8, 6.5, 1.5, 4, 3 + (s > 0 ? 2 : 0)); sgn(g, 'GAME', 7, 1.4, s * 18.06, 2.4, 0, s * Math.PI / 2, { bg: '#12061f', fg: '#52ff9a', border: '#52ff9a' }); }
+  for (const s of [-1, 1]) { blade(g, s * 18.2, 10.8, 6.5, 1.5, 4, 3 + (s > 0 ? 2 : 0)); }
+  sgn(g, 'GAME', 5, 1.4, 18.06, 2.4, -8, Math.PI / 2, { bg: '#12061f', fg: '#52ff9a', border: '#52ff9a' }); sgn(g, 'GAME', 5, 1.4, -18.06, 2.4, 8, -Math.PI / 2, { bg: '#12061f', fg: '#52ff9a', border: '#52ff9a' });
   for (const s of [-1, 1]) coverWall(g, s > 0 ? '+x' : '-x', s * 18.06, -11.5, 4.6, 2, 2, 4.5, 4.4, true, 2 + (s > 0 ? 1 : 0));
-  coverWall(g, '+x', 18.06, 4.5, 0.6, 3, 1, 2.6, 4, true, 4); coverWall(g, '-x', -18.06, -11.5, 0.6, 1, 1, 5, 4, true, 6);
+  coverWall(g, '+x', 18.06, 4.2, 0.6, 3, 1, 2.6, 4, true, 4); coverWall(g, '-x', -18.06, -11.5, 0.6, 1, 1, 5, 4, true, 6);
   // back
   for (const s of [-1, 1]) coverWall(g, '-z', -D / 2 - 0.06, s < 0 ? -17.5 : 5.5, 0.6, 4, 2, 3.1, 5.3, true, 1 + (s > 0 ? 3 : 0));
   sgn(g, 'EXIT', 4, 1, 0, 6.2, -D / 2 - 0.07, Math.PI, { bg: '#0a2a14', fg: '#52ff9a', border: '#52ff9a' });
-  g.add(tiledPlane(36, 0.9, 18, 1, marq, 0, 12.4, -D / 2 - 0.07)).rotation.y = Math.PI;
+  { const bp = tiledPlane(36, 0.9, 18, 1, marq, 0, 13.0, -D / 2 - 0.07); bp.rotation.y = Math.PI; g.add(bp); }
   roofClutter(g, 30, 18, H, 77, 6);
   // ---------------- interior ----------------
   const bodyL = [], trayL = [], lampL = [], scr = [[], [], [], [], []], stools = [];
@@ -586,7 +589,7 @@ export function konbini() {
   cols.push([2.0, 5.6, 2.8, 3.8, 1.9]);
   Cy(g, 0.3, 0.3, 0.9, 8, C(0x3a6a4a), -3.5, 0.45, 3.5, 1); cols.push([-3.8, -3.2, 3.2, 3.8, 0.9]);
   boxes(g, [[0.08, 0.7, 0.08, 0.6, 0.35, 4.2], [0.08, 0.7, 0.08, 1.2, 0.35, 4.2], [0.08, 0.7, 0.08, 1.8, 0.35, 4.2], [1.4, 0.06, 0.06, 1.2, 0.7, 4.2]], C(0x9aa0aa));
-  for (let i = 0; i < 6; i++) pl(g, basic(0xf4f4f0), 0.12, 2.2, -2.5 + i * 2.2, 0.075, 4.9, 0, -Math.PI / 2).scale.set(1, 1, 1);
+  for (let i = 0; i < 5; i++) pl(g, basic(0xf4f4f0), 0.12, 2.2, -4.4 + i * 2.2, 0.075, 4.9, 0, -Math.PI / 2);
   for (const x of [-5, 5]) Bx(g, 1.6, 0.14, 0.3, mat('s6tk_conc'), x, 0.1, 5.6, 2);
   // sides / back
   for (const s of [-1, 1]) for (const z of [-4, 0]) win(g, 1.6, 1.5, s * 7.07, 2.3, z, s * Math.PI / 2, { fixed: true, lit: z === 0 });
@@ -594,4 +597,431 @@ export function konbini() {
   boxes(g, [[1.2, 0.8, 0.8, -4, 5.45, -3], [1.4, 0.9, 1.0, 3, 5.5, -2], [0.8, 0.6, 0.8, 5, 5.35, -5]], C(0x7a808a));
   cols.unshift([-7, 7, -6, FZ + 0.3, 6]);
   return size(g, 14, 12, 6, cols);
+}
+export const neonTower0 = () => neonTower({ variant: 0 });
+export const neonTower1 = () => neonTower({ variant: 1 });
+export const neonTower2 = () => neonTower({ variant: 2 });
+
+// =====================================================================
+// 6. tokyoTower  36 x 36 x 150  (red/white lattice)
+//    cols: the four leg bases (corner blocks 5.5 x 5.5, h 16) + a small base building 8 x 8 x 6; the centre is open (>=7 m gaps).
+// =====================================================================
+export function tokyoTower() {
+  const g = G(), Y = [0.5, 16, 32, 52, 57, 72, 88], HW = [16, 11.5, 8, 5.6, 5.0, 3.4, 2.2];
+  const red = C(0xe8461a, 0x5a1a08), white = C(0xf2f0ea, 0x70706c);
+  const cr = (i) => [[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([sx, sz]) => [sx * HW[i], Y[i], sz * HW[i]]);
+  const L = { r: [[], [], []], w: [[], [], []] };                 // [legs, horizontals, braces]
+  for (let i = 0; i < Y.length - 1; i++) {
+    if (i === 3) continue;                                         // inside the main deck
+    const k = i % 2 ? 'w' : 'r', a = cr(i), b = cr(i + 1);
+    for (let c = 0; c < 4; c++) {
+      L[k][0].push([a[c], b[c]]);
+      L[k][1].push([a[c], a[(c + 1) % 4]]);
+      const n = (c + 1) % 4; L[k][2].push([a[c], b[n]], [a[n], b[c]]);
+    }
+    if (i === Y.length - 2 || i === 2) for (let c = 0; c < 4; c++) L[k][1].push([b[c], b[(c + 1) % 4]]);
+  }
+  const rad = [0.5, 0.28, 0.2];
+  for (const k of ['r', 'w']) for (let j = 0; j < 3; j++) rods(g, L[k][j], rad[j], k === 'r' ? red : white, 5);
+  // cross struts inside each stage (extra triangulation at the middle)
+  for (let i = 0; i < 6; i++) { if (i === 3) continue; const m = (Y[i] + Y[i + 1]) / 2, h = (HW[i] + HW[i + 1]) / 2, mat_ = i % 2 ? red : white; const lst = []; for (let c = 0; c < 4; c++) { const sx = [-1, 1, 1, -1][c], sz = [-1, -1, 1, 1][c], nx = [1, 1, -1, -1][c], nz = [-1, 1, 1, -1][c]; lst.push([[sx * h, m, sz * h], [nx * h, m, nz * h]]); } rods(g, lst, 0.2, mat_, 4); }
+  // decks
+  Bx(g, 16.4, 1.4, 16.4, red, 0, 52.7, 0, 4); Bx(g, 16.0, 2.2, 16.0, glow(0xffd88a), 0, 54.5, 0, 4); Bx(g, 16.4, 1.4, 16.4, red, 0, 56.3, 0, 4); Bx(g, 14, 1.0, 14, white, 0, 57.5, 0, 4);
+  Bx(g, 9.0, 1.2, 9.0, red, 0, 88.6, 0, 4); Bx(g, 8.6, 1.6, 8.6, glow(0xffd88a), 0, 89.9, 0, 4); Bx(g, 9.0, 1.0, 9.0, red, 0, 91.2, 0, 4);
+  // antenna with red/white bands
+  const bands = [[92, 100, 0.9, 0.7], [100, 110, 0.7, 0.55], [110, 122, 0.55, 0.4], [122, 134, 0.4, 0.28], [134, 150, 0.28, 0.1]];
+  bands.forEach(([a, b, r0, r1], i) => Cy(g, r1, r0, b - a, 8, i % 2 ? white : red, 0, (a + b) / 2, 0, 4));
+  Cy(g, 1.6, 1.6, 0.6, 10, white, 0, 105, 0, 2);
+  Ms(g, SPH(6, 4), glow(0xff2a2a), 0, 150.2, 0, 0.35);
+  // foot town: base building and corner footings
+  Bx(g, 8, 6, 8, C(0xb8a898), 0, 3, 0, 3); Bx(g, 8.4, 0.4, 8.4, C(0x7a3a2a), 0, 6.2, 0, 2);
+  win(g, 1.6, 1.8, -2, 2.5, 4.07, 0, { lit: true, fixed: true }); win(g, 1.6, 1.8, 2, 2.5, 4.07, 0, { lit: true, fixed: true });
+  sgn(g, 'TOWER SHOP', 5, 0.8, 0, 5.2, 4.08, 0, { bg: '#2a0a0a', fg: '#ff6a3a', border: '#ff6a3a' });
+  const cols = [[-4, 4, -4, 4, 6]];
+  for (const [sx, sz] of [[-1, -1], [1, -1], [1, 1], [-1, 1]]) {
+    Bx(g, 3.2, 0.8, 3.2, mat('s6tk_conc'), sx * 16, 0.4, sz * 16, 3);
+    cols.push([sx > 0 ? 11.2 : -16.8, sx > 0 ? 16.8 : -11.2, sz > 0 ? 11.2 : -16.8, sz > 0 ? 16.8 : -11.2, 16]);
+  }
+  return size(g, 36, 36, 150, cols);
+}
+
+// =====================================================================
+// 7. skytreeTower  24 x 24 x 200  (far scenery; cols = three foot blocks only)
+// =====================================================================
+export function skytreeTower() {
+  const g = G(), A = [0, 1, 2].map((i) => Math.PI / 2 + i * Math.PI * 2 / 3), white = C(0xdfe8f2, 0x3a4658), blue = glow(0x6fd0ff), steel = C(0xaab4c0, 0x30363e);
+  const ring = (y, r) => A.map((a) => [Math.cos(a) * r, y, Math.sin(a) * r]);
+  const Ys = [0.9, 14, 28, 42, 56], Rs = [11, 8.8, 6.6, 4.8, 3.2], legs = [], hor = [], br = [];
+  for (let i = 0; i < 4; i++) {
+    const a = ring(Ys[i], Rs[i]), b = ring(Ys[i + 1], Rs[i + 1]);
+    for (let c = 0; c < 3; c++) { const n = (c + 1) % 3; legs.push([a[c], b[c]]); hor.push([a[c], a[n]]); br.push([a[c], b[n]], [a[n], b[c]]); }
+  }
+  rods(g, legs, 0.7, white, 5); rods(g, hor, 0.3, steel, 4); rods(g, br, 0.22, steel, 4);
+  Cy(g, 3.4, 3.4, 0.6, 10, white, 0, 56.3, 0, 4);
+  Cy(g, 2.6, 3.2, 75, 10, white, 0, 94, 0, 6);                      // shaft
+  Cy(g, 2.75, 2.75, 1.0, 10, blue, 0, 70, 0, 4); Cy(g, 2.7, 2.7, 1.0, 10, blue, 0, 85, 0, 4);
+  Cy(g, 6.5, 6.5, 2.5, 12, white, 0, 99, 0, 4); Cy(g, 6.7, 6.7, 3.2, 12, glow(0x9fe0ff), 0, 101.8, 0, 4); Cy(g, 6.5, 5.0, 2.5, 12, white, 0, 104.7, 0, 4);
+  Cy(g, 4.6, 4.6, 2.0, 12, white, 0, 126, 0, 4); Cy(g, 4.8, 4.8, 2.6, 12, glow(0x9fe0ff), 0, 128.2, 0, 4); Cy(g, 4.6, 3.0, 2.0, 12, white, 0, 130.5, 0, 4);
+  Cy(g, 1.4, 2.4, 40, 8, white, 0, 152, 0, 6); Cy(g, 0.25, 1.4, 28, 6, C(0xd8d8e0, 0x404048), 0, 186, 0, 6);
+  Ms(g, SPH(6, 4), glow(0xff2a2a), 0, 200, 0, 0.5);
+  const cols = ring(0, 10.5).map(([x, , z]) => [x - 1.8, x + 1.8, z - 1.8, z + 1.8, 24]);
+  return size(g, 24, 24, 200, cols);
+}
+
+// =====================================================================
+// 8. kaminarimon  26 x 12 x 16   passage x in (-6.5, 6.5) is open; cols = two guardian bays (h 9.2)
+// =====================================================================
+export function kaminarimon() {
+  const g = G(), red = C(0xc8281c, 0x300806), dark = C(0x241812), gold = C(0xd9a62a, 0x4a3408), wall = C(0xe4dccb, 0x2c2822);
+  ground(g, 26, 12, mat('s6tk_conc'));
+  const px = [-12.2, -7.2, 7.2, 12.2];
+  for (const x of px) for (const z of [-4.2, 4.2]) { Cy(g, 0.6, 0.6, 8.4, 10, red, x, 0.06 + 4.2 + 0.4, z, 3); Cy(g, 0.8, 0.8, 0.5, 10, C(0x4a4a50), x, 0.31, z, 2); }
+  // guardian bays: lattice front/back, statue inside
+  for (const s of [-1, 1]) {
+    const cx = s * 9.7;
+    for (const z of [-4.2, 4.2]) { Bx(g, 4.0, 3.4, 0.3, tint('s6tk_slats', 0xd04030), cx, 1.8, z, 2); Bx(g, 4.0, 0.25, 0.4, dark, cx, 3.6, z, 1); for (let k = 0; k < 8; k++) Bx(g, 0.1, 3.9, 0.12, red, cx - 1.75 + k * 0.5, 5.75, z, 1); Bx(g, 4.0, 0.2, 0.2, red, cx, 7.7, z, 1); }
+    Bx(g, 0.3, 3.4, 8.4, tint('s6tk_slats', 0xd04030), s * 12.3, 1.8, 0, 2); Bx(g, 0.3, 3.4, 8.4, tint('s6tk_slats', 0xd04030), s * 7.2 + s * 0.0, 1.8, 0, 2);
+    // statue: stone pedestal, blue-grey body, red face, glowing eyes
+    Bx(g, 2.0, 0.9, 1.6, C(0x6a6a72), cx, 0.55, 0, 2); Bx(g, 1.3, 2.4, 0.9, C(0x4a5f8a, 0x0c1424), cx, 2.5, 0, 2);
+    Sg(g, C(0xd8503a, 0x400c08), cx, 4.0, 0, 0.5, 0.55, 0.5, 8); Bx(g, 0.35, 1.6, 0.35, C(0x4a5f8a), cx + s * 0.9, 3.0, 0, 1).rotation.z = s * 0.5; Bx(g, 0.35, 1.6, 0.35, C(0x4a5f8a), cx - s * 0.9, 3.0, 0, 1).rotation.z = -s * 0.5;
+    boxes(g, [[0.12, 0.08, 0.05, cx - 0.2, 4.05, 0.5], [0.12, 0.08, 0.05, cx + 0.2, 4.05, 0.5]], glow(0xffe060));
+  }
+  // tie beams over the passage + upper floor
+  for (const z of [-4.2, 4.2]) { Bx(g, 26.2, 0.8, 0.8, red, 0, 8.3, z, 2); Bx(g, 26.2, 0.3, 0.9, dark, 0, 7.8, z, 1); }
+  Bx(g, 0.8, 0.8, 8.8, red, -12.2, 8.3, 0, 2); Bx(g, 0.8, 0.8, 8.8, red, 12.2, 8.3, 0, 2); Bx(g, 0.8, 0.8, 8.8, red, -7.2, 8.3, 0, 2); Bx(g, 0.8, 0.8, 8.8, red, 7.2, 8.3, 0, 2);
+  Bx(g, 22.4, 0.5, 9.0, dark, 0, 8.9, 0, 2);
+  Bx(g, 21, 4.0, 8.4, wall, 0, 11.1, 0, 3);
+  for (const z of [-4.25, 4.25]) { for (let i = 0; i < 7; i++) { const x = -9 + i * 3; Bx(g, 0.35, 4.0, 0.3, red, x, 11.1, z, 1); } }
+  for (const [z, ry] of [[4.34, 0], [-4.34, Math.PI]]) for (let i = 0; i < 6; i++) pl(g, flatM('s6tk_shoji'), 2.1, 2.0, -7.5 + i * 3, 11.1, z, ry);
+  for (const s of [-1, 1]) pl(g, flatM('s6tk_shoji'), 2.4, 2.0, s * 10.55, 11.1, 0, s * Math.PI / 2);
+  curvedRoof(g, 13.0, 6.0, 1.5, 0, 9.0, 0, { top: [10.5, 4.2], soffit: true });          // lower eave
+  curvedRoof(g, 12.6, 6.2, 3.0, 0, 13.0, 0, { top: [5.5, 0.4] });                         // main roof
+  for (const s of [-1, 1]) { Bx(g, 0.6, 0.9, 0.5, gold, s * 5.6, 16.0, 0, 1); }
+  // paper lanterns under the beams + the giant one
+  const big = flatM('s6tk_biglantern');
+  Cy(g, 1.9, 1.9, 4.2, 14, big, 0, 5.1, 0, 4).rotation.y = -Math.PI / 2;
+  Cy(g, 1.2, 1.9, 0.5, 14, C(0x15100e), 0, 7.45, 0, 2); Cy(g, 1.9, 1.2, 0.5, 14, C(0x15100e), 0, 2.75, 0, 2); Cy(g, 0.12, 0.12, 0.75, 6, dark, 0, 8.0, 0, 1);
+  for (const x of [-4, 4]) for (const z of [-3.5, 3.5]) lantern(g, x, 6.4, z, 0.5, 0.7);
+  sgn(g, 'KAMINARIMON', 7.5, 1.1, 0, 7.15, 4.66, 0, { bg: '#1a0e08', fg: '#f0d890', border: '#d9a62a' }); sgn(g, 'KAMINARIMON', 7.5, 1.1, 0, 7.15, -4.66, Math.PI, { bg: '#1a0e08', fg: '#f0d890', border: '#d9a62a' });
+  return size(g, 26, 12, 16, [[6.4, 13.2, -4.9, 4.9, 9.2], [-13.2, -6.4, -4.9, 4.9, 9.2]]);
+}
+
+// =====================================================================
+// 9. pagoda  16 x 16 x 34  (five tiers)
+//    cols: stone podium (h 1) + three narrowing body blocks
+// =====================================================================
+export function pagoda() {
+  const g = G(), red = C(0xc8281c, 0x300806), wall = C(0xe2dac8, 0x34302a), gold = C(0xd9a62a, 0x4a3408), dark = C(0x241812);
+  Bx(g, 15, 1.0, 15, mat('s6tk_conc'), 0, 0.5, 0, 4);
+  Bx(g, 5.5, 0.5, 1.3, mat('s6tk_conc'), 0, 0.25, 7.9 - 0.2, 3); Bx(g, 5.5, 0.25, 0.9, mat('s6tk_conc'), 0, 0.12, 8.1 - 0.35, 3);
+  const half = [4.5, 4.0, 3.5, 3.0, 2.5], tip = [7.6, 6.8, 6.0, 5.2, 4.4];
+  for (let i = 0; i < 5; i++) {
+    const y = 1.0 + 5.6 * i, h = half[i], nxt = i < 4 ? half[i + 1] : 0.35;
+    Bx(g, h * 2, 3.4, h * 2, wall, 0, y + 1.7, 0, 3);
+    for (const sx of [-1, 1]) for (const sz of [-1, 1]) Bx(g, 0.5, 3.4, 0.5, red, sx * h, y + 1.7, sz * h, 1);
+    Bx(g, h * 2 + 0.3, 0.3, h * 2 + 0.3, red, 0, y + 3.25, 0, 2);
+    Bx(g, h * 2 + 0.6, 0.12, h * 2 + 0.6, dark, 0, y + 0.06, 0, 2);
+    for (const [x, z, ry] of [[0, h + 0.07, 0], [0, -h - 0.07, Math.PI], [h + 0.07, 0, Math.PI / 2], [-h - 0.07, 0, -Math.PI / 2]]) {
+      pl(g, flatM('s6tk_shoji'), Math.min(2.4, h * 0.55), 1.9, x, y + 1.7, z, ry);
+      if (i > 0) { /* balcony rail */ }
+    }
+    curvedRoof(g, tip[i], tip[i], 2.2, 0, y + 3.4, 0, { top: [nxt, nxt] });
+    for (const sx of [-1, 1]) for (const sz of [-1, 1]) lantern(g, sx * (tip[i] - 0.5), y + 2.7, sz * (tip[i] - 0.5), 0.2, 0.28);
+  }
+  const top = 1.0 + 5.6 * 4 + 3.4 + 2.2;                    // 28.6
+  Cy(g, 0.14, 0.2, 5.4, 6, gold, 0, top + 2.5, 0, 2);
+  for (let i = 0; i < 6; i++) Ms(g, new THREE.TorusGeometry(0.45 - i * 0.04, 0.07, 4, 8), gold, 0, top + 0.8 + i * 0.7, 0, 1, 1, 1, Math.PI / 2);
+  Ms(g, SPH(8, 5), glow(0xffd860), 0, top + 5.5, 0, 0.22);
+  // night lighting: warm glow at the foot
+  Bx(g, 15.2, 0.1, 15.2, glow(0x70461a), 0, 1.06, 0, 2).scale.set(1, 0.3, 1);
+  return size(g, 16, 16, 34, [[-7.5, 7.5, -7.5, 7.5, 1.0], [-4.6, 4.6, -4.6, 4.6, 10], [-4.1, 4.1, -4.1, 4.1, 21], [-3.1, 3.1, -3.1, 3.1, 34]]);
+}
+
+// =====================================================================
+// 10. torii  14 x 3 x 10   (walk between the posts; cols = the two posts)
+// =====================================================================
+export function torii() {
+  const g = G(), red = C(0xd8301c, 0x3a0c06), blk = C(0x1a1412), X = 5.0;
+  for (const s of [-1, 1]) {
+    Cy(g, 0.5, 0.62, 8.6, 10, red, s * X, 4.3, 0, 3); Cy(g, 0.72, 0.72, 0.7, 10, blk, s * X, 0.35, 0, 2);
+    Bx(g, 1.3, 0.2, 1.3, mat('s6tk_conc'), s * X, 0.1, 0, 2);
+  }
+  Bx(g, 11.4, 0.5, 0.5, red, 0, 6.6, 0, 2);                                   // nuki
+  Bx(g, 10.4, 0.6, 1.0, red, 0, 8.65, 0, 2); Bx(g, 10.6, 0.22, 1.2, blk, 0, 9.1, 0, 2);   // kasagi centre + black cap
+  for (const s of [-1, 1]) { const a = Bx(g, 3.6, 0.6, 1.0, red, s * 6.1, 8.95, 0, 2); a.rotation.z = s * 0.2; const b = Bx(g, 3.7, 0.22, 1.2, blk, s * 6.1, 9.45, 0, 2); b.rotation.z = s * 0.2; }
+  Bx(g, 11, 0.35, 0.7, blk, 0, 8.2, 0, 2);                                    // shimaki
+  Bx(g, 1.3, 1.5, 0.25, blk, 0, 7.55, 0.05, 2); sgn(g, 'JINJA', 1.1, 0.5, 0, 7.55, 0.2, 0, { bg: '#10080a', fg: '#e8c860', border: '#e8c860' }); sgn(g, 'JINJA', 1.1, 0.5, 0, 7.55, -0.1, Math.PI, { bg: '#10080a', fg: '#e8c860', border: '#e8c860' });
+  for (const x of [-2.4, 0, 2.4]) { lantern(g, x, 5.7, 0, 0.35, 0.5); Cy(g, 0.02, 0.02, 0.4, 4, blk, x, 6.35, 0, 1); }
+  return size(g, 14, 3, 10, [[-5.7, -4.3, -0.7, 0.7, 10], [4.3, 5.7, -0.7, 0.7, 10]]);
+}
+
+addPainters({
+  s6tk_halo(g, w, h) {
+    const gr = g.createRadialGradient(w / 2, h / 2, 1, w / 2, h / 2, w / 2); gr.addColorStop(0, 'rgba(255,255,255,0.9)'); gr.addColorStop(0.5, 'rgba(255,255,255,0.35)'); gr.addColorStop(1, 'rgba(0,0,0,1)');
+    g.fillStyle = '#000'; g.fillRect(0, 0, w, h); g.fillStyle = gr; g.fillRect(0, 0, w, h);
+  },
+});
+const haloM = (hex) => keyed(`halo${hex}`, () => new THREE.MeshBasicMaterial({ map: tex('s6tk_halo'), color: hex, blending: THREE.AdditiveBlending, transparent: true, depthWrite: false }));
+
+// =====================================================================
+// 11. japaneseHouseRow  30 x 12 x 9
+// =====================================================================
+export function japaneseHouseRow() {
+  const g = G(), W = 7.5, wood = tint('s6tk_slats', 0xa88060), plast = tint('s6tk_plaster', 0xcfc4ac), dark = C(0x2a1c14), zc = -0.5, F = zc + 4.2;   // house body z -4.7..3.7
+  ground(g, 30, 12);
+  for (let i = 0; i < 4; i++) {
+    const cx = -11.25 + i * W, two = i % 2 === 1, hh = 3.4;
+    Bx(g, 6.6, hh, 8.4, plast, cx, 0.06 + hh / 2, zc, 3);
+    Bx(g, 6.7, 1.2, 8.44, wood, cx, 0.06 + 0.6, zc, 2);                                  // wooden plinth boards
+    let top = 0.06 + hh;
+    if (two) { Bx(g, 5.6, 2.8, 7.2, plast, cx, top + 1.4, zc, 3); Bx(g, 5.7, 0.4, 7.3, wood, cx, top + 0.2, zc, 2); top += 2.8; }
+    // pent eave over the veranda (ground floor), main roof on top
+    if (two) curvedRoof(g, 4.2, 5.4, 1.0, cx, 0.06 + 3.0, zc, { top: [2.8, 3.6], soffit: true });
+    curvedRoof(g, two ? 3.9 : 4.6, two ? 4.9 : 5.5, two ? 2.2 : 2.7, cx, top - 0.1, zc, { top: two ? [0.3, 0.5] : [0.6, 0.5] });
+    if (!two) { Cy(g, 0.03, 0.03, 2.4, 4, C(0x888c94), cx + 1.5, top + 3.0, zc - 1, 1); Bx(g, 0.9, 0.05, 0.05, C(0x888c94), cx + 1.5, top + 3.6, zc - 1, 1); }
+    // front: shoji veranda + door
+    const dx = i % 2 ? 1.6 : -1.6;
+    for (let k = 0; k < 2; k++) pl(g, flatM('s6tk_shoji'), 1.4, 2.0, cx - dx + (k - 0.5) * 1.45, 1.4, F + 0.06);
+    for (const x of [-1.5, 0, 1.5]) Bx(g, 0.12, 2.2, 0.12, dark, cx - dx + x * 1.0 - 0.0, 1.4, F + 0.08, 1);
+    Bx(g, 3.2, 0.12, 0.14, dark, cx - dx, 2.5, F + 0.08, 1);
+    door(g, 1.0, 2.1, cx + dx * 1.4, 1.15, F + 0.06, 0, '#5a3a22');
+    pl(g, selfLit('s6tk_noren', 0x888888, true), 1.0, 0.7, cx + dx * 1.4, 2.0, F + 0.18);
+    lantern(g, cx + dx * 2.1, 2.2, F + 0.45, 0.2, 0.3, flatM('s6tk_lanternW'));
+    sgn(g, ['NO.7', 'NO.8', 'NO.9', 'NO.10'][i], 0.7, 0.3, cx + dx * 2.4, 1.2, F + 0.06, 0, { bg: '#18120e', fg: '#e8c860', border: '#e8c860' });
+    if (two) { win(g, 1.3, 1.5, cx - 1.4, 5.15, zc + 3.67, 0, { lit: true }); win(g, 1.3, 1.5, cx + 1.4, 5.15, zc + 3.67, 0, { lit: i === 1 }); Bx(g, 3.8, 0.1, 0.5, dark, cx, 4.2, zc + 3.85, 1); }
+    // back & stuff
+    win(g, 1.2, 1.3, cx - 1.5, 2.0, zc - 4.27, Math.PI, { fixed: true, lit: true }); win(g, 1.2, 1.3, cx + 1.5, 2.0, zc - 4.27, Math.PI, { fixed: true, lit: i % 2 === 0 });
+    boxes(g, [[0.9, 0.7, 0.5, cx + 1.8, 2.6, zc - 4.45]], C(0x8a9098));
+    // garden: bushes and a stone lantern
+    Sg(g, C(0x2e5a34), cx - dx * 1.2 - 2.4 * (i % 2 ? -1 : 1) * 0.0 + (i % 2 ? 2.6 : -2.6), 0.6, F + 1.6, 0.8, 0.55, 0.7, 8);
+    if (i % 2 === 0) { const sx = cx + 2.7; Bx(g, 0.5, 0.3, 0.5, C(0x7a7a80), sx, 0.2, F + 2.0, 1); Bx(g, 0.2, 0.6, 0.2, C(0x7a7a80), sx, 0.65, F + 2.0, 1); Bx(g, 0.4, 0.3, 0.4, glow(0xffc060), sx, 1.1, F + 2.0, 1); Bx(g, 0.6, 0.15, 0.6, C(0x7a7a80), sx, 1.33, F + 2.0, 1); }
+    for (let k = 0; k < 3; k++) Bx(g, 0.5, 0.05, 0.4, C(0x8a8a90), cx - dx + (k - 1) * 0.1, 0.09, F + 0.7 + k * 0.6, 1);
+  }
+  const v = vendingMachine({ variant: 2 }); v.position.set(13.2, 0, 5.2); g.add(v);
+  Bx(g, 30, 0.7, 0.2, wood, 0, 0.4, 5.9, 3);                                           // low fence along the front yard
+  return size(g, 30, 12, 9, [[-15, 15, -5.0, F + 0.2, 9], [12.6, 13.8, 4.8, 5.6, 1.9], [-15, 15, 5.8, 6.0, 0.8]]);
+}
+
+// =====================================================================
+// 12. capsuleHotel  22 x 16 x 26
+// =====================================================================
+export function capsuleHotel() {
+  const g = G();
+  ground(g, 22, 16);
+  fbox(g, 22, 26, 16, 's6tk_capsule', 0, 13.06, 0, 8);
+  Bx(g, 22.4, 0.5, 16.4, C(0x4a4e58), 0, 26.3, 0, 3);
+  // glowing stripes
+  Bx(g, 0.9, 22, 0.14, glow(0x19e6ff), 0, 13.5, 8.07, 1); Bx(g, 0.35, 22, 0.14, glow(0xff2d95), -1.0, 13.5, 8.07, 1); Bx(g, 0.35, 22, 0.14, glow(0xff2d95), 1.0, 13.5, 8.07, 1);
+  for (const s of [-1, 1]) { Bx(g, 0.14, 0.7, 16, glow(0x19e6ff), s * 11.07, 24.6, 0, 1); Bx(g, 0.14, 0.25, 16, glow(0xff2d95), s * 11.07, 23.9, 0, 1); }
+  Bx(g, 22.2, 0.7, 0.14, glow(0x19e6ff), 0, 24.6, 8.07, 1);
+  // entrance: glass vestibule, canopy, sign
+  Bx(g, 8, 3.4, 0.3, C(0x20242c), 0, 1.76, 8.15, 2); pl(g, basic(0xdff6ff), 5.6, 2.8, 0, 1.6, 8.32); Bx(g, 0.1, 2.8, 0.08, C(0x20242c), 0, 1.6, 8.36, 1);
+  Bx(g, 9, 0.3, 1.8, C(0x20242c), 0, 3.7, 8.9, 2); Bx(g, 8.6, 0.05, 1.5, glow(0xfff3c8), 0, 3.5, 8.9, 1);
+  sgn(g, 'CAPSULE HOTEL', 8.6, 1.2, 0, 5.2, 8.2, 0, { bg: '#08121c', fg: '#19e6ff', border: '#ff2d95' });
+  sgn(g, 'ONE NIGHT 3000', 5.2, 0.7, -6.2, 2.0, 8.08, 0, { bg: '#0e0e16', fg: '#ffe81a', border: '#ffe81a' }); sgn(g, 'OPEN 24H', 3.6, 0.7, 6.4, 2.0, 8.08, 0, { bg: '#0e0e16', fg: '#52ff9a', border: '#52ff9a' });
+  // roof: sign on a frame, water tank, vents
+  for (const x of [-5.5, 5.5]) Bx(g, 0.3, 3.2, 0.3, C(0x2a2e38), x, 28.1, 0, 1);
+  sgn(g, 'CAPSULE', 12, 2.6, 0, 28.0, 0.2, 0, { bg: '#08121c', fg: '#ff2d95', border: '#19e6ff' }); sgn(g, 'CAPSULE', 12, 2.6, 0, 28.0, -0.2, Math.PI, { bg: '#08121c', fg: '#ff2d95', border: '#19e6ff' });
+  Cy(g, 1.4, 1.4, 2.4, 10, C(0x7a808a), -7, 27.7, -4, 2); boxes(g, [[2, 1, 1.4, 6, 27, -4], [1.2, 0.8, 1.2, 8, 26.9, 3], [1.6, 1, 1.2, -4, 27, 4]], C(0x6a707a));
+  // side fire escape (zig-zag stair) on the east face
+  const fe = [], rl = [];
+  for (let f = 0; f < 5; f++) { const y0 = 4 + f * 4.4, y1 = y0 + 4.4; fe.push([[11.35, y0, -6], [11.35, y1, 3]]); rl.push([[11.6, y0 + 1, -6], [11.6, y1 + 1, 3]]); Bx(g, 0.9, 0.12, 2.2, C(0x555a64), 11.55, y0, f % 2 ? 3.4 : -6.7, 1); }
+  rods(g, fe, 0.08, C(0x555a64), 4); rods(g, rl, 0.04, C(0x555a64), 3);
+  for (let f = 0; f < 5; f++) Bx(g, 0.07, 1, 0.07, C(0x555a64), 11.7, 4.5 + f * 4.4, f % 2 ? 3.4 : -6.7, 1);
+  // door on back, ac boxes
+  door(g, 1.4, 2.4, 3, 1.25, -8.07, Math.PI, '#3a3e48'); boxes(g, [[0.9, 0.7, 0.5, -6, 4, -8.3], [0.9, 0.7, 0.5, -3, 4, -8.3], [0.9, 0.7, 0.5, 6, 4, -8.3]], C(0x8a9098));
+  return size(g, 22, 16, 26);
+}
+
+// =====================================================================
+// 13. godzillaHotel  26 x 22 x 50  (head peeks over the front roof edge)
+//     cols: tower block z -11..8 (h 50) + low front annex z 8..11 (h 6). The head overhangs the annex above y = 36.
+// =====================================================================
+export function godzillaHotel() {
+  const g = G();
+  ground(g, 26, 22);
+  fbox(g, 26, 36, 19, 's6tk_offC', 0, 18.06, -1.5, 12);          // tower z -11..8, y 0..36
+  Bx(g, 26.6, 0.8, 19.6, C(0x4a4640), 0, 36.4, -1.5, 3);
+  fbox(g, 20, 3.4, 14, 's6tk_offC', 2, 38.5, -3.5, 12);          // roof house
+  Bx(g, 20.4, 0.4, 14.4, C(0x4a4640), 2, 40.4, -3.5, 3);
+  // front annex (shops) with lit signs
+  Bx(g, 26, 6, 3, C(0x5a5650), 0, 3.06, 9.5, 3); Bx(g, 26.4, 0.4, 3.4, C(0x2a2824), 0, 6.2, 9.5, 2);
+  for (let i = 0; i < 4; i++) { const x = -9.75 + i * 6.5; pl(g, basic(i % 2 ? 0xfff0c8 : 0xffe0f0), 4.4, 2.8, x, 2.2, 11.07); for (const dx of [-2.3, 2.3]) Bx(g, 0.1, 2.9, 0.08, C(0x20242c), x + dx, 2.2, 11.1, 1); }
+  sgn(g, 'MONSTER HOTEL', 14, 1.7, 0, 7.6, 8.06, 0, { bg: '#0c1810', fg: '#52ff9a', border: '#52ff9a' });
+  sgn(g, 'HOTEL', 3.4, 0.7, 9.8, 5.2, 11.07, 0, { bg: '#10061a', fg: '#ff2d95', border: '#ff2d95' }); sgn(g, 'KARAOKE', 4.2, 0.7, -9.8, 5.2, 11.07, 0, { bg: '#10061a', fg: '#19e6ff', border: '#19e6ff' });
+  // vertical accent fins and a lit side sign
+  for (const x of [-12.9, 12.9]) Bx(g, 0.3, 36, 0.3, C(0x6a6660), x, 18.06, 8.1, 1);
+  Bx(g, 0.18, 14, 1.4, glow(0x52ff9a), 13.1, 24, 4, 1); Bx(g, 0.18, 14, 1.4, glow(0x52ff9a), -13.1, 24, 4, 1);
+  coverWall(g, '-z', -11.06, -12, 4, 4, 5, 6, 6, true, 2);
+  // ---- the head ----
+  const H = G(), skin = keyed('gz1', () => new THREE.MeshPhongMaterial({ color: 0x7a9a86, emissive: 0x12201a, shininess: 24, specular: 0x555555 })), belly = keyed('gz2', () => new THREE.MeshPhongMaterial({ color: 0xa0b49e, emissive: 0x1a2620, shininess: 18, specular: 0x444444 })), dorsal = keyed('gz3', () => new THREE.MeshPhongMaterial({ color: 0xb4c8ba, emissive: 0x2a3a30, shininess: 40, specular: 0x666666 }));
+  const mouthM = C(0x7a1c14, 0x501008), teeth = C(0xf2eedc, 0x606050);
+  Sg(H, skin, 0, 0, 0, 3.6, 3.2, 4.4, 14);                                   // skull
+  Sg(H, skin, 0, -0.9, 4.6, 2.5, 1.5, 3.6, 12);                              // snout
+  Sg(H, belly, 0, -3.0, 3.9, 2.2, 0.9, 3.5, 12).rotation.x = 0.35;           // lower jaw (open)
+  Sg(H, mouthM, 0, -2.2, 3.7, 1.9, 0.5, 3.2, 8);
+  for (let i = 0; i < 7; i++) { const z = 2.2 + i * 0.85, x = 1.6 - Math.min(i, 3) * 0.12; for (const s of [-1, 1]) { Ms(H, new THREE.ConeGeometry(0.2, 0.75, 4), teeth, s * x, -1.95, z, 1, 1, 1, Math.PI); Ms(H, new THREE.ConeGeometry(0.17, 0.6, 4), teeth, s * (x - 0.1), -2.5 - i * 0.05, z + 0.2, 1, 1, 1, 0); } }
+  for (const s of [-1, 1]) {
+    Sg(H, glow(0xffd23a), s * 2.15, 1.0, 3.1, 0.55, 0.45, 0.5, 8);
+    Sg(H, C(0x1a1410), s * 2.3, 1.05, 3.45, 0.18, 0.28, 0.16, 6);
+    Ms(H, new THREE.BoxGeometry(1.8, 0.45, 1.8), skin, s * 2.2, 1.7, 3.0, 1, 1, 1, 0.2, 0, s * -0.25);   // brow ridge
+    Sg(H, C(0x161a18), s * 0.8, -0.1, 7.8, 0.28, 0.22, 0.3, 6);
+  }
+  for (let i = 0; i < 7; i++) { const z = -2.5 - i * 1.1, y = 2.6 + i * 0.1 - 1.0; Ms(H, new THREE.ConeGeometry(0.9 - i * 0.05, 2.6 - i * 0.1, 5), dorsal, 0, y + 2.2 - i * 0.4, z, 1, 1, 1, -0.5, 0, 0); }
+  Cy(H, 3.0, 3.6, 10, 10, skin, 0, -4.5, -3.5, 4).rotation.x = -0.45;         // neck sloping back down into the roof
+  H.position.set(-3, 43.6, -0.4); H.rotation.x = 0.12; H.scale.setScalar(1.3); g.add(H);
+  Bx(g, 9, 3.2, 6, C(0x4a4640), -3, 38.6 + 0.2, 0.0, 3);                     // pedestal box under the neck (hidden mostly)
+  // rooftop antennas / lit helipad ring
+  Cy(g, 0.08, 0.14, 8, 5, C(0x777c88), 9, 44.4, -8, 1); Ms(g, SPH(6, 4), glow(0xff2a2a), 9, 48.5, -8, 0.3);
+  Ms(g, new THREE.TorusGeometry(3.4, 0.08, 4, 20), glow(0xff2d95), 6, 40.15, -3.5, 1, 1, 1, Math.PI / 2);
+  win(g, 1.4, 1.6, 12.3, 20, 8.07, 0, { lit: true, fixed: true });
+  return size(g, 26, 22, 50, [[-13, 13, -11, 8, 50], [-13, 13, 8, 11, 6]]);
+}
+
+// =====================================================================
+// 14. elevatedTrack  44 x 8 x 12   cols = the four hammerhead piers only (open >= 9 m between them, free along z)
+// =====================================================================
+function trainCar(g, x, z, len, first, last) {
+  const geo = new THREE.BoxGeometry(len, 3.3, 2.9), end = C(0x9aa0aa, 0x20242a), roof = C(0x8a909a, 0x181c22), under = C(0x2a2e36);
+  const side = litM('s6tk_train'); const m = new THREE.Mesh(geo, [end, end, roof, under, side, side]); m.position.set(x, 10.15, z); g.add(m);
+  Bx(g, len - 0.6, 0.35, 1.6, C(0x6a707a), x, 12.0 - 0.05, z, 2);                // AC / roof gear (top at 12.0)
+  Bx(g, len - 1, 0.4, 2.5, C(0x2a2e36), x, 8.7, z, 2);                             // bogie skirt
+  for (const s of [-1, 1]) if ((s < 0 && first) || (s > 0 && last)) { Bx(g, 0.06, 0.5, 1.2, glow(0xfff4c8), x + s * (len / 2 + 0.02), 9.5, z, 1); Bx(g, 0.06, 0.4, 1.8, glow(0x52ff9a), x + s * (len / 2 + 0.02), 11.3, z, 1); }
+}
+export function elevatedTrack() {
+  const g = G(), conc = mat('s6tk_conc'), cdark = C(0x4a4c52);
+  const PX = [-16.5, -5.5, 5.5, 16.5];
+  for (const x of PX) { Bx(g, 1.6, 6.1, 2.4, conc, x, 3.05, 0, 3); Bx(g, 2.2, 0.8, 7.0, conc, x, 6.5, 0, 3); }
+  Bx(g, 44, 1.3, 7.6, conc, 0, 7.55, 0, 4);                                         // deck slab y 6.9..8.2
+  for (const s of [-1, 1]) { Bx(g, 44, 0.5, 0.8, cdark, 0, 6.65, s * 2.6, 3); Bx(g, 44, 1.0, 0.3, conc, 0, 8.7, s * 3.65, 3); }
+  Bx(g, 43.6, 0.14, 6.9, C(0x45423e), 0, 8.27, 0, 3);                                // ballast
+  for (const z of [1.9, -1.9]) { for (const o of [-0.7, 0.7]) Bx(g, 44, 0.12, 0.1, C(0x9aa0aa), 0, 8.4, z + o, 1); for (let i = 0; i < 44; i += 1) { /* sleepers merged below */ } }
+  boxes(g, Array.from({ length: 56 }, (_, i) => [0.28, 0.08, 2.2, -21.5 + i * 0.78, 8.36, 1.9]).concat(Array.from({ length: 56 }, (_, i) => [0.28, 0.08, 2.2, -21.5 + i * 0.78, 8.36, -1.9])), C(0x5a4a3a));
+  // train on the front track
+  const cars = 3, L = 13.4, gap = 0.7, x0 = -(cars * L + (cars - 1) * gap) / 2 + L / 2;
+  for (let i = 0; i < cars; i++) trainCar(g, x0 + i * (L + gap), 1.9, L, i === 0, i === cars - 1);
+  // catenary masts + wires
+  for (const x of [-20, -9.5, 0, 9.5, 20]) { Bx(g, 0.18, 3.7, 0.18, C(0x5a606a), x, 10.05, -3.45, 1); Bx(g, 0.14, 0.14, 5.6, C(0x5a606a), x, 11.85, -0.75, 1); }
+  Bx(g, 44, 0.04, 0.04, C(0x2a2a30), 0, 11.8, 1.9, 1); Bx(g, 44, 0.04, 0.04, C(0x2a2a30), 0, 11.9, -1.9, 1);
+  // signage on the viaduct beams, neon bits
+  [['RAMEN', '#ffe81a', -16], ['24H', '#19e6ff', -5.5], ['SUSHI', '#ff2d95', 5.5], ['KARAOKE', '#52ff9a', 16]].forEach(([t, c, x]) => sgn(g, t, 3.4, 0.9, x, 7.55, 3.86, 0, { bg: '#10061c', fg: c, border: c }));
+  [['GAME', '#ff2d95', -11], ['MART', '#ffe81a', 0], ['BAR', '#19e6ff', 11]].forEach(([t, c, x]) => sgn(g, t, 3.0, 0.9, x, 7.55, -3.86, Math.PI, { bg: '#10061c', fg: c, border: c }));
+  // station-ish lamps on the parapet
+  for (const x of [-18, -6, 6, 18]) { Bx(g, 0.1, 1.6, 0.1, C(0x5a606a), x, 9.7, 3.65, 1); Bx(g, 0.5, 0.12, 0.3, glow(0xfff0c0), x, 10.55, 3.65, 1); }
+  return size(g, 44, 8, 12, PX.map((x) => [x - 0.8, x + 0.8, -1.2, 1.2, 6.9]));
+}
+
+// =====================================================================
+// 15. giantScreen  14 x 2 x 10   cols = two posts (open underneath, screen from y 2.6)
+// =====================================================================
+export function giantScreen() {
+  const g = G(), dk = C(0x23202e), tube = glow(0xff2d95), tube2 = glow(0x19e6ff);
+  for (const s of [-1, 1]) { Bx(g, 0.9, 10, 1.4, dk, s * 6.6, 5, 0, 2); Bx(g, 1.8, 0.3, 2.0, mat('s6tk_conc'), s * 6.6, 0.15, 0, 2); }
+  Bx(g, 12.4, 7.4, 0.6, dk, 0, 6.3, 0, 3);                                            // frame box y 2.6..10.0
+  panel(g, 's6tk_screen0', 12.0, 6.5, 0, 6.3, 0.32, 0);
+  panel(g, 's6tk_screen1', 12.0, 6.5, 0, 6.3, -0.32, Math.PI);
+  for (const z of [0.33, -0.33]) { Bx(g, 12.2, 0.12, 0.08, tube, 0, 9.78, z, 1); Bx(g, 12.2, 0.12, 0.08, tube2, 0, 2.82, z, 1); for (const s of [-1, 1]) Bx(g, 0.12, 6.6, 0.08, tube2, s * 6.1, 6.3, z, 1); }
+  for (const s of [-1, 1]) { rods(g, [[[s * 6.6, 3.0, -0.7], [s * 6.0, 6.0, -0.35]], [[s * 6.6, 9.0, -0.7], [s * 6.0, 6.5, -0.35]]], 0.07, dk, 4); }
+  for (let i = 0; i < 5; i++) { const x = -5 + i * 2.5; Bx(g, 0.5, 0.35, 0.8, C(0x3a3846), x, 10.2, 0.6, 1); Bx(g, 0.4, 0.06, 0.5, glow(0xfff6d0), x, 10.0, 0.62, 1); }
+  Bx(g, 3.2, 0.5, 0.2, C(0x1a1424), 0, 2.2, 0.3, 1); sgn(g, 'ON AIR', 3.0, 0.45, 0, 2.2, 0.41, 0, { bg: '#1a0408', fg: '#ff2a2a', border: '#ff2a2a' });
+  return size(g, 14, 2, 10, [[-7.2, -6.0, -0.8, 0.8, 10], [6.0, 7.2, -0.8, 0.8, 10]]);
+}
+
+// =====================================================================
+// Props
+// =====================================================================
+const VEND = [0xd8281e, 0x2a62c8, 0xe8ecf0, 0x2a9a5a];
+export function vendingMachine(opts = {}) {
+  const g = G(), body = C(VEND[(opts.variant | 0) % 4 === 2 ? 2 : (opts.variant | 0) % 4], 0x180806), dk = C(0x22242c);
+  Bx(g, 1.0, 1.9, 0.8, body, 0, 0.95, 0, 2);
+  pl(g, flatM('s6tk_vend'), 0.64, 1.1, -0.12, 1.22, 0.405);
+  Bx(g, 0.7, 0.04, 0.06, dk, -0.12, 1.79, 0.41, 1); Bx(g, 0.7, 0.04, 0.06, dk, -0.12, 0.65, 0.41, 1); Bx(g, 0.04, 1.2, 0.06, dk, 0.22, 1.22, 0.41, 1); Bx(g, 0.04, 1.2, 0.06, dk, -0.46, 1.22, 0.41, 1);
+  Bx(g, 0.2, 0.9, 0.05, dk, 0.37, 1.2, 0.41, 1);
+  boxes(g, [[0.08, 0.06, 0.03, 0.37, 1.5, 0.44], [0.08, 0.06, 0.03, 0.37, 1.35, 0.44], [0.08, 0.06, 0.03, 0.37, 1.2, 0.44]], glow(0x52ff9a));
+  boxes(g, [[0.12, 0.08, 0.03, 0.37, 0.95, 0.44]], glow(0xffe81a));
+  Bx(g, 0.6, 0.25, 0.05, dk, -0.12, 0.38, 0.41, 1);                                     // pickup flap
+  Bx(g, 0.94, 0.14, 0.04, glow(0xfff6d8), 0, 1.84, 0.41, 1);                            // lit header
+  const h = pl(g, haloM(0xb8d8ff), 2.4, 2.0, 0, 0.03, 1.1, 0, -Math.PI / 2); h.renderOrder = 1;
+  return size(g, 1, 0.8, 1.9, [[-0.5, 0.5, -0.4, 0.4, 1.9]]);
+}
+
+export function utilityPole(opts = {}) {
+  const g = G(), span = opts.span || 8, wood = C(0x6a5a4a), ins = C(0xd8e0e8), wire = C(0x1c1c20);
+  Cy(g, 0.12, 0.18, 9, 8, wood, 0, 4.5, 0, 2);
+  for (const y of [8.5, 7.7]) { Bx(g, 0.1, 0.1, 1.2, wood, 0, y, 0, 1); for (const z of [-0.5, 0, 0.5]) Cy(g, 0.04, 0.05, 0.16, 5, ins, 0, y + 0.13, z, 1); }
+  Cy(g, 0.3, 0.3, 0.95, 8, C(0x7a808a), 0.5, 6.6, 0, 1); Bx(g, 0.04, 0.04, 0.04, wire, 0.2, 6.6, 0, 1);
+  Bx(g, 0.34, 0.5, 0.04, C(0xe8c020), 0.0, 3.2, 0.19, 1); Bx(g, 0.5, 0.06, 0.06, C(0x6a707a), 0, 5.4, 0.12, 1);
+  const lst = [];
+  const half = span / 2, sag = 0.5;
+  const curve = (y0, z, side) => { let px = 0, py = y0 + 0.13; for (let i = 1; i <= 5; i++) { const t = i / 5, x = side * half * t, y = y0 + 0.13 - sag * (1 - (1 - t) * (1 - t)) - 0.0; lst.push([[px, py, z], [x, y, z]]); px = x; py = y; } };
+  for (const y of [8.5, 7.7]) for (const z of [-0.5, 0, 0.5]) for (const s of [-1, 1]) curve(y, z, s);
+  const tc = []; for (const s of [-1, 1]) { let px = 0, py = 6.0; for (let i = 1; i <= 5; i++) { const t = i / 5, x = s * half * t, y = 6.0 - 0.7 * (1 - (1 - t) * (1 - t)); tc.push([[px, py, 0.14], [x, y, 0.14]]); px = x; py = y; } }
+  rods(g, lst, 0.025, wire, 3); rods(g, tc, 0.045, C(0x101012), 3);
+  return size(g, 1.2, 1.2, 9, [[-0.3, 0.3, -0.3, 0.3, 9]]);
+}
+
+export function sakuraTree() {
+  const g = G(), bark = C(0x5a4636), br = [];
+  const trunk = Cy(g, 0.32, 0.5, 3.6, 8, bark, 0, 1.8, 0, 1); trunk.rotation.z = 0.05;
+  const arms = [[1.6, 5.2, 0.4], [-1.5, 5.0, -0.6], [0.3, 5.6, 1.6], [-0.4, 5.3, -1.6], [1.2, 6.0, -1.1]];
+  arms.forEach(([x, y, z]) => br.push([[0, 3.0, 0], [x, y, z]]));
+  rods(g, br, 0.13, bark, 5);
+  const cm = [C(0xf6a8c4, 0x7a3050), C(0xffc4d8, 0x803858), C(0xf08ab0, 0x702848)];
+  const pos = [[0, 6.6, 0, 1.9], [1.9, 5.4, 0.6, 1.5], [-1.9, 5.2, -0.5, 1.6], [0.4, 5.6, 2.0, 1.4], [-0.6, 5.5, -2.0, 1.5], [1.4, 6.6, -1.4, 1.2], [-1.3, 6.6, 1.2, 1.2], [0, 7.4, 0, 0.9]];
+  const ico = new THREE.IcosahedronGeometry(1, 1);
+  pos.forEach(([x, y, z, r], i) => Ms(g, ico, cm[i % 3], x, y, z, r, r * 0.8, r));
+  const pt = new THREE.Mesh(new THREE.CircleGeometry(2.7, 12), keyed('petals', () => new THREE.MeshBasicMaterial({ color: 0xe8a0c0, transparent: true, opacity: 0.45, depthWrite: false })));
+  pt.rotation.x = -Math.PI / 2; pt.position.y = 0.04; pt.renderOrder = 1; g.add(pt);
+  return size(g, 6, 6, 8, [[-0.5, 0.5, -0.5, 0.5, 8]]);
+}
+
+export function paperLanternPost() {
+  const g = G(), wood = C(0x4a3626), dark = C(0x1c1410);
+  Bx(g, 0.6, 0.25, 0.6, C(0x7a7a80), 0, 0.125, 0, 1);
+  Cy(g, 0.07, 0.09, 3.9, 6, wood, 0, 2.05, 0, 1);
+  Bx(g, 1.0, 0.07, 0.07, wood, 0, 3.6, 0, 1); Bx(g, 0.07, 0.07, 0.5, wood, 0, 3.74, 0, 1);
+  for (const s of [-1, 1]) { Cy(g, 0.01, 0.01, 0.2, 3, dark, s * 0.4, 3.45, 0, 1); lantern(g, s * 0.4, 3.12, 0, 0.2, 0.3); }
+  for (let i = 0; i < 3; i++) lantern(g, 0, 3.0 - i * 0.75 + 0.15, 0.2, 0.15, 0.2, flatM(i === 1 ? 's6tk_lanternW' : 's6tk_lantern'));
+  Bx(g, 0.18, 0.18, 0.18, glow(0xffd070), 0, 3.95 + 0.0, 0, 1);
+  const h = pl(g, haloM(0xff8a40), 3.0, 3.0, 0, 0.03, 0, 0, -Math.PI / 2); h.renderOrder = 1;
+  return size(g, 1, 1, 4, [[-0.25, 0.25, -0.25, 0.25, 4]]);
+}
+
+export function crossingLights() {
+  const g = G(), pole = C(0x6a707a), dk = C(0x22242c);
+  for (const s of [-1, 1]) {
+    const x = s * 2.8;
+    Cy(g, 0.07, 0.1, 6, 8, pole, x, 3, 0, 1);
+    Bx(g, 0.5, 0.3, 0.5, C(0x7a7a80), x, 0.15, 0, 1);
+    // pedestrian signal head facing the other pole
+    const red = s < 0, fx = x - s * 0.22;
+    Bx(g, 0.18, 0.95, 0.52, dk, x - s * 0.15, 2.7, 0, 1);
+    Bx(g, 0.04, 0.34, 0.34, glow(red ? 0xff2a2a : 0x3a1010), fx - s * 0.0, 3.0, 0, 1); Bx(g, 0.04, 0.34, 0.34, glow(red ? 0x103a1c : 0x52ff9a), fx, 2.5, 0, 1);
+    Bx(g, 0.1, 0.1, 0.3, glow(0xffe81a), x + 0.0, 1.2, 0.16, 1); Bx(g, 0.2, 0.28, 0.1, C(0xe8c020), x, 1.2, 0.14, 1);
+    // street lamp arm over the road
+    rods(g, [[[x, 5.8, 0], [x, 6.0, 0]], [[x, 5.95, 0], [x - s * 1.6, 5.7, 0]]], 0.05, pole, 5);
+    Bx(g, 0.7, 0.12, 0.3, glow(0xfff0c0), x - s * 1.7, 5.62, 0, 1);
+    Bx(g, 0.6, 0.6, 0.06, C(0x2a6ad8), x, 4.6, 0.12, 1);
+    pl(g, haloM(0xffe0a0), 3.4, 3.4, x - s * 1.5, 0.03, 0, 0, -Math.PI / 2).renderOrder = 1;
+  }
+  return size(g, 6, 1, 6, [[-3.05, -2.55, -0.25, 0.25, 6], [2.55, 3.05, -0.25, 0.25, 6]]);
+}
+
+export function ramenCart() {
+  const g = G(), red = C(0xa8281e, 0x200806), wood = C(0x7a5236), dk = C(0x22201e);
+  Bx(g, 2.4, 0.9, 1.2, red, 0, 0.95, 0, 2); Bx(g, 2.5, 0.08, 1.3, wood, 0, 1.44, 0, 1);
+  Bx(g, 2.3, 0.1, 1.1, dk, 0, 0.5, 0, 1);
+  for (const x of [-0.95, 0.95]) for (const z of [-0.72, 0.72]) { const w = Cy(g, 0.45, 0.45, 0.1, 10, dk, x, 0.45, z, 1); w.rotation.x = Math.PI / 2; }
+  rods(g, [[[-1.2, 0.9, 0.3], [-1.45, 1.1, 0.3]], [[-1.2, 0.9, -0.3], [-1.45, 1.1, -0.3]]], 0.04, wood, 4); Bx(g, 0.06, 0.06, 0.7, wood, -1.45, 1.1, 0, 1);
+  for (const x of [-1.2, 1.2]) for (const z of [-0.55, 0.55]) Cy(g, 0.035, 0.035, 0.95, 4, wood, x, 1.95, z, 1);
+  const roof = Bx(g, 2.9, 0.1, 1.5, C(0x3a2a24), 0, 2.45, 0, 2); roof.rotation.x = 0.06;
+  Bx(g, 2.9, 0.06, 0.06, glow(0xffe8b0), 0, 2.3, 0.73, 1);
+  pl(g, selfLit('s6tk_noren', 0x888888, true), 2.4, 0.55, 0, 2.0, 0.7);
+  Cy(g, 0.32, 0.3, 0.45, 10, C(0xb0b6c0), -0.5, 1.7, 0, 1); Cy(g, 0.28, 0.28, 0.02, 10, glow(0xffd080), -0.5, 1.93, 0, 1);
+  for (const x of [0.3, 0.75, 1.0]) Cy(g, 0.11, 0.08, 0.1, 8, C(0xf4f0e8), x, 1.53, 0.3, 1);
+  const st = keyed('steam', () => new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.22, depthWrite: false }));
+  Sg(g, st, -0.5, 2.1, 0, 0.22, 0.3, 0.22, 6); Sg(g, st, -0.45, 2.3, 0.02, 0.17, 0.22, 0.17, 6);
+  lantern(g, 1.15, 1.95, 0.85, 0.3, 0.36, flatM('s6tk_lanternW')); lantern(g, -1.15, 1.95, 0.85, 0.3, 0.36);
+  for (const x of [-0.7, 0.2, 1.0]) { Cy(g, 0.22, 0.2, 0.5, 8, C(0x9a3a2a), x, 0.25, 1.35, 1); }
+  return size(g, 3, 2, 2.5);
 }
