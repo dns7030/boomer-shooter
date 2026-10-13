@@ -46,6 +46,21 @@ export class Nav {
       }
     }
   }
+  // static flow field toward a set of target points (e.g. a ring around the Neo node): same BFS, many sources
+  floodFrom(points) {
+    const { dist, queue, blocked, nx, nz } = this; dist.fill(-1); let h = 0, tl = 0;
+    for (const [px, pz] of points) { const c = this.cellOf(px, pz); if (c >= 0 && !blocked[c] && dist[c] < 0) { dist[c] = 0; queue[tl++] = c; } }
+    while (h < tl) {
+      const c = queue[h++], i = c % nx, j = (c / nx) | 0, d = dist[c] + 1;
+      for (let k = 0; k < 8; k++) {
+        const di = k < 4 ? [1, -1, 0, 0][k] : [1, 1, -1, -1][k - 4], dj = k < 4 ? [0, 0, 1, -1][k] : [1, -1, 1, -1][k - 4];
+        const ni = i + di, nj = j + dj; if (ni < 0 || nj < 0 || ni >= nx || nj >= nz) continue;
+        const n = nj * nx + ni; if (blocked[n] || dist[n] >= 0) continue;
+        if (di && dj && (blocked[j * nx + ni] || blocked[nj * nx + i])) continue;
+        dist[n] = d; queue[tl++] = n;
+      }
+    }
+  }
   // unit direction toward the player along the shortest walkable path, or null
   dir(x, z) {
     const c = this.cellOf(x, z);

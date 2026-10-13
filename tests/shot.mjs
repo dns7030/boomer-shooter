@@ -19,7 +19,7 @@ export function serve() {
   return new Promise((r) => srv.listen(0, () => r(srv)));
 }
 
-export async function launch() {
+export async function launch(pagePath = "/") {
   const srv = await serve();
   const exe = process.env.CHROME || '/opt/pw-browsers/chromium-1194/chrome-linux/chrome';
   const browser = await chromium.launch({ executablePath: exe, args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', '--no-sandbox'] });
@@ -27,7 +27,7 @@ export async function launch() {
   const errors = [];
   page.on('console', (m) => { if (m.type() === 'error' || m.type() === 'warning') errors.push(`[${m.type()}] ${m.text()}`); });
   page.on('pageerror', (e) => errors.push(`[pageerror] ${e.message}`));
-  await page.goto(`http://localhost:${srv.address().port}/`);
+  await page.goto(`http://localhost:${srv.address().port}${pagePath}`);
   await page.waitForFunction(() => window.__game, null, { timeout: 30000 });
   return { page, browser, srv, errors };
 }

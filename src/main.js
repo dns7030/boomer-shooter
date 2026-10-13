@@ -2,7 +2,10 @@ import { Game } from './game.js';
 import { initAudio, getAudio } from './audio.js';
 import { createMusic } from './music.js';
 import { WEAPONS } from './weapons.js';
-import { LEVELS } from './levels.js';
+import { LEVELS as DEFAULT_LEVELS } from './levels.js';
+
+const CFG = window.GAME_CONFIG || {};
+const LEVELS = CFG.levels || DEFAULT_LEVELS;
 
 const $ = (id) => document.getElementById(id);
 const canvas = $('view');
@@ -10,9 +13,9 @@ const overlay = $('overlay');
 const slots = [...document.querySelectorAll('#slots .slot')];
 
 const game = new Game({
-  canvas,
+  canvas, levels: LEVELS,
   ui: {
-    radar: $('radar'), boss: $('boss'), bossBar: $('bossbar'), hp: $('hp'), hpBar: $('hpbar'), ammo: $('ammo'), weapon: $('wname'), wave: $('wave'), msg: $('msg'), hurt: $('hurt'), slots,
+    radar: $('radar'), uptime: $('uptime'), uptimeBar: $('uptime-bar'), uptimeLabel: $('uptime-label'), boss: $('boss'), bossLabel: $('boss-label'), bossBar: $('bossbar'), hp: $('hp'), hpBar: $('hpbar'), ammo: $('ammo'), weapon: $('wname'), wave: $('wave'), msg: $('msg'), hurt: $('hurt'), slots,
     onState(s) { showOverlay(s); },
   },
 });
@@ -56,13 +59,14 @@ function showOverlay(s) {
   renderSettings();
   if (music) music.setMode(s === 'playing' ? 'play' : s === 'paused' ? 'pause' : s === 'won' ? 'win' : s === 'dead' ? 'dead' : 'pause');
   if (s === 'paused') { title.textContent = 'PAUSED'; body.textContent = 'Click to resume.'; btn.textContent = 'RESUME'; }
+  else if (s === 'dead' && game.failReason === 'chain') { title.textContent = 'THE CHAIN HAS HALTED'; body.textContent = `The Neo node went offline. Lizards slain: ${game.stats.kills}.`; btn.textContent = 'TRY AGAIN'; }
   else if (s === 'dead') { title.textContent = 'YOU DIED'; body.textContent = `Lizards slain: ${game.stats.kills}. The invaders win this round.`; btn.textContent = 'TRY AGAIN'; }
   else if (s === 'won') {
     const t = Math.round(game.stats.time);
     title.textContent = 'LEVEL CLEARED';
     body.textContent = `${L.name}: all lizards slain (${game.stats.kills}) in ${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}.`;
     btn.textContent = game.nextLevel() !== null ? 'NEXT LEVEL' : 'PLAY AGAIN';
-  } else { title.textContent = 'LIZARDS OVER RUS'; btn.textContent = 'PLAY'; }
+  } else { title.textContent = CFG.title || 'LIZARDS OVER RUS'; btn.textContent = 'PLAY'; }
 }
 
 function start(levelIndex) {
@@ -73,7 +77,7 @@ function start(levelIndex) {
   }
   if (levelIndex !== undefined && (levelIndex !== game.levelIndex || game.state !== 'title')) game.loadLevel(levelIndex);
   game.begin();
-  const m = ensureMusic(); if (m) m.start(game.levelIndex);
+  const m = ensureMusic(); if (m) m.start(LEVELS[game.levelIndex].track ?? game.levelIndex);
   if (canvas.requestPointerLock) { try { const r = canvas.requestPointerLock(); if (r && r.catch) r.catch(() => {}); } catch (e) { /* ignore */ } }
 }
 $('ov-btn').addEventListener('click', () => start());

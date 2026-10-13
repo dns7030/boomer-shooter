@@ -187,6 +187,17 @@ export function makePickupTextures() {
     cells: icon((g) => { // plasma cell
       R(g, 8, 6, 16, 22, '#2a3a52'); R(g, 8, 6, 16, 3, '#4a6a92'); R(g, 11, 12, 10, 12, '#2fd0ff'); R(g, 13, 14, 6, 8, '#d8fbff'); R(g, 12, 3, 8, 4, '#888');
     }),
+    neo: icon((g) => { // NEO: a Neo-green recharge cell
+      R(g, 10, 3, 12, 4, '#9aa6a2'); R(g, 7, 6, 18, 23, '#003d2c'); R(g, 8, 7, 16, 21, '#00e599'); R(g, 8, 7, 16, 3, '#7dffd2'); R(g, 8, 25, 16, 3, '#00a874'); R(g, 8, 7, 3, 21, '#52f5bb');
+      g.fillStyle = '#04261c'; g.font = 'bold 8px Arial'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('NEO', 16, 18);
+    }),
+    gas: icon((g) => { // GAS: a green energy flask
+      R(g, 13, 2, 6, 5, '#9aa6a2'); R(g, 11, 6, 10, 4, '#003d2c');
+      g.fillStyle = '#003d2c'; g.beginPath(); g.moveTo(11, 10); g.lineTo(21, 10); g.lineTo(28, 23); g.lineTo(26, 29); g.lineTo(6, 29); g.lineTo(4, 23); g.closePath(); g.fill();
+      g.fillStyle = '#00e599'; g.beginPath(); g.moveTo(12, 11); g.lineTo(20, 11); g.lineTo(26, 23); g.lineTo(25, 27); g.lineTo(7, 27); g.lineTo(6, 23); g.closePath(); g.fill();
+      g.fillStyle = '#7dffd2'; g.fillRect(13, 12, 2, 8);
+      g.fillStyle = '#04261c'; g.font = 'bold 8px Arial'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('GAS', 16, 21);
+    }),
     fuel: icon((g) => { // jerry can
       R(g, 7, 8, 18, 20, '#b8352a'); R(g, 7, 8, 18, 2, '#e05a4a'); R(g, 7, 26, 18, 2, '#6a1a14'); R(g, 20, 3, 5, 6, '#8a2218'); R(g, 11, 14, 8, 8, '#e8d8a0'); R(g, 13, 16, 4, 4, '#222');
     }),

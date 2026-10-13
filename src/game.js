@@ -23,15 +23,18 @@ const ENEMY = {
   gargoyle: { name: 'Gargoyle', hp: 55, speed: 7.5, radius: 0.55, melee: 14, w: 2.1, h: 2.62, ai: 'melee', reach: 2.0, hover: 2.4, perch: true },   // statue on a ledge until you pass
   shield: { name: 'Shield Lizard', hp: 120, speed: 3.0, radius: 0.65, melee: 16, w: 2.1, h: 2.62, ai: 'melee', reach: 2.3, shield: true, scale: 1.12, hitR: 0.8, hitH: 2.7 },
   tsar: { name: 'Great Lizard Tsar', hp: 1600, speed: 2.5, radius: 1.7, melee: 32, w: 2.1, h: 2.62, ai: 'melee', reach: 4.6, boss: true, scale: 2.8, hitR: 1.6, hitH: 6.0 },
+  sasquatch: { name: 'Cascadia Sasquatch', hp: 1500, speed: 2.7, radius: 1.7, melee: 30, w: 2.1, h: 2.62, ai: 'melee', reach: 4.6, boss: true, scale: 2.8, hitR: 1.6, hitH: 6.0 },
+  goldwyrm: { name: 'The Golden Wyrm', hp: 1500, speed: 2.9, radius: 1.7, melee: 30, w: 2.1, h: 2.62, ai: 'melee', reach: 4.6, boss: true, scale: 2.8, hitR: 1.6, hitH: 6.0 },
 };
-const TURN = { grunt: 3.4, spitter: 2.8, drake: 2.3, bomber: 1.8, gargoyle: 5, shield: 1.7, tsar: 0.9 };   // rad/s: lizards turn slower than you can run around them
+const TURN = { grunt: 3.4, spitter: 2.8, drake: 2.3, bomber: 1.8, gargoyle: 5, shield: 1.7, tsar: 0.9, sasquatch: 0.9, goldwyrm: 1.0 };   // rad/s: lizards turn slower than you can run around them
 const hitR = (e) => e.cfg.hitR || 0.6, hitH = (e) => e.cfg.hitH || 2.3;
 
 const angDiff = (a, b) => { const d = a - b; return Math.atan2(Math.sin(d), Math.cos(d)); };
 const ALIVE = new Set(['spawn', 'move', 'attack', 'pain', 'perch', 'dive']);
 
 export class Game {
-  constructor({ canvas, ui }) {
+  constructor({ canvas, ui, levels }) {
+    this.levels = levels || LEVELS;
     this.ui = ui || {};
     this.canvas = canvas;
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: 'high-performance' });
@@ -133,10 +136,18 @@ export class Game {
     this.levelIndex = i;
     this.scene = new THREE.Scene();
     this.scene.add(this.camera);
-    this.level = LEVELS[i].build(this.scene);
+    this.level = this.levels[i].build(this.scene);
     this.boxes = this.level.boxes;
     this.ensureAtlas(this.level.enemyTypes || ['grunt', 'spitter']);
     this.nav = this.level.navBounds ? new Nav(this.boxes, this.level.navBounds) : null;
+    this.navBase = null;
+    if (this.level.base && this.nav) {   // a second, static flow field that leads lizards to the Neo node
+      this.navBase = new Nav(this.boxes, this.level.navBounds);
+      const r = this.level.base.rect, pts = [];
+      for (let x = r.x0 - 3; x <= r.x1 + 3; x += 2) { pts.push([x, r.z0 - 3], [x, r.z1 + 3]); }
+      for (let z = r.z0 - 3; z <= r.z1 + 3; z += 2) { pts.push([r.x0 - 3, z], [r.x1 + 3, z]); }
+      this.navBase.floodFrom(pts);
+    }
     this.makeParticlePool();
     this.setupShadows();
     this.decals = new Decals(this.scene);
@@ -149,7 +160,7 @@ export class Game {
     if (this.post) this.post.setScene(this.scene);
     this.reset();
   }
-  get levelCount() { return LEVELS.length; }
+  get levelCount() { return this.levels.length; }
 
   // ---------------- setup / reset ----------------
   clearEntities() {
@@ -166,6 +177,11 @@ export class Game {
   reset() {
     for (const q of this.eggs || []) { this.scene.remove(q.obj); q.obj.material.dispose(); }
     this.eggs = [];
+    this.failReason = null;
+    if (this.level.base) {
+      const b = this.level.base; this.base = { ...b, maxHp: b.hp, hp: b.hp, stage: 0, alive: true, hitT: 0 };
+      if (b.tower && b.tower.userData.setStage) b.tower.userData.setStage(0);
+    } else this.base = null;
     this.clearEntities();
     if (this.decals) this.decals.clear();
     if (this.debris) this.debris.clear();
@@ -199,7 +215,7 @@ export class Game {
 
   setState(s) { this.state = s; if (this.ui.onState) this.ui.onState(s); }
   begin() { if (this.state === 'dead' || this.state === 'won') this.reset(); this.setState('playing'); }
-  nextLevel() { return this.levelIndex + 1 < LEVELS.length ? this.levelIndex + 1 : null; }
+  nextLevel() { return this.levelIndex + 1 < this.levels.length ? this.levelIndex + 1 : null; }
   pause() { if (this.state === 'playing') this.setState('paused'); }
 
   // ---------------- particles ----------------
@@ -264,7 +280,7 @@ export class Game {
     } else {
       sfx.crate();
       this.burst(p.x, 0.6, p.z, 'dust', 8, 3, 0.15);
-      if (Math.random() < 0.5) { const r = Math.random(); this.addPickup(r < 0.2 ? 'kvass' : r < 0.6 ? 'powder' : 'shot', p.x, p.z, true); }
+      if (Math.random() < 0.5) { const r = Math.random(); this.addPickup(r < 0.2 ? this.healType() : r < 0.6 ? 'powder' : 'shot', p.x, p.z, true); }
     }
   }
   shatterWindowsNear(pt, r) {
@@ -434,6 +450,8 @@ export class Game {
       }
     }
   }
+  // the health item this level hands out (kvass in the old levels, NEO / GAS cells in the Neo levels)
+  healType() { const t = this.level.healTypes; return t ? t[(Math.random() * t.length) | 0] : 'kvass'; }
   addAmmo(kind, n) {
     const p = this.p, A = AMMO[kind];
     if (p.ammo[kind] >= A.max) return false;
@@ -442,6 +460,7 @@ export class Game {
   collect(type) {
     const p = this.p;
     if (type === 'kvass') { if (p.health >= 100) return false; p.health = Math.min(100, p.health + 30); this.setMessage('KVASS  +30 HEALTH'); return true; }
+    if (type === 'neo' || type === 'gas') { if (p.health >= 100) return false; p.health = Math.min(100, p.health + 30); this.setMessage(`${type.toUpperCase()}  +30 HEALTH`); return true; }
     const ammoPickups = {
       powder: ['bullets', 24, 'POWDER KEG  +24 BULLETS'], shot: ['shells', 6, 'SHOT POUCH  +6 SHELLS'],
       rockets: ['rockets', 4, 'ROCKET CRATE  +4 ROCKETS'], cells: ['cells', 30, 'ENERGY CELL  +30'], fuel: ['fuel', 60, 'FUEL CAN  +60'],
@@ -864,10 +883,10 @@ export class Game {
     shadow.position.set(sp.x, 0.04, sp.z); shadow.visible = false; shadow.scale.setScalar(cfg.scale || 1); this.scene.add(shadow);
     const beam = new THREE.Mesh(this.beamGeo, new THREE.MeshBasicMaterial({ color: 0x8dff9d, transparent: true, opacity: 0.5, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, fog: false }));
     beam.position.set(sp.x, 9, sp.z); if (!perch) this.scene.add(beam);
-    const e = { type, cfg, mesh, shadow, beam, hp: cfg.hp, maxHp: cfg.hp, x: sp.x, y: perch ? perch.y : 0, flip: Math.random() < 0.5 ? -1 : 1, z: sp.z, state: perch ? 'perch' : 'spawn', perchT: 0, timer: 0.9, cool: 0.6 + Math.random() * 0.8, stompCd: 5, anim: 0, deadT: 0, hit: false, uv: geo.attributes.uv, frameKey: -1, face: Math.atan2(p.x - sp.x, p.z - sp.z), want: Math.atan2(p.x - sp.x, p.z - sp.z), slide: 0, slideT: 0, stuck: 0, strafe: Math.random() < 0.5 ? 1 : -1, strafeT: 1 + Math.random() * 2, cy: 0, cvy: 0, tumble: 0, spin: 0, fall: 0 };
+    const e = { type, cfg, mesh, shadow, beam, hp: cfg.hp, maxHp: cfg.hp, x: sp.x, y: perch ? perch.y : 0, flip: Math.random() < 0.5 ? -1 : 1, z: sp.z, state: perch ? 'perch' : 'spawn', perchT: 0, timer: 0.9, cool: 0.6 + Math.random() * 0.8, stompCd: 5, anim: 0, deadT: 0, hit: false, uv: geo.attributes.uv, frameKey: -1, face: Math.atan2(p.x - sp.x, p.z - sp.z), want: Math.atan2(p.x - sp.x, p.z - sp.z), slide: 0, slideT: 0, stuck: 0, strafe: Math.random() < 0.5 ? 1 : -1, strafeT: 1 + Math.random() * 2, cy: 0, cvy: 0, tumble: 0, spin: 0, fall: 0, tgt: (this.base && !cfg.boss && !cfg.perch && Math.random() < (this.base.share ?? 0.4)) ? 'base' : 'player', aggro: 0 };
     this.styleEnemy(e);
     this.enemies.push(e);
-    if (cfg.boss) { this.setMessage('THE GREAT LIZARD TSAR! — HIT HIM IN THE BACK', 5); sfx.roar(); }
+    if (cfg.boss) { this.setMessage(`${cfg.name.toUpperCase()}! — HIT IT IN THE BACK`, 5); sfx.roar(); }
     else if (!perch) sfx.beam();
     return e;
   }
@@ -916,10 +935,10 @@ export class Game {
     this.burst(e.x, 1.2 + e.y, e.z, 'green', 14, 4.5, 0.16);
     e.shadow.visible = false;
     e.cvy = e.cfg.boss ? 0 : 2.8 + Math.random() * 1.5; e.spin = (Math.random() < 0.5 ? -1 : 1) * (4 + Math.random() * 4);
-    if (e.cfg.boss) { this.setMessage('THE TSAR FALLS!', 4); sfx.explosion(); this.flash(e.x, 3, e.z, 0xffd060, 400, 0.8); for (let k = 0; k < 7; k++) this.addPickup(['kvass', 'powder', 'shot', 'rockets', 'cells'][k % 5], e.x, e.z, true); }
+    if (e.cfg.boss) { this.setMessage(`${e.cfg.name.toUpperCase()} FALLS!`, 4); sfx.explosion(); this.flash(e.x, 3, e.z, 0xffd060, 400, 0.8); for (let k = 0; k < 7; k++) this.addPickup([this.healType(), 'powder', 'shot', 'rockets', 'cells'][k % 5], e.x, e.z, true); }
     else if (Math.random() < 0.4) {
       const r = Math.random();
-      this.addPickup(r < 0.25 ? 'kvass' : r < 0.7 ? 'powder' : 'shot', e.x, e.z, true);
+      this.addPickup(r < 0.25 ? this.healType() : r < 0.7 ? 'powder' : 'shot', e.x, e.z, true);
     }
     // keep corpse count bounded
     const dead = this.enemies.filter((x) => x.state === 'dying' || x.state === 'dead');
@@ -937,9 +956,18 @@ export class Game {
     const p = this.p, cam = this.camera.position;
     if (this.nav) this.nav.update(p.x, p.z, dt);
     for (const e of this.enemies) {
-      const cfg = e.cfg, dx = p.x - e.x, dz = p.z - e.z, dist = Math.hypot(dx, dz) || 1;
-      let nx = dx / dist, nz = dz / dist;
-      const alive = ALIVE.has(e.state);
+      const cfg = e.cfg, alive = ALIVE.has(e.state);
+      // who is this lizard after: you, or the Neo node? (node-hunters turn on you when you come close)
+      let atBase = false, B = null;
+      if (this.base && this.base.alive && e.tgt === 'base' && alive && e.state !== 'perch' && e.state !== 'dive') {
+        e.aggro -= dt; if (Math.hypot(p.x - e.x, p.z - e.z) < 13) e.aggro = 3;
+        atBase = e.aggro <= 0;
+        if (atBase) B = this.baseAim(e);
+      }
+      const TX = atBase ? B.x : p.x, TZ = atBase ? B.z : p.z, TY = atBase ? 0 : p.y;
+      const dx = TX - e.x, dz = TZ - e.z, dist = atBase ? B.d : (Math.hypot(dx, dz) || 1), dl0 = Math.hypot(dx, dz) || 1;
+      let nx = dx / dl0, nz = dz / dl0;
+      e.atBase = atBase;
       e.cool -= dt;
       if (e.state !== 'move' && e.state !== 'perch' && e.state !== 'dive') e.want = Math.atan2(nx, nz);
       let iced = false;
@@ -1011,16 +1039,17 @@ export class Game {
         }
         case 'move': {
           let mx = 0, mz = 0, speed = cfg.speed;
-          if (this.nav && dist > 3) { // no line of sight: follow the street grid around the buildings
+          const NAV = atBase ? this.navBase : this.nav;
+          if (NAV && dist > 3) { // no line of sight: follow the street grid around the buildings
             e.losT = (e.losT || 0) - dt;
-            if (e.losT <= 0) { e.losT = 0.25 + Math.random() * 0.15; e.los = this.hasLOS(e.x, e.y + 1.4, e.z, p.x, p.y + 1.4, p.z); }
+            if (e.losT <= 0) { e.losT = 0.25 + Math.random() * 0.15; e.los = this.hasLOS(e.x, e.y + 1.4, e.z, atBase ? B.lx : p.x, atBase ? 1.4 : p.y + 1.4, atBase ? B.lz : p.z); }
             if (e.forcePath > 0) e.forcePath -= dt;   // (set when blocked for a while: follow the street grid even if the line of sight slips through a gap)
             if (e.rise > 0) e.rise -= dt;
             if (e.rise > 0) e.pathing = false;   // flyers that got boxed in climb high and fly straight over the buildings
-            else if (!e.los || e.forcePath > 0 || e.pathHold > 0) { if (!e.los) e.pathHold = 1.2; else e.pathHold -= dt; const nd = this.nav.dir(e.x, e.z); if (nd) { nx = nd.x; nz = nd.z; e.pathing = true; } else e.pathing = false; } else e.pathing = false;
+            else if (!e.los || e.forcePath > 0 || e.pathHold > 0) { if (!e.los) e.pathHold = 1.2; else e.pathHold -= dt; const nd = NAV.dir(e.x, e.z); if (nd) { nx = nd.x; nz = nd.z; e.pathing = true; } else e.pathing = false; } else e.pathing = false;
           } else e.pathing = false;
           const faceErr = Math.abs(angDiff(Math.atan2(nx, nz), e.face));
-          const flyer = !!cfg.hover, dy = Math.abs((e.y + 1) - (p.y + 1));
+          const flyer = !!cfg.hover, dy = Math.abs((e.y + 1) - (TY + 1));
           if (e.pathing) {
             mx = nx; mz = nz;
           } else if (cfg.ai === 'melee') {
@@ -1035,8 +1064,8 @@ export class Game {
             const far = cfg.ai === 'bomber' ? 15 : flyer ? 24 : 15, near = cfg.ai === 'bomber' ? 9 : flyer ? 13 : 8;
             if (dist > far) { mx = nx; mz = nz; } else if (dist < near) { mx = -nx; mz = -nz; speed *= 0.8; } else { mx = -nz * e.strafe; mz = nx * e.strafe; speed *= 0.6; }
             if (cfg.ai === 'bomber') {
-              if (e.cool <= 0 && dist < 17) { e.state = 'attack'; e.atk = 'drop'; e.timer = 0.6; e.hitAt = 0.25; e.hit = false; }
-            } else if (e.cool <= 0 && dist < (flyer ? 48 : 36) && this.hasLOS(e.x, e.y + 1.5, e.z, p.x, p.y + 1.4, p.z) && faceErr < 0.5) { e.state = 'attack'; e.atk = 'shoot'; e.timer = 0.5; e.hitAt = 0.2; e.hit = false; sfx.hiss(); }
+              if (e.cool <= 0 && dist < (atBase ? 9 : 17)) { e.state = 'attack'; e.atk = 'drop'; e.timer = 0.6; e.hitAt = 0.25; e.hit = false; }
+            } else if (e.cool <= 0 && dist < (flyer ? 48 : 36) && this.hasLOS(e.x, e.y + 1.5, e.z, atBase ? B.lx : p.x, atBase ? 6 : p.y + 1.4, atBase ? B.lz : p.z) && faceErr < 0.5) { e.state = 'attack'; e.atk = 'shoot'; e.timer = 0.5; e.hitAt = 0.2; e.hit = false; sfx.hiss(); }
           }
           if (e.slideT > 0) { // steer around props we got stuck on
             e.slideT -= dt;
@@ -1080,14 +1109,14 @@ export class Game {
           if (!e.hit && e.timer < (e.hitAt || 0.25)) {
             e.hit = true;
             if (e.atk === 'melee') {
-              const dy = Math.abs((e.y + 1) - (p.y + 1));
-              if (dist < cfg.reach + 0.6 && Math.abs(angDiff(Math.atan2(nx, nz), e.face)) < 1.0 && (!cfg.hover || dy < 2.6)) this.hurt(cfg.melee);
+              const dy = Math.abs((e.y + 1) - (TY + 1));
+              if (dist < cfg.reach + 0.6 && Math.abs(angDiff(Math.atan2(nx, nz), e.face)) < 1.0 && (!cfg.hover || dy < 2.6 || atBase)) { if (atBase) this.damageBase(cfg.melee * 1.2, B.x, 2 + Math.random() * 3, B.z); else this.hurt(cfg.melee); }
               if (cfg.boss) { this.p.kick += 0.08; sfx.thud(); }
             } else if (e.atk === 'stomp') this.stomp(e);
-            else if (e.atk === 'drop') this.dropEgg(e);
+            else if (e.atk === 'drop') this.dropEgg(e, TX, TZ);
             else {
               const fire = cfg.shot === 'fire', sx = e.x, sy = e.y + 1.5, sz = e.z, spd = fire ? 17 : 14;
-              const tx = p.x - sx, ty = p.y + 1.3 - sy, tz = p.z - sz, l = Math.hypot(tx, ty, tz) || 1;
+              const tx = TX - sx, ty = (atBase ? 6 : p.y + 1.3) - sy, tz = TZ - sz, l = Math.hypot(tx, ty, tz) || 1;
               const sprite = new THREE.Sprite(fire ? this.fireballMat : this.plasmaMat); const sc = fire ? 2.0 : 1.1; sprite.scale.set(sc, sc, sc); sprite.position.set(sx, sy, sz);
               this.scene.add(sprite);
               this.projectiles.push({ sprite, x: sx, y: sy, z: sz, vx: (tx / l) * spd, vy: (ty / l) * spd, vz: (tz / l) * spd, life: 6, fire, dmg: fire ? 14 : 12 });
@@ -1140,6 +1169,54 @@ export class Game {
     }
   }
 
+  // ---- the Neo node: the building the lizards are trying to take down ----
+  baseAim(e) {
+    const r = this.base.rect, cx = Math.min(Math.max(e.x, r.x0), r.x1), cz = Math.min(Math.max(e.z, r.z0), r.z1);
+    const dx = e.x - cx, dz = e.z - cz, d = Math.hypot(dx, dz);
+    const ux = d > 0.01 ? dx / d : 1, uz = d > 0.01 ? dz / d : 0;
+    return { x: cx, z: cz, d: Math.max(0.01, d), lx: cx + ux * 1.0, lz: cz + uz * 1.0 };
+  }
+  damageBase(amount, x, y, z) {
+    const b = this.base; if (!b || !b.alive || this.state !== 'playing') return;
+    b.hp -= amount;
+    if (this.time > b.hitT) { b.hitT = this.time + 0.18; this.sparks(x, Math.max(0.5, y), z, 4, 5, 0, 0.4, 0); this.burst(x, Math.max(0.5, y), z, 'green', 3, 3, 0.1); if (Math.random() < 0.4) sfx.tink(3); }
+    const stage = Math.min(4, Math.floor((1 - Math.max(0, b.hp) / b.maxHp) / 0.2));
+    if (stage > b.stage) { b.stage = stage; this.baseStage(stage); }
+    if (b.hp <= 0) this.baseFail();
+  }
+  // explosions (eggs) near the node
+  baseBlast(x, z, R, dmg) {
+    const b = this.base; if (!b || !b.alive) return;
+    const r = b.rect, cx = Math.min(Math.max(x, r.x0), r.x1), cz = Math.min(Math.max(z, r.z0), r.z1), d = Math.hypot(x - cx, z - cz);
+    if (d < R) this.damageBase(dmg * (1 - d / R), cx, 3, cz);
+  }
+  baseStage(stage) {
+    const b = this.base, r = b.rect;
+    if (b.tower && b.tower.userData.setStage) b.tower.userData.setStage(stage);
+    sfx.explosion(); this.p.kick += 0.12;
+    this.flash((r.x0 + r.x1) / 2, 6, (r.z0 + r.z1) / 2, 0x00e599, 260, 0.6);
+    for (let k = 0; k < 14; k++) { const px = r.x0 + Math.random() * (r.x1 - r.x0), pz = r.z0 + Math.random() * (r.z1 - r.z0); this.debris.spawn('brick', px, 4 + Math.random() * 8, pz, (Math.random() - 0.5) * 6, 2 + Math.random() * 4, (Math.random() - 0.5) * 6, 1.4); this.burst(px, 3 + Math.random() * 6, pz, 'smoke', 2, 3, 0.4); }
+    this.setMessage(`NODE UPTIME ${Math.round((1 - stage * 0.2) * 100)}%`, 3);
+  }
+  baseFail() {
+    const b = this.base; b.alive = false; b.hp = 0;
+    const r = b.rect, cx = (r.x0 + r.x1) / 2, cz = (r.z0 + r.z1) / 2;
+    this.flash(cx, 8, cz, 0x00e599, 600, 1.2); sfx.explosion();
+    for (let k = 0; k < 6; k++) this.schedule(k * 0.18, () => { this.burst(cx + (Math.random() - 0.5) * 20, 3 + Math.random() * 12, cz + (Math.random() - 0.5) * 20, 'fire', 8, 6, 0.3); sfx.explosion(); });
+    this.failReason = 'chain';
+    this.schedule(1.4, () => { if (this.state === 'playing') this.setState('dead'); });
+  }
+  updateBase(dt) {
+    const b = this.base; if (!b) return;
+    const tw = b.tower; if (tw && tw.userData.update) tw.userData.update(this.time, b.stage, b.alive);
+    if (b.stage >= 2 && b.alive && tw && tw.userData.smokePoints) {
+      for (const sp of tw.userData.smokePoints) {
+        if (Math.random() < dt * (1.2 + b.stage)) this.emit(sp.x + (Math.random() - 0.5), sp.y, sp.z + (Math.random() - 0.5), 'smoke', (Math.random() - 0.5) * 1.5, 2.5, (Math.random() - 0.5) * 1.5, 1.8 + Math.random(), 1.4, -0.3);
+        if (b.stage >= 3 && Math.random() < dt * 2) this.emit(sp.x, sp.y, sp.z, Math.random() < 0.5 ? 'flameY' : 'flameR', 0, 2.2, 0, 0.5, 0.7, -1);
+      }
+    }
+  }
+
   // ---- boss stomp: a shockwave on the ground. Jump to avoid it. ----
   stomp(e) {
     const p = this.p, d = Math.hypot(p.x - e.x, p.z - e.z);
@@ -1154,11 +1231,11 @@ export class Game {
   }
 
   // ---- bomber eggs: bouncing, rolling bombs with a fuse ----
-  dropEgg(e) {
+  dropEgg(e, tx = this.p.x, tz = this.p.z) {
     const p = this.p;
     const obj = new THREE.Mesh(this.eggGeo, this.eggMat.clone());
     obj.position.set(e.x, e.y + 0.6, e.z); this.scene.add(obj);
-    this.eggs.push({ obj, x: e.x, y: e.y + 0.6, z: e.z, vx: (p.x - e.x) * 0.3, vy: -1, vz: (p.z - e.z) * 0.3, fuse: 2.8, age: 0, bounces: 0 });
+    this.eggs.push({ obj, x: e.x, y: e.y + 0.6, z: e.z, vx: (tx - e.x) * 0.3, vy: -1, vz: (tz - e.z) * 0.3, fuse: 2.8, age: 0, bounces: 0 });
     sfx.tink(2);
   }
   updateEggs(dt) {
@@ -1185,6 +1262,7 @@ export class Game {
       if (q.fuse <= 0 || (near && q.age > 0.7)) {
         this.scene.remove(q.obj); q.obj.material.dispose(); this.eggs.splice(i, 1);
         this.explode(q.x, q.y, q.z, 4.8, 85, 'boom', null);
+        this.baseBlast(q.x, q.z, 5.5, 90);
       }
     }
   }
@@ -1203,6 +1281,7 @@ export class Game {
       q.x += q.vx * dt; q.y += q.vy * dt; q.z += q.vz * dt; q.life -= dt;
       q.sprite.position.set(q.x, q.y, q.z);
       let dead = q.life <= 0 || q.y < 0.05;
+      if (!dead && this.base && this.base.alive) { const r = this.base.rect; if (q.x > r.x0 - 0.3 && q.x < r.x1 + 0.3 && q.z > r.z0 - 0.3 && q.z < r.z1 + 0.3 && q.y < this.base.h) { this.damageBase(q.dmg || 12, q.x, q.y, q.z); dead = true; } }
       if (!dead) for (const b of this.boxes) if (q.x > b.x0 && q.x < b.x1 && q.z > b.z0 && q.z < b.z1 && q.y < b.h) { dead = true; break; }
       if (!dead && Math.hypot(q.x - p.x, q.z - p.z) < 0.7 && q.y > p.y && q.y < p.y + 1.9) { this.hurt(q.dmg || 12); sfx.plasmaHit(); dead = true; }
       if (dead && q.fire) { this.burst(q.x, q.y, q.z, 'fire', 10, 4.5, 0.25); this.sparks(q.x, q.y, q.z, 8, 6, 0, 0.35, 0); this.flash(q.x, q.y, q.z, 0xff8a30, 160, 0.3); }
@@ -1274,6 +1353,7 @@ export class Game {
     this.updateEnemies(dt);
     this.updateProjectiles(dt);
     this.updateEggs(dt);
+    this.updateBase(dt);
     this.updatePShots(dt);
     this.updateFx(dt);
     this.updateLights(dt);
@@ -1333,6 +1413,7 @@ export class Game {
       const a = map(b.x0, b.z0), bb = map(b.x1, b.z0), cc = map(b.x1, b.z1), d = map(b.x0, b.z1);
       g.beginPath(); g.moveTo(a[0], a[1]); g.lineTo(bb[0], bb[1]); g.lineTo(cc[0], cc[1]); g.lineTo(d[0], d[1]); g.closePath(); g.fill();
     }
+    if (this.base && this.base.alive) { const r = this.base.rect, m = map((r.x0 + r.x1) / 2, (r.z0 + r.z1) / 2); let [x, y] = m; const dx = x - c, dy = y - c, d = Math.hypot(dx, dy); if (d > R - 8) { x = c + (dx / d) * (R - 8); y = c + (dy / d) * (R - 8); } g.fillStyle = '#00e599'; g.strokeStyle = '#003a28'; g.lineWidth = 2; g.fillRect(x - 6, y - 6, 12, 12); g.strokeRect(x - 6, y - 6, 12, 12); }
     for (const e of this.enemies) {                                      // lizards
       if (!ALIVE.has(e.state)) continue;
       let [x, y] = map(e.x, e.z); const dx = x - c, dy = y - c, d = Math.hypot(dx, dy), far = d > R - 6;
@@ -1365,10 +1446,15 @@ export class Game {
       ? `GOAL ${Math.max(0, Math.round(p.z - L.goalZ))} m · LIZARDS ${this.remaining()}`
       : this.wave.index < 0 ? 'GET READY' : `WAVE ${this.wave.index + 1}/${L.waves.length} · LIZARDS ${this.remaining()}`;
     set(u.wave, wv);
+    if (u.uptime) {
+      const bs = this.base; u.uptime.style.display = bs ? 'block' : 'none';
+      if (bs) { const pc = Math.max(0, Math.round((bs.hp / bs.maxHp) * 100)); u.uptimeBar.style.width = `${pc}%`; u.uptimeBar.style.background = pc > 50 ? '#00e599' : pc > 25 ? '#e8c030' : '#e0453a'; set(u.uptimeLabel, `NODE UPTIME ${pc}%`); }
+    }
     if (u.boss) {
       const boss = this.enemies.find((e) => e.cfg.boss && ALIVE.has(e.state));
       u.boss.style.display = boss ? 'block' : 'none';
       if (boss) u.bossBar.style.width = `${Math.max(0, (boss.hp / boss.maxHp) * 100)}%`;
+      if (boss && u.bossLabel) set(u.bossLabel, boss.cfg.name.toUpperCase());
     }
     set(u.msg, this.messageT > 0 ? this.message : '');
     u.hurt.style.opacity = String(Math.min(0.7, p.hurt * 2));

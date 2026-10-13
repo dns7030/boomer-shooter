@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NEO — Lizards Over the Chain</title>
+<link rel="icon" href="data:,">
+<style>
+  :root { --red:#b4352a; --gold:#00e599; --cream:#f0e6c8; --ink:#1a1210; }
+  * { box-sizing: border-box; }
+  html, body { margin:0; height:100%; background:#000; overflow:hidden; font-family: Georgia, 'Times New Roman', serif; color: var(--cream); user-select:none; }
+  #view { position:fixed; inset:0; width:100%; height:100%; image-rendering: pixelated; display:block; }
+  #hurt { position:fixed; inset:0; background: radial-gradient(ellipse at center, rgba(160,0,0,0) 40%, rgba(160,0,0,.85) 100%); opacity:0; pointer-events:none; }
+  #cross { position:fixed; left:50%; top:50%; width:14px; height:14px; transform:translate(-50%,-50%); pointer-events:none; }
+  #cross::before, #cross::after { content:''; position:absolute; background: rgba(255,255,255,.85); box-shadow: 0 0 0 1px rgba(0,0,0,.6); }
+  #cross::before { left:6px; top:0; width:2px; height:14px; }
+  #cross::after { top:6px; left:0; height:2px; width:14px; }
+  #hud { position:fixed; left:0; right:0; bottom:0; display:flex; justify-content:space-between; align-items:flex-end; padding: 14px 20px; pointer-events:none; text-shadow: 2px 2px 0 #000; }
+  .panel { background: rgba(26,18,16,.78); border: 2px solid var(--gold); padding: 8px 14px; min-width: 150px; }
+  .panel small { display:block; font-size:11px; letter-spacing:2px; color: var(--gold); }
+  .big { font-size: 34px; font-weight:bold; line-height:1.1; }
+  #radar { position:fixed; left:20px; bottom:118px; width:200px; height:200px; border-radius:50%; border:3px solid var(--gold); background:rgba(20,16,12,.55); display:none; pointer-events:none; box-shadow:0 0 14px rgba(0,0,0,.6); }
+  #hpbar-w { height:6px; background:#400; margin-top:4px; } #hpbar { height:100%; background: var(--red); width:100%; }
+  #wname { font-size:16px; } #ammo { font-size: 26px; font-weight:bold; }
+  #slots { display:flex; gap:6px; margin-top:6px; }
+  .slot { width:22px; height:24px; border:2px solid #1f6a50; text-align:center; line-height:20px; font-size:13px; color:#1f6a50; }
+  .slot.on { border-color: var(--gold); color: var(--gold); background: rgba(0,229,153,.15); }
+  .slot.locked { opacity:.3; }
+  #top { position:fixed; top:12px; left:0; right:0; text-align:center; pointer-events:none; text-shadow:2px 2px 0 #000; }
+  #wave { font-size:15px; letter-spacing:3px; color: var(--gold); }
+  #boss { display:none; width:min(420px,60vw); margin:8px auto 0; font-size:11px; letter-spacing:3px; color: var(--gold); }
+  #bossbar-w { height:10px; background:#300; border:2px solid var(--gold); margin-top:3px; } #bossbar { height:100%; background: linear-gradient(#e0453a,#8a1a14); width:100%; }
+  #uptime { display:none; width:min(460px,64vw); margin:8px auto 0; font-size:11px; letter-spacing:3px; color: var(--gold); }
+  #uptime-w { height:12px; background:#06241b; border:2px solid var(--gold); margin-top:3px; } #uptime-bar { height:100%; background:#00e599; width:100%; transition: width .15s; }
+  #msg { margin-top:10px; font-size:24px; letter-spacing:2px; min-height:30px; }
+  #overlay { position:fixed; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; background: radial-gradient(ellipse at center, rgba(20,10,10,.7), rgba(0,0,0,.92)); cursor:pointer; padding:20px; }
+  #overlay h1 { font-size: clamp(30px, 6vw, 64px); margin:0 0 6px; letter-spacing:4px; color: var(--gold); text-shadow: 3px 3px 0 var(--red); }
+  #overlay .sub { font-style:italic; margin-bottom: 22px; opacity:.85; }
+  #overlay p { max-width: 560px; line-height:1.5; margin: 0 0 18px; }
+  #ov-btn { font: inherit; font-size:22px; letter-spacing:3px; padding: 10px 34px; background: var(--red); color: var(--cream); border: 3px solid var(--gold); cursor:pointer; }
+  #ov-btn:hover { background:#d04535; }
+  #levels { display:flex; gap:12px; margin-top:20px; flex-wrap:wrap; justify-content:center; }
+  .lvl { font: inherit; background: rgba(26,18,16,.85); color: var(--cream); border: 2px solid #1f6a50; padding: 10px 16px; cursor:pointer; text-align:left; min-width: 230px; }
+  .lvl b { display:block; font-size:16px; letter-spacing:1px; } .lvl small { opacity:.7; font-size:12px; }
+  .lvl:hover, .lvl.cur { border-color: var(--gold); }
+  #settings { display:flex; gap:12px; margin-top:16px; flex-wrap:wrap; justify-content:center; }
+  .set { font: inherit; font-size:14px; letter-spacing:1px; background: rgba(26,18,16,.85); color: var(--cream); border: 2px solid #1f6a50; padding: 7px 14px; cursor:pointer; }
+  .set:hover { border-color: var(--gold); }
+  .keys { display:grid; grid-template-columns: auto auto; gap: 4px 18px; font-size:14px; margin-bottom:22px; text-align:left; }
+  .keys b { color: var(--gold); }
+</style>
+<script type="importmap">{ "imports": { "three": "./vendor/three.module.js" } }</script>
+</head>
+<body>
+<canvas id="view"></canvas>
+<div id="hurt"></div>
+<div id="cross"></div>
+<div id="top"><div id="wave">GET READY</div><div id="uptime"><small id="uptime-label">NODE UPTIME 100%</small><div id="uptime-w"><div id="uptime-bar"></div></div></div><div id="boss"><small id="boss-label">GREAT LIZARD TSAR</small><div id="bossbar-w"><div id="bossbar"></div></div></div><div id="msg"></div></div>
+<canvas id="radar" width="200" height="200"></canvas>
+<div id="hud">
+  <div class="panel"><small>HEALTH</small><div class="big" id="hp">100</div><div id="hpbar-w"><div id="hpbar"></div></div></div>
+  <div class="panel" style="text-align:right"><small id="wname-l">WEAPON</small><div id="wname">—</div><div id="ammo">—</div>
+    <div id="slots" style="justify-content:flex-end"><div class="slot">1</div><div class="slot">2</div><div class="slot">3</div><div class="slot">4</div><div class="slot">5</div><div class="slot">6</div><div class="slot">7</div><div class="slot">8</div><div class="slot">9</div></div></div>
+</div>
+<div id="overlay">
+  <h1 id="ov-title">NEO: LIZARDS OVER THE CHAIN</h1>
+  <div class="sub">Community meetups around the world — protect the Neo node.</div>
+  <p id="ov-body">Lizards from space are attacking the city’s Neo node. Keep its uptime above zero, hunt the invaders, and grab every weapon you find.</p>
+  <div class="keys"><span><b>WASD</b> move</span><span><b>MOUSE</b> look</span><span><b>CLICK</b> fire / swing</span><span><b>SPACE</b> jump</span><span><b>1–9 / WHEEL / Q</b> weapons (press a number again to cycle)</span><span><b>SHIFT</b> run</span><span><b>M</b> music on / off</span><span><b>G</b> graphics quality</span><span><b>L</b> lizard look (3D / pixel)</span></div>
+  <button id="ov-btn">PLAY</button>
+  <div id="settings"><button class="set" id="set-gfx"></button><button class="set" id="set-liz"></button></div>
+  <div id="levels"></div>
+</div>
+<script type="module">
+  import { NEO_LEVELS } from './src/neo/levels.js';
+  window.GAME_CONFIG = { levels: NEO_LEVELS, title: 'NEO: LIZARDS OVER THE CHAIN' };
+  await import('./src/main.js');
+</script>
+</body>
+</html>
