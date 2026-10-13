@@ -150,8 +150,6 @@ export function neoTowerDubai() {
       const spire = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 1.1, 24, 8), gold); spire.position.y = 12; crown.add(spire);
       const orb = new THREE.Mesh(new THREE.SphereGeometry(1.8, 14, 10), T.glow); orb.position.y = 25; crown.add(orb);
       T.top(crown);
-      const ring = new THREE.Mesh(new THREE.TorusGeometry(13, 0.45, 8, 40), T.glow); ring.rotation.x = Math.PI / 2; ring.position.set(0, 40, 0); T.add(ring, { hideAt: 4 }); T.spin(ring, 0.6);
-      const ring2 = new THREE.Mesh(new THREE.TorusGeometry(9, 0.35, 8, 36), T.glow); ring2.rotation.x = Math.PI / 2.3; ring2.position.set(0, 62, 0); T.add(ring2, { hideAt: 3 }); T.spin(ring2, -0.9);
       const beam = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 2.2, 160, 12, 1, true), new THREE.MeshBasicMaterial({ color: new THREE.Color(0, 0.9, 0.6), transparent: true, opacity: 0.2, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, fog: false }));
       beam.position.set(0, y + 85, 0); T.add(beam, { hideAt: 3 });
       T.add(place(new THREE.Mesh(new THREE.BoxGeometry(7, 9, 0.5), T.glow), 0, 6.5, 13.2));

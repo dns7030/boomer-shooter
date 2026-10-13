@@ -138,8 +138,8 @@ function buildShotgun(M) {
   const pump = new THREE.Group(); pump.position.set(0, -0.014, -0.34);
   pump.add(rbox(0.056, 0.05, 0.19, 0.014, M.wood));
   for (let i = 0; i < 4; i++) pump.add(at(box(0.058, 0.0015, 0.004, M.poly), 0, 0, -0.06 + i * 0.03));
-  pump.add(hand(M, 0, 0.034, 0.0, 0.056, 0.034, 0.09));
-  pump.add(arm(M, [-0.01, 0.03, 0.06], [-0.5, -0.4, 0.77], 0.55, 0.024));
+  pump.add(hand(M, 0, -0.03, 0.0, 0.056, 0.034, 0.09));                         // holds the pump from underneath
+  pump.add(arm(M, [-0.01, -0.035, 0.06], [-0.5, -0.4, 0.77], 0.55, 0.024));
   g.add(pump);
   const grip = rbox(0.04, 0.1, 0.05, 0.01, M.wood); grip.position.set(0, -0.075, 0.02); grip.rotation.x = -0.3; g.add(grip);
   g.add(at(box(0.004, 0.012, 0.05, M.poly), 0, -0.04, -0.03));
@@ -212,7 +212,7 @@ function buildChaingun(M) {
   g.add(hand(M, 0.012, -0.095, 0.03, 0.062, 0.05, 0.09));
   g.add(arm(M, [0.012, -0.115, 0.07], [0.1, -0.3, 0.95], 0.55, 0.032));
   const muzzle = new THREE.Object3D(); muzzle.position.set(0, -0.03, -0.78); g.add(muzzle);
-  return { group: g, muzzle, flash: 0.2, tint: 'orange', tip: [0.21, -0.22], rot: [0.28, 0.06, 0], recoil: 0.7, spinner };
+  return { group: g, muzzle, flash: 0.2, tint: 'orange', tip: [0.21, -0.27], rot: [0.28, 0.06, 0], recoil: 0.7, spinner };
 }
 
 function buildRocket(M) {
@@ -497,21 +497,17 @@ export class WeaponView {
         sh.visible = te > 0 && te < 0.4;
         if (sh.visible) { sh.position.set(sd * 0.0185 + sd * 0.07 * te, 0.012 + 0.45 * te - 4.2 * te * te, -0.2 + 0.7 * te); sh.rotation.set(te * 9, te * 4 * sd, te * 6); }
       });
+      // one movement: the front hand brings BOTH shells up from below and slides them into the breech together
+      const carry = ease(clamp((t - 0.5) / 0.3)), S = [0, -0.095, 0.02], E = [0, 0.012, -0.2];
+      const my = S[1] + (E[1] - S[1]) * carry, mz = S[2] + (E[2] - S[2]) * carry;
       fresh.forEach((sh, i) => {
-        const ts = 0.5 + i * 0.17, u = clamp((t - (ts - 0.16)) / 0.3), sd = i ? 1 : -1;
-        sh.visible = u > 0 && u < 1;
-        if (sh.visible) {
-          const e = ease(u);
-          sh.position.set(sd * 0.0185 + sd * 0.09 * (1 - e), 0.012 - 0.11 * (1 - e), -0.2 + 0.2 * (1 - e));
-          sh.rotation.set(0.5 * (1 - e), 0, 0);
-        }
+        const sd = i ? 1 : -1;
+        sh.visible = t > 0.42 && t < 0.8;
+        if (sh.visible) { sh.position.set(sd * (0.012 + 0.0065 * carry), my, mz); sh.rotation.set(0.5 * (1 - carry), 0, 0); }
       });
-      // the front hand: rides on the forend, then lets go, fetches each shell from below and carries it into the breech, then grabs the forend again
-      const away = ease(clamp((t - 0.3) / 0.12)) * (1 - ease(clamp((t - 0.84) / 0.1)));
-      const sh = fresh[1].visible ? fresh[1] : fresh[0].visible ? fresh[0] : null;
-      const tx = sh ? sh.position.x : (t > 0.6 ? 0.0185 : -0.0185) + (t > 0.6 ? 0.09 : -0.09), ty = sh ? sh.position.y : 0.012 - 0.11, tz = sh ? sh.position.z : 0.0;
-      const hx = tx - 0.035, hy = ty + 0.005, hz = tz + 0.03;                    // where the hand's centre goes (gun space)
-      lh.position.set(hx * away, -0.033 * o * (1 - away) + (hy - 0) * away, (hz + 0.31) * away);   // offsets from the forend position (0, 0, -0.31)
+      // the hand rides on the forend, lets go, grabs the shells from below, carries them in, then takes the forend again
+      const away = ease(clamp((t - 0.28) / 0.14)) * (1 - ease(clamp((t - 0.84) / 0.1)));
+      lh.position.set(0, -0.033 * o * (1 - away) + (my - 0.03) * away, (mz + 0.035 + 0.31) * away);
     }
     if (cur.spinner) cur.spinner.rotation.z = st.spin;
     if (cur.warhead) cur.warhead.visible = t > 0.32 || t < 0;
