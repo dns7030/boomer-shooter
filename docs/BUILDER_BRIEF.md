@@ -59,3 +59,34 @@ import { addPainters, makeCanvas, toTexture, mulberry } from './textures.js';
 count and writes `<name>-front|side|back.png` screenshots (open them with the Read tool and LOOK at them, fix what is ugly).
 Pass options as `name:{"floors":9}`. Run `node tests/errs.mjs` to check the page loads without errors after your module is
 imported by something. Iterate until each building looks good from front, side and back.
+
+---
+# Addendum for the Neo game cities (Shanghai, Tokyo, Singapore, Rio) — rules learned the hard way
+
+The Neo game (neo.html) uses the same builders. Read `src/buildings5s.js` (Seattle) and `src/buildings5d.js` (Dubai) as the most
+recent examples of the house style and of the helper patterns (merge helpers, glass, signs, enterable halls via `hall()` from `src/interiors.js`).
+
+**Content rules**
+* NO Cyrillic text anywhere. Latin text only, short (signs render with canvas fonts; CJK glyphs are NOT reliable — do not use Chinese/Japanese
+  characters in `sign()`/canvas text; use Latin words, numbers, or purely graphic neon shapes: bars, circles, arrows, stripes, stars).
+* No people, no tents/homeless, nothing offensive. Humour is fine (cats, coffee, closed shops, silly sign words).
+* Only the Neo green `#00E599` as brand colour: small emissive accents (thin light strips, a sign border, a screen) — never a logo, never the word "node".
+* Each city has its own atmosphere; build for the lighting stated in your task.
+
+**Geometry rules (each of these was a real bug)**
+* Nothing may stick below the ground: keep every vertex at y >= 0 (domes/blobs/spheres: build only the part above ground, or move them up).
+  Ground layers don't write depth, so anything below y = 0 shows through the ground.
+* No coplanar faces: signs, windows, door plates, stripes must sit at least 0.05–0.08 m in front of the wall they decorate (z-fighting flickers).
+  Two boxes must not share the same face plane either (offset one by a few cm).
+* Steps, podiums, plinths and porches wider than the main body MUST be covered by `cols` (a low collider, e.g. h = their height), otherwise lizards walk into them.
+  `cols` rectangles must match the visible geometry (no big invisible walls, no missing walls). Walkable gaps >= 6 m wide.
+* Vertex-coloured meshes (`vertexColors: true`) lose their colours when the level merges static meshes: set `mesh.userData.keep = true` on them.
+  Animated/emissive parts that must stay separate also need `userData.keep = true`.
+* Transparent glass: `depthWrite:false`, `side: DoubleSide` is fine, but keep it above ground.
+* Enterable halls: use `hall()` from `src/interiors.js`; expose `userData.inside = {x0,x1,z0,z1}` and `userData.doors` (door side, centre, width) so the level can place pickups and spawns inside.
+  Aisles >= 4 m, doors >= 6 m wide, interior must be walkable end to end.
+* Keep every building < ~15k triangles; props < 2k. Reuse geometry/materials.
+* Origin = footprint centre on the ground, front = +Z, `g.userData = { w, d, h[, cols] }` where w/d cover everything visible at ground level.
+
+**Test like this:** `node tests/gallery.mjs src/<yourmodule>.js /tmp/<dir>` and LOOK at the front/side/back PNGs (Read tool). Fix anything
+floating, flickering, below ground, or ugly. Then `node tests/errs.mjs` must print nothing.

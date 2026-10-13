@@ -504,10 +504,10 @@ export class WeaponView {
       const my = S[1] + (E[1] - S[1]) * carry, mz = S[2] + (E[2] - S[2]) * carry;
       fresh.forEach((sh, i) => {
         const sd = i ? 1 : -1;
-        sh.visible = t > 0.42 && t < 0.8;
+        sh.visible = t > 0.46 && t < 0.8;
         if (sh.visible) { sh.position.set(sd * (0.012 + 0.0065 * carry), my, mz); sh.rotation.set(-0.8 * (1 - carry), 0, 0); }
       });
-      const away = ease(clamp((t - 0.26) / 0.16)) * (1 - ease(clamp((t - 0.84) / 0.1)));
+      const away = ease(clamp((t - 0.2) / 0.28)) * (1 - ease(clamp((t - 0.84) / 0.1)));   // slower approach from the left (total reload time is unchanged)
       // the hand slides out to the LEFT of the gun, rises beside it, then moves in over the top (never through the barrels / forend)
       const tx = 0, ty = my + 0.034, tz = mz + 0.03;                              // above the shells
       const side = ease(clamp(away / 0.4)), up = ease(clamp((away - 0.35) / 0.4)), over = ease(clamp((away - 0.75) / 0.25));
