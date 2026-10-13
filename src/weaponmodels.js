@@ -174,7 +174,8 @@ function buildSSG(M) {
   H(rbox(0.07, 0.042, 0.17, 0.012, M.wood), 0, -0.03, -0.32);
   // the front hand (+ arm) is NOT part of the hinge: it holds the forend, then lets go during the reload and carries the shells in
   const lhGrp = new THREE.Group(); g.add(lhGrp); lhGrp.userData.skip = true;
-  lhGrp.add(hand(M, 0, 0.0, -0.31, 0.058, 0.034, 0.09)); lhGrp.add(arm(M, [0, -0.02, -0.26], [-0.5, -0.4, 0.77], 0.55, 0.024));
+  lhGrp.add(hand(M, 0, 0.0, -0.31, 0.058, 0.034, 0.09)); const armHold = arm(M, [0, -0.02, -0.26], [-0.5, -0.4, 0.77], 0.55, 0.024), armTop = arm(M, [0, 0.03, -0.26], [-0.55, 0.35, 0.45], 0.32, 0.024);
+  lhGrp.add(armHold, armTop); armTop.visible = false;
   const grip = rbox(0.042, 0.1, 0.05, 0.01, M.wood); grip.position.set(0, -0.075, 0.02); grip.rotation.x = -0.3; g.add(grip);
   g.add(at(box(0.004, 0.012, 0.05, M.poly), 0, -0.04, -0.03));
   g.add(hand(M, 0.006, -0.065, 0.075, 0.06, 0.046, 0.09));
@@ -182,7 +183,7 @@ function buildSSG(M) {
   const spent = [shellMesh(M), shellMesh(M)], fresh = [shellMesh(M), shellMesh(M)];
   for (const sh of [...spent, ...fresh]) g.add(sh);
   const muzzle = new THREE.Object3D(); muzzle.position.set(0, 0.012, -0.69); g.add(muzzle);
-  return { group: g, muzzle, flash: 0.34, tint: 'orange', tip: [0.16, -0.18], rot: [0.3, 0.04, 0], recoil: 3, ssg: { hinge, spent, fresh, lh: lhGrp } };
+  return { group: g, muzzle, flash: 0.34, tint: 'orange', tip: [0.16, -0.18], rot: [0.3, 0.04, 0], recoil: 3, ssg: { hinge, spent, fresh, lh: lhGrp, armHold, armTop } };
 }
 
 function buildChaingun(M) {
@@ -480,34 +481,36 @@ export class WeaponView {
     r.position.set(px + bx, py - by - st.lower * 0.3, pz + k * 0.03);
     r.rotation.set(rx + k * 0.12 + st.lower * 0.5, ry, rz);
     if (cur.sabre && st.swing >= 0) {
-      const s = st.swing, e = 1 - (1 - s) * (1 - s);
-      r.position.set(px - e * 0.35, py + Math.sin(s * Math.PI) * 0.04 - st.lower * 0.3, pz - Math.sin(s * Math.PI) * 0.08);
-      r.rotation.set(rx + Math.sin(s * Math.PI) * 0.4, ry - e * 1.5, rz + e * 0.9);
+      const sw = st.swing, e = 1 - (1 - sw) * (1 - sw);
+      r.position.set(px + 0.06 - 0.15 * e, py + 0.09 - 0.14 * e - st.lower * 0.3, pz - Math.sin(sw * Math.PI) * 0.08);
+      r.rotation.set(rx + 0.2 - 0.6 * e, ry + 0.1 * e, rz - 0.45 + 0.85 * e);
     }
     const t = st.since;
     if (cur.pump) { const u = Math.min(1, Math.max(0, (t - 0.1) / 0.26)); cur.pump.position.z = cur.pumpZ + Math.sin(u * Math.PI) * 0.12; }
     if (cur.ssg) {
-      const { hinge, spent, fresh, lh } = cur.ssg, clamp = (v) => Math.min(1, Math.max(0, v)), ease = (u) => u * u * (3 - 2 * u);
+      const { hinge, spent, fresh, lh, armHold, armTop } = cur.ssg, clamp = (v) => Math.min(1, Math.max(0, v)), ease = (u) => u * u * (3 - 2 * u);
       const open = ease(clamp((t - 0.14) / 0.2)), shut = ease(clamp((t - 0.9) / 0.08));
       const o = open * (1 - shut);
       hinge.rotation.x = -0.3 * o;
-      r.position.y += 0.05 * o; r.rotation.x += 0.16 * o;   // lift the gun while it is broken open
+      const low = ease(clamp(t / 0.12)) * (1 - ease(clamp((t - 0.93) / 0.05)));   // lower the gun before reloading, so the hand can reach in from above
+      r.position.y -= 0.035 * low; r.rotation.x -= 0.05 * low;
       spent.forEach((sh, i) => {
         const te = t - 0.34 - i * 0.03, sd = i ? 1 : -1;
         sh.visible = te > 0 && te < 0.4;
         if (sh.visible) { sh.position.set(sd * 0.0185 + sd * 0.07 * te, 0.012 + 0.45 * te - 4.2 * te * te, -0.2 + 0.7 * te); sh.rotation.set(te * 9, te * 4 * sd, te * 6); }
       });
-      // one movement: the front hand brings BOTH shells up from below and slides them into the breech together
-      const carry = ease(clamp((t - 0.5) / 0.3)), S = [0, -0.095, 0.02], E = [0, 0.012, -0.2];
+      // one movement: the front hand comes in from ABOVE with both shells and drops them into the open breech together
+      const carry = ease(clamp((t - 0.5) / 0.3)), S = [0, 0.095, -0.07], E = [0, 0.012, -0.2];
       const my = S[1] + (E[1] - S[1]) * carry, mz = S[2] + (E[2] - S[2]) * carry;
       fresh.forEach((sh, i) => {
         const sd = i ? 1 : -1;
         sh.visible = t > 0.42 && t < 0.8;
-        if (sh.visible) { sh.position.set(sd * (0.012 + 0.0065 * carry), my, mz); sh.rotation.set(0.5 * (1 - carry), 0, 0); }
+        if (sh.visible) { sh.position.set(sd * (0.012 + 0.0065 * carry), my, mz); sh.rotation.set(-0.8 * (1 - carry), 0, 0); }
       });
-      // the hand rides on the forend, lets go, grabs the shells from below, carries them in, then takes the forend again
-      const away = ease(clamp((t - 0.28) / 0.14)) * (1 - ease(clamp((t - 0.84) / 0.1)));
-      lh.position.set(0, -0.033 * o * (1 - away) + (my - 0.03) * away, (mz + 0.035 + 0.31) * away);
+      const away = ease(clamp((t - 0.26) / 0.16)) * (1 - ease(clamp((t - 0.84) / 0.1)));
+      const hy = my + 0.034, hz = mz + 0.03;                                   // hand sits just above / behind the shells
+      lh.position.set(0, -0.033 * o * (1 - away) + hy * away + 0.07 * Math.sin(Math.PI * away) * (1 - carry), (hz + 0.31) * away);
+      armHold.visible = away < 0.5; armTop.visible = away >= 0.5;
     }
     if (cur.spinner) cur.spinner.rotation.z = st.spin;
     if (cur.warhead) cur.warhead.visible = t > 0.32 || t < 0;
