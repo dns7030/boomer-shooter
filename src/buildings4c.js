@@ -325,11 +325,11 @@ export function sanatorium() {
   colonnade(g, range(-10.5, 10.5, 3), 1.8, 8.6, 9.7, 0.5);
   B(g, 25.4, 1.4, 6, wh, 0, 11.1, 7.9, 3);
   prism(g, 25.6, 2.8, 0.9, wh, 0, 11.8, 10.4);
-  prism(g, 20, 2, 0.5, terr, 0, 12.0, 10.6);
+  prism(g, 20, 2, 0.5, terr, 0, 12.06, 10.8);          // tympanum sits clearly in front of the white pediment (was z-fighting)
   B(g, 26, 8.6, 0.4, terr, 0, 6.1, 5.0, 3);                                   // portico back wall (terracotta)
   grid(g, [-8, -4, 4, 8], [5.3], 5.25, 0, { w: 1.5, h: 3.4, lit: false });
   dr(g, 0, 4.1, 5.27, 0, { w: 3.2, h: 4.8, c: '#6a4220' });
-  { const s = sign('САНАТОРИЙ ИМ. ОРДЖОНИКИДЗЕ', 18, 1.1, { bg: '#f0ead8', fg: '#7a1d17' }); s.position.set(0, 9.9, 10.9); g.add(s); }
+  { const s = sign('САНАТОРИЙ ИМ. ОРДЖОНИКИДЗЕ', 18, 1.1, { bg: '#f0ead8', fg: '#7a1d17' }); s.position.set(0, 9.9, 11.1); g.add(s); }
   // stairs: wide terraces
   for (let i = 0; i < 8; i++) B(g, 30 - i * 0.4, 0.225 * (8 - i), 0.62, wh, 0, 0.1125 * (8 - i), 10.9 + 0.31 + i * 0.62, 2);
   for (const sd of [-1, 1]) { B(g, 8, 0.9, 5, wh, sd * 21.5, 0.45, 12, 3); B(g, 7.2, 0.5, 4.2, color(0x4a8a3a), sd * 21.5, 1.05, 12, 3); B(g, 0.6, 1.4, 5, wh, sd * 17.8, 0.7, 12.6, 2); }
