@@ -5,7 +5,8 @@ import * as THREE from 'three';
 import { RoundedBoxGeometry } from '../vendor/RoundedBoxGeometry.js';
 import { makeCanvas, toTexture, mulberry, tex } from './textures.js';
 
-const AIM_KEEP = 0.45;
+const TIP_RIGHT = 0.03;   // how much further right (screen units) the weapons sit
+const AIM_DIST = 12;      // the barrel points at the spot AIM_DIST metres straight ahead, so shots seem to leave the muzzle and land on the crosshair
 // ---------- materials ----------
 function makeMaterials() {
   const scuff = toTexture(makeCanvas(64, 64, (g) => {
@@ -399,7 +400,7 @@ export class WeaponView {
     };
     for (const [id, m] of Object.entries(this.models)) {
       m.id = id;
-      if (id !== 'sabre') m.rot = m.rot.map((v) => v * AIM_KEEP);   // barrels point more toward the crosshair (0 = exactly at it, 1 = the old, steeper look)
+      if (id !== 'sabre') m.tip = [m.tip[0] + TIP_RIGHT, m.tip[1]];   // sit a little further to the right
       m.root = new THREE.Group(); m.root.add(m.group); m.root.visible = false;
       if (m.flash) { m.sprite = glowSprite('flash', m.tint); m.sprite.scale.setScalar(m.flash); m.muzzle.add(m.sprite); }
       if (m.flame) { m.fire = glowSprite('flame'); m.muzzle.add(m.fire); }
@@ -416,7 +417,12 @@ export class WeaponView {
     cam.updateMatrixWorld(true);
     for (const m of Object.values(this.models)) {
       m.root.rotation.set(...m.rot); m.root.visible = true;
-      for (let it = 0; it < 5; it++) {
+      for (let it = 0; it < 8; it++) {
+        if (!m.sabre) {   // turn the barrel toward the crosshair point
+          const lp = cam.worldToLocal(m.muzzle.getWorldPosition(v.clone())), want = new THREE.Vector3(0, 0, -AIM_DIST).sub(lp).normalize();
+          const ry = Math.asin(-want.x); m.rot[1] = ry; m.rot[0] = Math.asin(Math.max(-1, Math.min(1, want.y / Math.cos(ry))));
+          m.root.rotation.set(...m.rot);
+        }
         m.root.position.set(...m.pos); m.root.updateMatrixWorld(true);
         m.muzzle.getWorldPosition(v);
         const depth = -v.z, ndc = v.clone().project(cam);
