@@ -150,7 +150,7 @@ export function buildLizard(kind) {
 
   // shield lizard: a big riveted tower shield held out in front
   if (kind === 'shield') {
-    const sg = new THREE.Group(); sg.position.set(0, 0.34, 0.66); torso.add(sg);
+    const sg = new THREE.Group(); sg.position.set(0, 0.34, 0.84); torso.add(sg);
     const steel = std(0x9aa0aa, { metalness: 0.8, roughness: 0.35 });
     sg.add(new THREE.Mesh(new THREE.BoxGeometry(1.15, 1.45, 0.09), steel));
     sg.add(at(new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.16, 0.1), std(0x8a2a24)), 0, 0.2, 0.01));

@@ -5,6 +5,7 @@ import * as THREE from 'three';
 import { RoundedBoxGeometry } from '../vendor/RoundedBoxGeometry.js';
 import { makeCanvas, toTexture, mulberry, tex } from './textures.js';
 
+const AIM_KEEP = 0.45;
 // ---------- materials ----------
 function makeMaterials() {
   const scuff = toTexture(makeCanvas(64, 64, (g) => {
@@ -398,6 +399,7 @@ export class WeaponView {
     };
     for (const [id, m] of Object.entries(this.models)) {
       m.id = id;
+      if (id !== 'sabre') m.rot = m.rot.map((v) => v * AIM_KEEP);   // barrels point more toward the crosshair (0 = exactly at it, 1 = the old, steeper look)
       m.root = new THREE.Group(); m.root.add(m.group); m.root.visible = false;
       if (m.flash) { m.sprite = glowSprite('flash', m.tint); m.sprite.scale.setScalar(m.flash); m.muzzle.add(m.sprite); }
       if (m.flame) { m.fire = glowSprite('flame'); m.muzzle.add(m.fire); }
