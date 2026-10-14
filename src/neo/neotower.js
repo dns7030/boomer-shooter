@@ -310,7 +310,7 @@ export function neoTowerSingapore() {
       T.top(canopy);
       beam(T, 56);
       entrance(T, 14.8);
-      T.smoke(-5, 18, 5); T.smoke(6, 32, -4); T.smoke(0, 50, 2);
+      T.smoke(3.2, 18, 3.2); T.smoke(-2.8, 32, -2.8); T.smoke(0, 44, 3.3);   // on the trunk surface (r 3.2-5.2), not in the air beside it
     },
   });
 }

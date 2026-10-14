@@ -177,7 +177,8 @@ function buildSSG(M) {
   H(rbox(0.07, 0.042, 0.17, 0.012, M.wood), 0, -0.03, -0.32);
   // the front hand (+ arm) is NOT part of the hinge: it holds the forend, then lets go during the reload and carries the shells in
   const lhGrp = new THREE.Group(); g.add(lhGrp); lhGrp.userData.skip = true;
-  lhGrp.add(hand(M, 0, -0.05, -0.31, 0.058, 0.034, 0.09));
+  lhGrp.position.set(0, -0.07, -0.26);   // pivot = the wrist, so the hand can turn in line with the forearm
+  lhGrp.add(hand(M, 0, 0.02, -0.05, 0.058, 0.034, 0.09));
   // the forearm is a separate piece anchored at a fixed point off-screen (lower left); the wrist follows the hand, so the arm always bends
   // at its own angle (between the gun's direction and the hand's) instead of staying parallel to the gun
   const ARM_W0 = new THREE.Vector3(0, -0.07, -0.26), ARM_ANCHOR = new THREE.Vector3(-0.40, -0.12, 0.30), ARM_DIR = ARM_ANCHOR.clone().sub(ARM_W0).normalize();   // far to the left (and not below the gun), so the forearm never crosses the barrels
@@ -520,9 +521,12 @@ export class WeaponView {
       const hx = -0.085 * side * (1 - over) + tx * over;
       const hy0 = -0.05 - 0.033 * o * (1 - away), hy = hy0 + (ty - hy0) * up + 0.022 * Math.sin(Math.PI * Math.min(1, up)) ;   // a touch higher in flight so wrist and forearm clear the gun
       const hz = -0.31 + (tz + 0.31) * ease(away);
-      lh.position.set(hx, hy + 0.05, hz + 0.31);                                  // offsets from the resting hand (0, -0.05, -0.31)
-      { const w = ARM_W0.clone().add(lh.position), v = ARM_ANCHOR.clone().sub(w).normalize();
-        armDyn.position.copy(w); armDyn.quaternion.setFromUnitVectors(ARM_DIR, v); }
+      lh.position.set(ARM_W0.x + hx, ARM_W0.y + hy + 0.05, ARM_W0.z + hz + 0.31);   // wrist position (rest: ARM_W0)
+      { const w = lh.position, v = ARM_ANCHOR.clone().sub(w).normalize();
+        armDyn.position.copy(w); armDyn.quaternion.setFromUnitVectors(ARM_DIR, v);
+        // the wrist continues the forearm: while the hand is away from the gun it points exactly along the arm's line
+        const aim = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 0, -1), v.clone().negate());
+        lh.quaternion.identity().slerp(aim, ease(clamp(away * 3))); }
     }
     if (cur.spinner) cur.spinner.rotation.z = st.spin;
     if (cur.warhead) cur.warhead.visible = t > 0.32 || t < 0;
