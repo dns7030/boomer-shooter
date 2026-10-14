@@ -169,7 +169,7 @@ export function paintDing(cv, st = {}) {
 export function paintDealone(cv, st = {}) {
   const tmp = document.createElement('canvas'); paintDealoneFull(tmp, st);
   cv.width = 48; cv.height = 48; const g = cv.getContext('2d'); g.clearRect(0, 0, 48, 48); g.imageSmoothingEnabled = false;
-  g.drawImage(tmp, 5, 9, 38, 38);   // a bit further away: ~80 % size, standing on the bottom edge
+  g.drawImage(tmp, 2, 5, 43, 43);   // a bit further away: ~90 % size, standing on the bottom edge
 }
 function paintDealoneFull(cv, st = {}) {
   const P = PX(cv, st), { px, ell, poly } = P;
@@ -267,9 +267,8 @@ export function paintTilah(cv, st = {}) {
   // shaved sides: short dark stubble above and around the ears (no hair on the face)
   for (let y = 8; y <= 20; y++) for (let x = 10; x <= 38; x++) { const dx = Math.abs(x - 24), inHead = ((x - 24) / 11.8) ** 2 + ((y - 22.5) / 17) ** 2 <= 1; if (!inHead) continue; if (y <= 12 + (dx > 9 ? 4 : 0) && dx >= 5 || (y <= 15 && dx >= 10)) px(x, y, (x * 3 + y * 5) % 4 === 0 ? 'brown' : 'brownDk'); }
   // tall comb of red spikes: columns of alternating height with pointed tips, leaning slightly back
-  const H = [11, 6, 3, 3, 3, 3, 3, 6, 11], X0 = 20;   // flat-topped strip with sloping sides (trapezoid), not a point
-  H.forEach((top, i) => { const x = X0 + i; for (let y = top; y <= 15; y++) px(x, y, (i + y) % 3 === 0 ? 'redLt' : (i * 2 + y) % 5 === 0 ? 'redDk' : 'red'); });
-  px(19, 11, 'red', 1, 4); px(29, 11, 'red', 1, 4);
+  // flat-topped strip, slightly wider at the base (a trapezoid), filled solid so no skin shows at its corners
+  for (let y = 3; y <= 15; y++) { const hw = 4 + Math.floor((y - 3) / 5); for (let x = 24 - hw; x <= 24 + hw; x++) px(x, y, (x + y) % 3 === 0 ? 'redLt' : (x * 2 + y) % 5 === 0 ? 'redDk' : 'red'); }
   // brows, eyes, nose, mouth
   for (const [bx, t] of [[15, 1], [27, -1]]) for (let i = 0; i < 7; i++) px(bx + i, 17 + (t > 0 ? (i > 4 ? 0 : 0) : 0) + (t > 0 ? (i > 4 ? -0 : 0) : 0), 'brownDk', 1, 2);
   eyesAt(P, 20); noseAt(P, 21);
