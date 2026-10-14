@@ -6,7 +6,7 @@ const PAL = {
   shirt: '#4f7183', shirtSh: '#355160', collar: '#2c4452', bg1: '#2a2f4a', bg2: '#3a4063',
 };
 
-// GYL: man with short, swept dark hair, strong straight brows, light stubble and a calm half-smirk.
+// DUKE (was Gyl): man with short, swept dark hair, strong straight brows, clean-shaven, calm half-smirk.
 export function paintAce(cv, st = {}) {
   const N = 48; cv.width = N; cv.height = N;
   const g = cv.getContext('2d'); g.imageSmoothingEnabled = false;
@@ -51,9 +51,7 @@ export function paintAce(cv, st = {}) {
   }
   // nose
   px(23, 22, 'skinSh', 1, 6); px(22, 27, 'skinDk', 4, 1); px(21, 26, 'skinSh', 1, 1); px(26, 26, 'skinSh', 1, 1);
-  // stubble: dithered across jaw, chin and upper lip
-  for (let y = 27; y <= 36; y++) for (let x = 14; x <= 34; x++) if (((x * 3 + y * 5) % 7 < 2) && inEll(x, y, 24, 24, 13.5, 14) && (y > 28 || Math.abs(x - 24) > 3)) px(x, y, 'stub');
-  px(19, 29, 'stub', 11, 1);
+  // clean-shaven: no beard or stubble
   // mouth: calm half-smirk (right corner up)
   px(20, 31, 'mouth', 9, 1); px(29, 30, 'mouth', 2, 1); px(20, 32, 'skinSh', 8, 1); px(24, 32, 'tooth', 3, 1);
   px(23, 35, 'skinSh', 3, 1);
