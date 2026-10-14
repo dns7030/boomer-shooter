@@ -1268,8 +1268,7 @@ export class Game {
   baseStage(stage) {
     const b = this.base, r = b.rect;
     if (b.tower && b.tower.userData.setStage) b.tower.userData.setStage(stage);
-    sfx.explosion(); this.p.kick += 0.12;
-    this.flash((r.x0 + r.x1) / 2, 6, (r.z0 + r.z1) / 2, 0x00e599, 260, 0.6);
+    // no blast / camera kick / flash here: the health bar, the falling blocks and the damage marks tell the player what happened
     for (let k = 0; k < 14; k++) { const px = r.x0 + Math.random() * (r.x1 - r.x0), pz = r.z0 + Math.random() * (r.z1 - r.z0); this.debris.spawn('brick', px, 4 + Math.random() * 8, pz, (Math.random() - 0.5) * 6, 2 + Math.random() * 4, (Math.random() - 0.5) * 6, 1.4); this.burst(px, 3 + Math.random() * 6, pz, 'smoke', 2, 3, 0.4); }
     this.setMessage(`NEO BLOCKCHAIN HEALTH ${Math.round((1 - stage * 0.2) * 100)}%`, 3);
   }
@@ -1287,8 +1286,8 @@ export class Game {
     if (b.stage >= 2 && b.alive && tw && tw.userData.smokePoints) {
       for (const lp of tw.userData.smokePoints) {
         const sp = tw.localToWorld(lp.clone());   // the points are tower-local: the tower is not always at the origin (Singapore is not)
-        if (Math.random() < dt * (1.2 + b.stage)) this.emit(sp.x + (Math.random() - 0.5), sp.y, sp.z + (Math.random() - 0.5), 'smoke', (Math.random() - 0.5) * 1.5, 2.5, (Math.random() - 0.5) * 1.5, 1.8 + Math.random(), 1.4, -0.3);
-        if (b.stage >= 3 && Math.random() < dt * 2) this.emit(sp.x, sp.y, sp.z, Math.random() < 0.5 ? 'flameY' : 'flameR', 0, 2.2, 0, 0.5, 0.7, -1);
+        if (Math.random() < dt * (1.2 + b.stage)) this.emit(sp.x + (Math.random() - 0.5) * 0.4, sp.y, sp.z + (Math.random() - 0.5) * 0.4, 'smoke', (Math.random() - 0.5) * 0.5, 1.6, (Math.random() - 0.5) * 0.5, 1.4 + Math.random() * 0.6, 1.2, -0.3);   // hugs the tower: little sideways drift, short climb
+        if (b.stage >= 3 && Math.random() < dt * 2) this.emit(sp.x, sp.y, sp.z, Math.random() < 0.5 ? 'flameY' : 'flameR', 0, 1.2, 0, 0.45, 0.6, -1);
       }
     }
   }
