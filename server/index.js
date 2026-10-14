@@ -76,11 +76,14 @@ const store = await makeStore();
 
 // ---------------- the game itself (static files), so one Railway service hosts everything ----------------
 const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
-const WEB_FILES = new Set(['index.html', 'neo.html']), WEB_DIRS = ['src', 'vendor', 'assets'];
+// Neo Marines is the public game: "/" opens neo.html. The old Lizards Over Rus page (index.html) stays in the repo but is NOT served,
+// unless the variable SERVE_RUS=1 is set (handy on a private staging service).
+const SERVE_RUS = process.env.SERVE_RUS === '1';
+const WEB_FILES = new Set(['neo.html', ...(SERVE_RUS ? ['index.html'] : [])]), WEB_DIRS = ['src', 'vendor', 'assets'];
 const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.mjs': 'text/javascript; charset=utf-8', '.css': 'text/css', '.png': 'image/png', '.webp': 'image/webp', '.json': 'application/json', '.svg': 'image/svg+xml', '.ico': 'image/x-icon' };
 function serveStatic(u, res) {
   let rel = decodeURIComponent(u.pathname).replace(/^\/+/, '');
-  if (rel === '') rel = 'index.html';
+  if (rel === '') rel = 'neo.html';
   const top = rel.split('/')[0];
   if (!(WEB_FILES.has(rel) || WEB_DIRS.includes(top))) return false;
   const f = path.resolve(ROOT, rel);

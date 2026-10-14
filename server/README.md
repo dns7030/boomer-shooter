@@ -1,6 +1,6 @@
 # Railway: game + leaderboard + players online (one service)
 
-`server/index.js` is a tiny Node server (no framework) that **serves the game** (`index.html`, `neo.html`, `src/`, `vendor/`, `assets/`) **and** the stats API.
+`server/index.js` is a tiny Node server (no framework) that **serves the game** (`neo.html`, `src/`, `vendor/`, `assets/`) **and** the stats API.
 So with a private GitHub repo you do not need GitHub Pages (it needs a paid plan for private repos): Railway hosts everything from one URL.
 Nothing else in the repo is served (no `.git`, `server/`, `tests/`, `docs/`).
 
@@ -12,7 +12,7 @@ Nothing else in the repo is served (no `.git`, `server/`, `tests/`, `docs/`).
 4. In the game service **Variables** also add:
    - `ADMIN_KEY` = a long random string (e.g. 32+ characters). It protects the admin summary.
    - optional `PGSSL` = `off` only if the database connection fails with an SSL error on a private network URL.
-5. **Settings -> Networking -> Generate Domain**. That URL (e.g. `https://neo-xxxx.up.railway.app`) is the game: open `/neo.html` for the Neo game and `/` for Lizards Over Rus.
+5. **Settings -> Networking -> Generate Domain**. That URL (e.g. `https://neo-xxxx.up.railway.app`) is the game: open `/` (or `/neo.html`): **Neo Marines: Lizards from Chain**. The old Lizards Over Rus page (`index.html`) is not served; set `SERVE_RUS=1` to serve it (for example on a private test service).
 6. Every push to the branch redeploys automatically (about 1-2 minutes). The dev box (key **P**) shows the build number.
 
 ## Using it
