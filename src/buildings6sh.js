@@ -386,11 +386,11 @@ export function hsbcBank() {
   Bx(g, 5, 2.6, 0.2, C(0x39434c), 0, 20.0, 10.85, 1);   // tympanum recess
   door(g, 4, 6, 0, 4.2, 4.12, 0, '#3a2a1a');
   sgn(g, 'GRAND BANK', 7, 0.9, 0, 11.4, 4.12, 0, { bg: '#2a3a30', fg: '#e8d08a', border: '#c9a24a' });
-  lion(g, -15.2, 9.5, 0); lion(g, 15.2, 9.5, 0);
+  lion(g, -17.5, 14.3, 0); lion(g, 17.5, 14.3, 0);   // out in front of the portico steps, clear of the building
   for (const x of [-18, 18]) { win(g, 2, 3.2, x, 4.3, 4.08, 0, { c: '#c4c0b6', fixed: true }); }
   const cols = [[-22, 22, -16, 4, 27], [-13.5, 13.5, 4, 12, 1.2], [-6.5, 6.5, -9.5, 3.5, 38]];
   for (const x of [-10, -6, -2, 2, 6, 10]) cols.push([x - 1, x + 1, 8.6, 10.6, 19]);
-  cols.push([-16.1, -14.3, 8.2, 10.8, 3], [14.3, 16.1, 8.2, 10.8, 3]);
+  cols.push([-18.4, -16.6, 12.9, 15.7, 3], [16.6, 18.4, 12.9, 15.7, 3]);
   return size(g, 44, 32, 42, cols);
 }
 
@@ -1042,10 +1042,10 @@ export function orientalPearl() {
   const legs = [], mid = [];
   A.forEach((a) => {
     legs.push([[Math.cos(a) * 12.5, 0.8, Math.sin(a) * 12.5], [Math.cos(a) * 4.5, 40, Math.sin(a) * 4.5]]);
-    mid.push([[Math.cos(a + 0.6) * 5.5, 62, Math.sin(a + 0.6) * 5.5], [Math.cos(a + 0.6) * 3.8, 105, Math.sin(a + 0.6) * 3.8]]);
+    mid.push([[Math.cos(a + 0.6) * 5.5, 57, Math.sin(a + 0.6) * 5.5], [Math.cos(a + 0.6) * 5.5, 113, Math.sin(a + 0.6) * 5.5]]);   // vertical tubes from the lower ball up into the upper ball
   });
   rods(g, legs, 1.5, silver, 7); rods(g, mid, 1.2, silver, 6);
-  Cy(g, 2.0, 2.4, 100, 8, silver, 0, 56, 0, 8);
+  Cy(g, 2.0, 2.4, 112, 8, silver, 0, 56.5, 0, 8);   // the fourth, central column: from the ground right up to the upper ball
   Sg(g, pink, 0, 50, 0, 11.5, 11.5, 11.5, 16);
   Ms(g, new THREE.TorusGeometry(11.55, 0.8, 5, 20), band, 0, 50, 0, 1, 1, 1, Math.PI / 2);
   Ms(g, new THREE.TorusGeometry(10.3, 0.3, 5, 20), gl, 0, 56, 0, 1, 1, 1, Math.PI / 2);

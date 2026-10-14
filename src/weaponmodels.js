@@ -191,8 +191,11 @@ function buildSSG(M) {
   H(rbox(0.07, 0.042, 0.17, 0.012, M.wood), 0, -0.03, -0.32);
   // the front hand (+ arm) is NOT part of the hinge: it holds the forend, then lets go during the reload and carries the shells in
   const lhGrp = new THREE.Group(); g.add(lhGrp); lhGrp.userData.skip = true;
-  lhGrp.add(hand(M, 0, -0.05, -0.31, 0.058, 0.034, 0.09)); const armHold = arm(M, [0, -0.07, -0.26], [-0.5, -0.4, 0.77], 0.55, 0.024), armTop = arm(M, [0, 0.03, -0.26], [-0.55, 0.35, 0.45], 0.32, 0.024);
-  lhGrp.add(armHold, armTop); armTop.visible = false;
+  lhGrp.add(hand(M, 0, -0.05, -0.31, 0.058, 0.034, 0.09));
+  // the forearm is a separate piece anchored at a fixed point off-screen (lower left); the wrist follows the hand, so the arm always bends
+  // at its own angle (between the gun's direction and the hand's) instead of staying parallel to the gun
+  const ARM_W0 = new THREE.Vector3(0, -0.07, -0.26), ARM_DIR = new THREE.Vector3(-0.5, -0.4, 0.77).normalize(), ARM_ANCHOR = ARM_W0.clone().addScaledVector(ARM_DIR, 0.56);
+  const armDyn = new THREE.Group(); armDyn.userData.skip = true; armDyn.add(arm(M, [0, 0, 0], [ARM_DIR.x, ARM_DIR.y, ARM_DIR.z], 0.55, 0.024)); armDyn.position.copy(ARM_W0); g.add(armDyn);
   const grip = rbox(0.042, 0.1, 0.05, 0.01, M.wood); grip.position.set(0, -0.075, 0.02); grip.rotation.x = -0.3; g.add(grip);
   g.add(at(box(0.004, 0.012, 0.05, M.poly), 0, -0.04, -0.03));
   g.add(hand(M, 0.006, -0.065, 0.075, 0.06, 0.046, 0.09));
@@ -200,7 +203,7 @@ function buildSSG(M) {
   const spent = [shellMesh(M), shellMesh(M)], fresh = [shellMesh(M), shellMesh(M)];
   for (const sh of [...spent, ...fresh]) g.add(sh);
   const muzzle = new THREE.Object3D(); muzzle.position.set(0, 0.012, -0.69); g.add(muzzle);
-  return { group: g, muzzle, flash: 0.34, tint: 'orange', tip: [0.16, -0.18], rot: [0.3, 0.04, 0], recoil: 3, ssg: { hinge, spent, fresh, lh: lhGrp, armHold, armTop } };
+  return { group: g, muzzle, flash: 0.34, tint: 'orange', tip: [0.16, -0.18], rot: [0.3, 0.04, 0], recoil: 3, ssg: { hinge, spent, fresh, lh: lhGrp, armDyn, ARM_W0, ARM_DIR, ARM_ANCHOR } };
 }
 
 function buildChaingun(M) {
@@ -505,7 +508,7 @@ export class WeaponView {
     const t = st.since;
     if (cur.pump) { const u = Math.min(1, Math.max(0, (t - 0.1) / 0.26)); cur.pump.position.z = cur.pumpZ + Math.sin(u * Math.PI) * 0.12; }
     if (cur.ssg) {
-      const { hinge, spent, fresh, lh, armHold, armTop } = cur.ssg, clamp = (v) => Math.min(1, Math.max(0, v)), ease = (u) => u * u * (3 - 2 * u);
+      const { hinge, spent, fresh, lh, armDyn, ARM_W0, ARM_DIR, ARM_ANCHOR } = cur.ssg, clamp = (v) => Math.min(1, Math.max(0, v)), ease = (u) => u * u * (3 - 2 * u);
       const open = ease(clamp((t - 0.14) / 0.2)), shut = ease(clamp((t - 0.9) / 0.08));
       const o = open * (1 - shut);
       hinge.rotation.x = -0.3 * o;
@@ -532,7 +535,8 @@ export class WeaponView {
       const hy0 = -0.05 - 0.033 * o * (1 - away), hy = hy0 + (ty - hy0) * up;
       const hz = -0.31 + (tz + 0.31) * ease(away);
       lh.position.set(hx, hy + 0.05, hz + 0.31);                                  // offsets from the resting hand (0, -0.05, -0.31)
-      armHold.visible = true; armTop.visible = false;
+      { const w = ARM_W0.clone().add(lh.position), v = ARM_ANCHOR.clone().sub(w).normalize();
+        armDyn.position.copy(w); armDyn.quaternion.setFromUnitVectors(ARM_DIR, v); }
     }
     if (cur.spinner) cur.spinner.rotation.z = st.spin;
     if (cur.warhead) cur.warhead.visible = t > 0.32 || t < 0;
