@@ -7,7 +7,7 @@ const res = await page.evaluate(async () => {
   const L = await import('/src/lizard3d.js');
   const g = window.__game, r = g.renderer;
   const t0 = performance.now();
-  const atlases = L.renderLizardAtlases(r, ['tsar', 'jadewyrm', 'kaiju', 'merlizard', 'carnival']);
+  const atlases = L.renderLizardAtlases(r, ['tsar', 'sasquatch', 'goldwyrm', 'jadewyrm', 'kaiju', 'merlizard', 'carnival']);
   const ms = Math.round(performance.now() - t0);
   const W = L.FRAME * L.ANGLES, H = L.FRAME * L.POSE_COUNT, files = {};
   for (const [kind, a] of Object.entries(atlases)) {
