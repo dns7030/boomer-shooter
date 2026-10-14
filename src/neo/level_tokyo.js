@@ -64,7 +64,14 @@ export function buildNeoTokyo(scene) {
       const drop = (g, x, z, rot, hw) => { g.position.set(x, 0, z); g.rotation.y = rot; scene.add(g); if (hw) box(x - hw, x + hw, z - hw, z + hw, 4); clip(g); };
       for (const [x, z] of [[-14, -14], [14, -14], [-14, 14], [14, 14]]) drop(T.crossingLights(), x, z, 0, 0.5);
       for (let x = X0 + 10; x < X1; x += 16) for (const z of [-14.5, 14.5]) if (free(x, z, 1.5) && Math.abs(x) > 24) { if (rnd() < 0.5) drop(T.vendingMachine({ variant: (x | 0) % 4 }), x, z, z < 0 ? 0 : Math.PI, 0.6); else drop(T.paperLanternPost(), x, z, 0, 0.4); }
-      for (let z = ZN + 12; z < ZS; z += 17) for (const x of [-14.5, 14.5]) if (free(x, z, 1.5) && Math.abs(z) > 24) drop(T.utilityPole({ span: 8 }), x, z, Math.PI / 2, 0.5);
+      // utility poles: contiguous runs along the avenue edges, 16 m apart, wires joined pole to pole (isolated poles are skipped)
+      for (const x of [-14.5, 14.5]) {
+        const zs = []; for (let z = ZN + 12; z < ZS - 6; z += 16) zs.push(z);
+        let run = [];
+        const flush = () => { if (run.length >= 2) run.forEach((z, i) => drop(T.utilityPole({ span: 16, sides: [i > 0 ? 1 : 0, i < run.length - 1 ? -1 : 0].filter(Boolean) }), x, z, Math.PI / 2, 0.5)); run = []; };
+        for (const z of zs) { if (Math.abs(z) > 22 && free(x, z, 1.5)) run.push(z); else flush(); }
+        flush();
+      }
       for (let i = 0; i < 16; i++) { const x = X0 + 12 + rnd() * (X1 - X0 - 24), z = ZN + 12 + rnd() * (ZS - ZN - 24); if (free(x, z, 3) && Math.hypot(x, z) > 30) drop(T.sakuraTree(), x, z, rnd() * 6, 0.5); }
       for (const [x, z] of [[-30, 15.5], [30, -15.5], [-70, 15.5], [70, 15.5]]) if (free(x, z, 2)) drop(T.ramenCart(), x, z, 0, 1.2);
     },

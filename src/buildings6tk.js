@@ -947,7 +947,7 @@ export function vendingMachine(opts = {}) {
 }
 
 export function utilityPole(opts = {}) {
-  const g = G(), span = opts.span || 8, wood = C(0x6a5a4a), ins = C(0xd8e0e8), wire = C(0x1c1c20);
+  const g = G(), span = opts.span || 8, sides = opts.sides || [-1, 1], wood = C(0x6a5a4a), ins = C(0xd8e0e8), wire = C(0x1c1c20);   // sides: which neighbours this pole's wires run to (local -x / +x); each half-span meets the neighbour's half at the middle
   Cy(g, 0.12, 0.18, 9, 8, wood, 0, 4.5, 0, 2);
   for (const y of [8.5, 7.7]) { Bx(g, 0.1, 0.1, 1.2, wood, 0, y, 0, 1); for (const z of [-0.5, 0, 0.5]) Cy(g, 0.04, 0.05, 0.16, 5, ins, 0, y + 0.13, z, 1); }
   Cy(g, 0.3, 0.3, 0.95, 8, C(0x7a808a), 0.5, 6.6, 0, 1); Bx(g, 0.04, 0.04, 0.04, wire, 0.2, 6.6, 0, 1);
@@ -955,8 +955,8 @@ export function utilityPole(opts = {}) {
   const lst = [];
   const half = span / 2, sag = 0.5;
   const curve = (y0, z, side) => { let px = 0, py = y0 + 0.13; for (let i = 1; i <= 5; i++) { const t = i / 5, x = side * half * t, y = y0 + 0.13 - sag * (1 - (1 - t) * (1 - t)) - 0.0; lst.push([[px, py, z], [x, y, z]]); px = x; py = y; } };
-  for (const y of [8.5, 7.7]) for (const z of [-0.5, 0, 0.5]) for (const s of [-1, 1]) curve(y, z, s);
-  const tc = []; for (const s of [-1, 1]) { let px = 0, py = 6.0; for (let i = 1; i <= 5; i++) { const t = i / 5, x = s * half * t, y = 6.0 - 0.7 * (1 - (1 - t) * (1 - t)); tc.push([[px, py, 0.14], [x, y, 0.14]]); px = x; py = y; } }
+  for (const y of [8.5, 7.7]) for (const z of [-0.5, 0, 0.5]) for (const s of sides) curve(y, z, s);
+  const tc = []; for (const s of sides) { let px = 0, py = 6.0; for (let i = 1; i <= 5; i++) { const t = i / 5, x = s * half * t, y = 6.0 - 0.7 * (1 - (1 - t) * (1 - t)); tc.push([[px, py, 0.14], [x, y, 0.14]]); px = x; py = y; } }
   rods(g, lst, 0.025, wire, 3); rods(g, tc, 0.045, C(0x101012), 3);
   return size(g, 1.2, 1.2, 9, [[-0.3, 0.3, -0.3, 0.3, 9]]);
 }
