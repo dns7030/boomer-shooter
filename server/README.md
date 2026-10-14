@@ -6,7 +6,7 @@ Nothing else in the repo is served (no `.git`, `server/`, `tests/`, `docs/`).
 
 ## One-time setup (about 5 minutes)
 1. railway.com -> **New Project** -> **Deploy from GitHub repo** -> pick `dns7030/boomer-shooter` (install/authorise the Railway GitHub app for that repo if asked).
-2. In the service **Settings -> Source**: set the **branch** to `claude/festive-dirac-8ebprl` (or merge it into `main` and use `main`). Leave **Root Directory empty** (the repo root: `railway.json` there sets the build and start commands).
+2. In the service **Settings -> Source**: set the **branch** to `main`. Leave **Root Directory empty** (the repo root: `railway.json` there sets the build and start commands).
 3. In the project click **+ New -> Database -> Add PostgreSQL**. Then in the game service **Variables** add a reference to it: `DATABASE_URL` = `${{Postgres.DATABASE_URL}}`.
    (Without a database the server falls back to a JSON file, which Railway erases at every deploy: fine for a quick try, not for a real leaderboard.)
 4. In the game service **Variables** also add:
