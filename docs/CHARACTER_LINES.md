@@ -1,8 +1,4 @@
-# Character one-liners (draft for review)
-
-Name mapping used (spoken name → game name): Dylan → **Dealone**, Gil → **Gyl**, Dean → **Ding**, Jimbo → **Jimbo**, Tyler → **Tilah**, Helga → **Helga**.
-Lines are written in normal case; the game shows them in capitals in the speech bubble. No profanity. Mix of general lines and some about the game, Neo and the fight.
-Counts: Dealone 30, Gyl 30, Ding 20, Jimbo 30, Tilah 30, Helga 20.
+# Character one-liners
 
 ## Dealone — talkative, positive, optimistic, a bit silly; crypto, Neo, rock climbing (30)
 1. Dude, this is awesome! Lizards AND blockchain!
