@@ -188,15 +188,13 @@ function paintDealoneFull(cv, st = {}) {
   eyesAt(P, 20); noseAt(P, 21); px(21, 26, 'skinDk', 1, 1); px(27, 26, 'skinDk', 1, 1);
   for (const gx of [14, 26]) { px(gx, 18, '#6a7078', 9, 1); px(gx, 24, '#6a7078', 9, 1); px(gx, 18, '#6a7078', 1, 7); px(gx + 8, 18, '#6a7078', 1, 7); }
   px(23, 19, '#6a7078', 3, 1); px(10, 19, '#6a7078', 4, 1); px(35, 19, '#6a7078', 4, 1);
-  // big upward-curving smile: black outline all round, corners raised, white teeth along the top, dark mouth below
-  for (let x = 16; x <= 32; x++) {
-    const dx = Math.abs(x - 24), yt = 31 - Math.floor(dx / 3), yb = 35 + (st.talk ? 1 : 0) - Math.floor(dx * dx / 8);
-    if (yb < yt) continue;
-    px(x, yt, 'ol'); px(x, yb, 'ol');
-    for (let y = yt + 1; y < yb; y++) px(x, y, y <= yt + 2 ? 'tooth' : '#5a1a22');
-  }
-  px(16, 28, 'ol', 1, 2); px(32, 28, 'ol', 1, 2);   // little upturned corners
-  talkAt(P, 19, 31, 11);
+  // smaller upward-curving smile, outlined in black on all sides: corners raised, white teeth on top, dark mouth below
+  const T = !!st.talk;
+  px(19, 30, 'ol'); px(29, 30, 'ol');                                          // raised corners
+  px(20, 31, 'ol', 9, 1);                                                      // top line
+  px(20, 32, 'ol'); px(21, 32, 'tooth', 7, 1); px(28, 32, 'ol');               // teeth
+  px(21, 33, 'ol'); px(22, 33, '#5a1a22', 5, 1); px(27, 33, 'ol');             // dark mouth
+  if (T) { px(21, 34, 'ol'); px(22, 34, '#5a1a22', 5, 1); px(27, 34, 'ol'); px(22, 35, 'ol', 5, 1); } else px(22, 34, 'ol', 5, 1);   // bottom line (lower when laughing)
   P.outline();
 }
 
