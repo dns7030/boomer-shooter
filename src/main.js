@@ -6,6 +6,7 @@ import { LEVELS as DEFAULT_LEVELS } from './levels.js';
 import { createProfile, scoreOf } from './profile.js';
 import { BUILD } from './version.js';
 import { createOnline } from './online.js';
+import { CHARACTERS } from './characters.js';
 
 const CFG = window.GAME_CONFIG || {};
 const LEVELS = CFG.levels || DEFAULT_LEVELS;
@@ -148,7 +149,7 @@ devEl.style.cssText = 'position:fixed;left:50%;bottom:150px;transform:translateX
 document.body.appendChild(devEl);
 // build stamp in the top-left corner while developer mode (P) is on; also asks GitHub whether a newer commit exists (stale cache hint)
 const verEl = document.createElement('div');
-verEl.style.cssText = 'position:fixed;left:8px;top:8px;padding:4px 8px;background:rgba(0,0,0,.75);color:#7CFFB8;font:12px monospace;z-index:20;pointer-events:none;display:none;white-space:pre';
+verEl.style.cssText = 'position:fixed;left:8px;top:150px;padding:4px 8px;background:rgba(0,0,0,.75);color:#7CFFB8;font:12px monospace;z-index:20;pointer-events:none;display:none;white-space:pre';
 document.body.appendChild(verEl);
 let latestNote = '';
 async function checkLatest() {
@@ -160,12 +161,41 @@ async function checkLatest() {
   } catch (e) { latestNote = 'could not check GitHub'; }
 }
 let checked = false;
+// ---- companion character: portrait top-left, speech bubble with one-liners ----
+const CHAR = CFG.character && CHARACTERS[CFG.character], charEl = $('char');
+const talk = { next: 0, hideAt: 0, recent: [], wave: -1, boss: false, low: false, stage: 0, lvl: -1 };
+function say(kind) {
+  if (!CHAR || !charEl) return;
+  const L = CHAR.lines, id = LEVELS[game.levelIndex] && LEVELS[game.levelIndex].id;
+  const pool = kind === 'any' ? [...L.any, ...((L.map && L.map[id]) || []), ...((L.map && L.map[id]) || [])] : (L[kind] || L.any);
+  const fresh = pool.filter((t) => !talk.recent.includes(t)), t = (fresh.length ? fresh : pool)[(Math.random() * (fresh.length ? fresh : pool).length) | 0];
+  talk.recent.push(t); if (talk.recent.length > 12) talk.recent.shift();
+  const b = $('char-bubble'); b.textContent = t; b.classList.add('on');
+  talk.hideAt = game.time + 2.6 + t.length * 0.055; talk.next = game.time + 18 + Math.random() * 18;
+}
+function charUpdate() {
+  if (!CHAR || !charEl) return;
+  if (!charEl.dataset.ready) { CHAR.paint($('char-face')); $('char-name').textContent = CHAR.name; charEl.dataset.ready = '1'; }
+  const on = game.state === 'playing'; charEl.style.display = on ? 'flex' : 'none';
+  if (!on) { if (game.state === 'title') talk.lvl = -1; return; }
+  const now = game.time, b = $('char-bubble');
+  if (talk.lvl !== game.levelIndex || now < talk.lastT) { talk.lvl = game.levelIndex; talk.wave = -1; talk.boss = false; talk.low = false; talk.stage = 0; talk.next = now + 4; setTimeout(() => say('start'), 1200); }
+  talk.lastT = now;
+  if (now > talk.hideAt) b.classList.remove('on');
+  const wv = game.wave.index, boss = game.enemies.some((e) => e.cfg && e.cfg.boss && e.hp > 0), hp = game.p.health, st = game.base ? game.base.stage : 0;
+  if (wv !== talk.wave) { if (talk.wave >= 0 && wv > talk.wave) say(wv === game.level.waves.length - 1 ? 'boss' : 'wave'); talk.wave = wv; }
+  else if (boss && !talk.boss) say('boss');
+  else if (hp < 28 && !talk.low) say('low');
+  else if (st > talk.stage) say('node');
+  else if (now > talk.next) say('any');
+  talk.boss = boss; talk.low = hp < 28; talk.stage = st;
+}
 let last = performance.now();
 function frame(now) {
   const dt = (now - last) / 1000; last = now;
   game.step(dt);
   if (music) music.setIntensity(game.intensity());
-  game.render();
+  game.render(); charUpdate();
   devEl.style.display = game.freeze && game.state === 'playing' ? 'block' : 'none'; if (game.freeze) devEl.textContent = game.devText || '';
   verEl.style.display = game.freeze ? 'block' : 'none';
   if (game.freeze) { if (!checked) { checked = true; checkLatest(); } verEl.textContent = `build #${BUILD.n}  ${BUILD.time.slice(0, 16).replace('T', ' ')} UTC\n${latestNote}`; }
