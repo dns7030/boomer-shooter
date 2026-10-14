@@ -188,13 +188,12 @@ function paintDealoneFull(cv, st = {}) {
   eyesAt(P, 20); noseAt(P, 21); px(21, 26, 'skinDk', 1, 1); px(27, 26, 'skinDk', 1, 1);
   for (const gx of [14, 26]) { px(gx, 18, '#6a7078', 9, 1); px(gx, 24, '#6a7078', 9, 1); px(gx, 18, '#6a7078', 1, 7); px(gx + 8, 18, '#6a7078', 1, 7); }
   px(23, 19, '#6a7078', 3, 1); px(10, 19, '#6a7078', 4, 1); px(35, 19, '#6a7078', 4, 1);
-  // smaller upward-curving smile, outlined in black on all sides: corners raised, white teeth on top, dark mouth below
-  const T = !!st.talk;
-  px(19, 30, 'ol'); px(29, 30, 'ol');                                          // raised corners
-  px(20, 31, 'ol', 9, 1);                                                      // top line
-  px(20, 32, 'ol'); px(21, 32, 'tooth', 7, 1); px(28, 32, 'ol');               // teeth
-  px(21, 33, 'ol'); px(22, 33, '#5a1a22', 5, 1); px(27, 33, 'ol');             // dark mouth
-  if (T) { px(21, 34, 'ol'); px(22, 34, '#5a1a22', 5, 1); px(27, 34, 'ol'); px(22, 35, 'ol', 5, 1); } else px(22, 34, 'ol', 5, 1);   // bottom line (lower when laughing)
+  // open smile (the version from build #83, with the lower white teeth row removed): top line, ONE row of teeth, pink lower lip, bottom line
+  px(18, 30, 'ol', 13, 1);                                                      // top line
+  px(19, 31, 'tooth', 11, 1);                                                   // teeth (single row)
+  if (st.talk) px(19, 32, '#5a1a22', 11, 2); else px(19, 32, '#a24a52', 11, 2); // pink lower lip takes the place of the second teeth row (dark when talking)
+  px(20, 34, 'ol', 9, 1);                                                       // bottom line, moved up one row
+  px(18, 31, 'ol', 1, 3); px(30, 31, 'ol', 1, 3);                               // dark corners
   P.outline();
 }
 
