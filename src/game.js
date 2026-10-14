@@ -1285,7 +1285,8 @@ export class Game {
     const b = this.base; if (!b) return;
     const tw = b.tower; if (tw && tw.userData.update) tw.userData.update(this.time, b.stage, b.alive);
     if (b.stage >= 2 && b.alive && tw && tw.userData.smokePoints) {
-      for (const sp of tw.userData.smokePoints) {
+      for (const lp of tw.userData.smokePoints) {
+        const sp = tw.localToWorld(lp.clone());   // the points are tower-local: the tower is not always at the origin (Singapore is not)
         if (Math.random() < dt * (1.2 + b.stage)) this.emit(sp.x + (Math.random() - 0.5), sp.y, sp.z + (Math.random() - 0.5), 'smoke', (Math.random() - 0.5) * 1.5, 2.5, (Math.random() - 0.5) * 1.5, 1.8 + Math.random(), 1.4, -0.3);
         if (b.stage >= 3 && Math.random() < dt * 2) this.emit(sp.x, sp.y, sp.z, Math.random() < 0.5 ? 'flameY' : 'flameR', 0, 2.2, 0, 0.5, 0.7, -1);
       }
