@@ -42,6 +42,13 @@
   #char { position:fixed; left:16px; top:16px; display:none; align-items:flex-start; gap:10px; pointer-events:none; z-index:8; }
   #char-face { width:96px; height:96px; image-rendering:pixelated; border:3px solid var(--gold); background:#1a1c2c; box-shadow:0 0 0 2px #000, 4px 4px 0 rgba(0,0,0,.5); }
   #char-name { position:absolute; left:3px; bottom:-14px; font-size:10px; letter-spacing:2px; color:var(--gold); text-shadow:1px 1px 0 #000; }
+  #chars { display:flex; gap:8px; justify-content:center; flex-wrap:wrap; margin: 6px 0 10px; }
+  .charbtn { background:rgba(0,0,0,.35); border:2px solid #555; padding:4px 4px 2px; cursor:pointer; font: inherit; color: var(--cream); text-align:center; }
+  .charbtn canvas { width:64px; height:64px; image-rendering:pixelated; display:block; background:#262a3a; }
+  .charbtn span { display:block; font-size:11px; letter-spacing:2px; margin-top:2px; }
+  .charbtn:hover { border-color: var(--gold); } .charbtn.cur { border-color: var(--gold); box-shadow: 0 0 0 2px #000, 0 0 10px var(--gold); }
+  #char-bubble { text-transform: uppercase; }
+  #chars-label { font-size:11px; letter-spacing:3px; color: var(--gold); text-align:center; margin-top:8px; }
   #char-bubble { position:relative; max-width:min(270px,30vw); margin-top:8px; padding:9px 12px; background:#f4efe0; color:#1b1410; font-size:13px; letter-spacing:1px; line-height:1.35; border:3px solid #000; box-shadow:3px 3px 0 rgba(0,0,0,.5); opacity:0; transform:translateX(-6px); transition:opacity .18s, transform .18s; }
   #char-bubble.on { opacity:1; transform:none; }
   #char-bubble::before { content:''; position:absolute; left:-13px; top:14px; border:8px solid transparent; border-right:10px solid #000; }
@@ -83,6 +90,7 @@
   <h1 id="ov-title">NEO: LIZARDS OVER THE CHAIN</h1>
   <p id="ov-body">Lizards from space are attacking the city’s Neo tower. Keep its blockchain health above zero, hunt the invaders, and grab every weapon you find.</p>
   <div class="keys"><span><b>WASD</b> move</span><span><b>MOUSE</b> look</span><span><b>CLICK</b> fire / swing</span><span><b>SPACE</b> jump</span><span><b>1–9 / WHEEL / Q</b> weapons (press a number again to cycle)</span><span><b>SHIFT</b> run</span><span><b>M</b> music on / off</span><span><b>G</b> graphics quality</span><span><b>L</b> lizard look (3D / pixel)</span></div>
+  <div id="chars-label">CHOOSE YOUR PARTNER</div><div id="chars"></div>
   <div id="profile"><input id="nick" maxlength="16" placeholder="ENTER YOUR NICKNAME" autocomplete="off" spellcheck="false"><div id="mystats"></div></div>
   <button id="ov-btn">PLAY</button>
   <button id="ov-menu" style="display:none">MAIN MENU</button>
@@ -100,7 +108,7 @@
 <script>window.STATS_URL = '';   // e.g. 'https://your-app.up.railway.app' (see server/README.md); empty = offline stats only</script>
 <script type="module">
   import { NEO_LEVELS } from './src/neo/levels.js';
-  window.GAME_CONFIG = { profileKey: 'neo', character: 'gyl', levels: NEO_LEVELS, title: 'NEO: LIZARDS OVER THE CHAIN' };
+  window.GAME_CONFIG = { profileKey: 'neo', character: 'duke', levels: NEO_LEVELS, title: 'NEO: LIZARDS OVER THE CHAIN' };
   await import('./src/main.js');
 </script>
 </body>

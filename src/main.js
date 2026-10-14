@@ -6,7 +6,7 @@ import { LEVELS as DEFAULT_LEVELS } from './levels.js';
 import { createProfile, scoreOf } from './profile.js';
 import { BUILD } from './version.js';
 import { createOnline } from './online.js';
-import { CHARACTERS } from './characters.js';
+import { CHARACTERS, CHARACTER_ORDER } from './characters.js';
 
 const CFG = window.GAME_CONFIG || {};
 const LEVELS = CFG.levels || DEFAULT_LEVELS;
@@ -73,7 +73,7 @@ function showOverlay(s) {
   const L = LEVELS[game.levelIndex];
   renderLevels(s !== 'paused' && s !== 'playing');
   renderSettings(); renderProfile();
-  $('profile').style.display = s === 'paused' ? 'none' : 'block';
+  $('profile').style.display = s === 'paused' ? 'none' : 'block'; if ($('chars')) { $('chars').style.display = $('chars-label').style.display = s === 'paused' || !CFG.character ? 'none' : ''; $('chars').style.display = s === 'paused' || !CFG.character ? 'none' : 'flex'; }
   $('ov-menu').style.display = s === 'paused' ? 'inline-block' : 'none';
   if (music) music.setMode(s === 'playing' ? 'play' : s === 'paused' ? 'pause' : s === 'won' ? 'win' : s === 'dead' ? 'dead' : 'pause');
   if (s === 'paused') { title.textContent = 'PAUSED'; body.textContent = 'Click to resume.  (P = developer freeze)'; btn.textContent = 'RESUME'; }
@@ -162,7 +162,18 @@ async function checkLatest() {
 }
 let checked = false;
 // ---- companion character: portrait top-left, speech bubble with one-liners ----
-const CHAR = CFG.character && CHARACTERS[CFG.character], charEl = $('char');
+let charId = CFG.character; try { const sv = localStorage.getItem('neo.char'); if (sv && CHARACTERS[sv]) charId = sv; } catch (e) { /* no storage */ }
+let CHAR = CFG.character && CHARACTERS[charId]; const charEl = $('char');
+function renderCharPicker() {
+  const box = $('chars'), lab = $('chars-label'); if (!box || !CFG.character) { if (lab) lab.style.display = 'none'; return; }
+  box.innerHTML = '';
+  for (const id of CHARACTER_ORDER) {
+    const b = document.createElement('button'); b.className = 'charbtn' + (id === charId ? ' cur' : ''); const cv = document.createElement('canvas'); CHARACTERS[id].paint(cv, {}); b.appendChild(cv);
+    const sp = document.createElement('span'); sp.textContent = CHARACTERS[id].name; b.appendChild(sp);
+    b.addEventListener('click', (ev) => { ev.stopPropagation(); charId = id; CHAR = CHARACTERS[id]; try { localStorage.setItem('neo.char', id); } catch (e) { /* ignore */ } talk.recent = []; if (charEl) { charEl.dataset.ready = ''; } renderCharPicker(); });
+    box.appendChild(b);
+  }
+}
 const face = { look: 0, up: false, blink: false, talk: false, nextLook: 0, nextBlink: 0, blinkUntil: 0, hurtUntil: 0, hp: 100, key: '' };
 const talk = { next: 0, hideAt: 0, recent: [], wave: -1, boss: false, low: false, stage: 0, lvl: -1 };
 function say(kind) {
@@ -212,5 +223,6 @@ function frame(now) {
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
+renderCharPicker();
 online.start(() => { if (game.state !== 'playing') renderProfile(); });
 showOverlay('title');

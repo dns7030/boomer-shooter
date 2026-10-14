@@ -175,3 +175,6 @@ Counts: Dealone 30, Gyl 30, Ding 20, Jimbo 30, Tilah 30, Helga 20.
 18. Rise and grind! Or rise and shoot, today.
 19. Smile! It's way more fun when you smile.
 20. We're a great team. Let's finish this together!
+
+---
+**In-game names** (spoken name → portrait name → game name): Gil → Gyl → **Duke** (knight/leader); Dylan → Dealone → **Skip** (cheerful, a bit silly); Dean → Ding → **Walt** (quiet, goal-oriented); Jimbo → Jimbo → **Wes** (indecisive developer); Tyler → Tilah → **Norm** (precise engineer who likes beer); Helga → Helga → **Kelsey** (sporty, upbeat). The lines live in `src/character_lines.js`.

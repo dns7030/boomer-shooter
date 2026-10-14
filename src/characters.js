@@ -69,29 +69,35 @@ export function paintAce(cv, st = {}) {
   id.data.set(o); g.putImageData(id, 0, 0);
 }
 
-export const CHARACTERS = {
-  gyl: {
-    name: 'GYL', paint: paintAce,
-    lines: {
-      start: ['LIZARDS ON MY STREET. THIS WILL BE QUICK.', 'FIVE MINUTES TO SAVE THE CHAIN. I NEED FOUR.'],
-      wave: ['MORE OF THEM. GOOD. I WAS WARMING UP.', 'THEY KEEP COMING. SO DO MY BULLETS.', 'EVERY WAVE THEY BRING LESS BRAIN AND MORE TEETH.'],
-      boss: ['BIG ONE. HIT IT IN THE BACK.', 'THAT ONE HAS A BACK. SHOW IT SOME LEAD.'],
-      low: ['I HAVE HAD WORSE MONDAYS.', 'NOT DEAD. JUST VERY ANNOYED.'],
-      node: ['THE TOWER IS HURT. NOBODY HURTS MY TOWER.', 'KEEP THEM OFF THE BUILDING!'],
-      clear: ['ONE WAVE DOWN. THEY ARE ALREADY SORRY.', 'THAT WAS A WARM-UP. NEXT.'],
-      any: ['THEY SAID LIZARDS WERE EXTINCT. THEY LIED.', 'I CAME FOR A COFFEE. NOW I AM DOING THIS.', 'SMILE. IT MAKES THEM NERVOUS.', 'DO NOT STOP. THE CHAIN NEVER STOPS.', 'GRAB THE GAS. SHOOT THE LIZARDS. EASY.', 'COOL FACE, HOT BARREL.', 'THIS IS WHY I NEVER TAKE VACATION.'],
-      map: {
-        moscow: ['STALIN-ERA SKYLINE, MODERN ENEMIES. I LIKE IT.', 'BIG BUILDINGS, BIGGER LIZARDS. FINE.'],
-        seattle: ['RAIN, COFFEE, LIZARDS. A NORMAL TUESDAY.', 'EVEN THE LIZARDS NEED A LATTE HERE.'],
-        dubai: ['GOLD EVERYWHERE. THE LIZARDS WILL LOVE IT. NOT FOR LONG.', 'HOT DESERT, HOTTER LEAD.'],
-        shanghai: ['THE BUND AT SUNSET. SHAME ABOUT THE GUESTS.', 'NANJING ROAD, NOW WITH EXTRA LIZARDS.'],
-        singapore: ['A CONFERENCE? PERFECT. IT IS NETWORKING TIME.', 'MARINA BAY SANDS HAS NEVER SEEN A KEYNOTE LIKE THIS.'],
-        tokyo: ['NEON, RAMEN, LIZARDS. I WILL TAKE THE RAMEN LATER.', 'SHIBUYA ON A NIGHT LIKE THIS? LET US DANCE.'],
-        rio: ['SAMBA TIME. THE LIZARDS BRING THE DRUMS.', 'BEACH, SUN, CARNIVAL. AND NOW TARGET PRACTICE.'],
-      },
-    },
+import { LINES } from './character_lines.js';
+// Event lines (start / boss / low health / tower hit / wave cleared); everything else comes from LINES in the character's own voice.
+const EV = {
+  skip: { start: ['Here we go! This is gonna be so cool!'], boss: ['Whoa, that one is HUGE! Awesome!'], low: ['Ow! I am fine! I am totally fine!'], node: ['Hey, they are hitting our tower! Rude!'], clear: ['Wave cleared! Who wants a high five?'] },
+  duke: { start: ['Lizards on my street. This will be quick.', 'Friends, the chain is counting on us. Forward!'], boss: ['A giant approaches. Shields up, friends!'], low: ['A scratch! Naught but a scratch!'], node: ['They strike the tower! Defend it with your lives!'], clear: ['A fine victory! Reload, and onward!'] },
+  walt: { start: ['Okay. Let us begin. Calmly.'], boss: ['That one is big. Aim for the back.'], low: ['I am hurt. Staying calm. Still going.'], node: ['The tower is under attack. Let us help it.'], clear: ['One wave done. Next one.'] },
+  wes: { start: ['Okay, plan: shoot lizards. Or maybe not... no, yes. Shoot.'], boss: ['Big boss. Aim for the weak spot. Or the other weak spot.'], low: ['My health is low. Or is it? It is low. Yes.'], node: ['The tower is taking damage. That is a critical bug.'], clear: ['Wave done. Tests green. Mostly.'] },
+  norm: { start: ['Commencing lizard removal. Please stand clear.'], boss: ['Target: large. Probability of survival for him: low.'], low: ['Health at critical levels. I find this inconvenient.'], node: ['Warning: tower integrity decreasing. Unacceptable.'], clear: ['Wave complete. Time for a beer. Almost.'] },
+  kelsey: { start: ['Let us go, team! Big game today!'], boss: ['Their star player just arrived! Stay sharp!'], low: ['I am hurt, but I never quit!'], node: ['They are hitting our tower! Defend it!'], clear: ['Wave cleared! That is how we win!'] },
+};
+const NAMES = { skip: 'SKIP', duke: 'DUKE', walt: 'WALT', wes: 'WES', norm: 'NORM', kelsey: 'KELSEY' };
+const PAINT = { skip: paintDealone, duke: paintAce, walt: paintDing, wes: paintJimbo, norm: paintTilah, kelsey: paintHelga };
+const MAPLINES = {   // Duke keeps his city-specific lines
+  duke: {
+    moscow: ['Stalin-era skyline, modern enemies. Splendid!', 'Big buildings, bigger lizards. Fine by me!'],
+    seattle: ['Rain, coffee, lizards. A fine Tuesday for a knight!', 'Even the lizards need a latte here!'],
+    dubai: ['Gold everywhere! The lizards shall not keep it!', 'Hot desert, hotter lead. Onward!'],
+    shanghai: ['The Bund at sunset. A noble place to make a stand!', 'Nanjing Road shall be defended!'],
+    singapore: ['A conference? Splendid. Let us network with our swords!', 'Marina Bay has never seen a keynote like this!'],
+    tokyo: ['Neon and honour! Let us dance with the lizards!', 'Shibuya at night. A worthy battlefield!'],
+    rio: ['Samba and steel! Forward, friends!', 'Sun, sand and a worthy cause!'],
   },
 };
+export const CHARACTER_ORDER = ['duke', 'skip', 'walt', 'wes', 'norm', 'kelsey'];
+export const CHARACTERS = {};
+for (const id of CHARACTER_ORDER) {
+  const any = LINES[id] || [], ev = EV[id];
+  CHARACTERS[id] = { id, name: NAMES[id], paint: PAINT[id], lines: { start: ev.start, wave: any, boss: ev.boss, low: ev.low, node: ev.node, clear: ev.clear, any, map: MAPLINES[id] || null } };
+}
 
 // ---------------- more portraits (transparent background, same pixel style) ----------------
 const PX = (cv, st = {}) => {
