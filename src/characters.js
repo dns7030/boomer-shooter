@@ -122,7 +122,7 @@ const PX = (cv, st = {}) => {
 };
 const SK = { skin: '#e2a977', skinLt: '#f3cc9f', skinSh: '#b87a56', skinDk: '#86503a' };
 const SK2 = { skin: '#eab98e', skinLt: '#f8d8b4', skinSh: '#c58c66', skinDk: '#93603f' };   // paler
-Object.assign(PAL, { black: '#1b1517', blk2: '#2b2428', grey: '#8a8f98', greyDk: '#5a5f69', greyLt: '#b8bcc4', brown: '#5a3d2b', brownDk: '#3a271c', brownLt: '#7a573d', blond: '#9a7a52', blondLt: '#c4a26c', red: '#d8283a', redDk: '#8a1624', redLt: '#ff5a66', glass: '#c9d6dc', teal: '#2e6e7a', paisley: '#2e2d3a', paisley2: '#6a6a82', white: '#f3efe6' });
+Object.assign(PAL, { hairLt: '#a67f58', hairLt2: '#c49a6c', beardLt: '#8f6b4c', beardLt2: '#a98462', black: '#1b1517', blk2: '#2b2428', grey: '#8a8f98', greyDk: '#5a5f69', greyLt: '#b8bcc4', brown: '#5a3d2b', brownDk: '#3a271c', brownLt: '#7a573d', blond: '#9a7a52', blondLt: '#c4a26c', red: '#d8283a', redDk: '#8a1624', redLt: '#ff5a66', glass: '#c9d6dc', teal: '#2e6e7a', paisley: '#2e2d3a', paisley2: '#6a6a82', white: '#f3efe6' });
 
 function headBase(P, sk, o = {}) {
   const { px, ell } = P, rx = o.rx || 14, ry = o.ry || 15.5, cx = o.cx || 24, cy = o.cy || 22;
@@ -130,10 +130,10 @@ function headBase(P, sk, o = {}) {
   for (let y = cy + 6; y <= cy + ry + 1; y++) for (let x = cx - 9; x <= cx + 9; x++) if (y <= cy + ry + 1 - Math.max(0, Math.abs(x - cx) - 6) * 0.9) px(x, y, sk.skin);   // squarer jaw
   px(cx - 7, cy - 8, sk.skinLt, 14, 3); px(cx - 8, cy + 2, sk.skinLt, 4, 3); px(cx + 4, cy + 2, sk.skinLt, 4, 3);
 }
-function neckShirt(P, sk, shirt, shirtSh, y0 = 38) {
+function neckShirt(P, sk, shirt, shirtSh, y0 = 38, slope = 2.3, start = 12) {
   const { px } = P;
   for (let y = 33; y < y0 + 3; y++) for (let x = 19; x <= 29; x++) px(x, y, x < 22 ? sk.skinSh : sk.skin);
-  for (let y = y0; y < 48; y++) { const half = 12 + (y - y0) * 2.3; for (let x = 0; x < 48; x++) if (Math.abs(x - 24) <= half) px(x, y, x < 24 - half * 0.45 && (x + y) % 3 ? shirtSh : shirt); }
+  for (let y = y0; y < 48; y++) { const half = start + (y - y0) * slope; for (let x = 0; x < 48; x++) if (Math.abs(x - 24) <= half) px(x, y, x < 24 - half * 0.45 && (x + y) % 3 ? shirtSh : shirt); }
 }
 const eyesAt = (P, y, o = {}) => {
   const { px, st } = P, gap = o.gap || 11;
@@ -149,21 +149,18 @@ const noseAt = (P, y) => { const { px } = P; px(23, y, 'skinSh', 1, 5); px(22, y
 // DING: thick dark beard, black rectangular glasses, short tousled brown hair, black tee, a tabby cat on his shoulder.
 export function paintDing(cv, st = {}) {
   const P = PX(cv, st), { px, ell, poly } = P;
-  // cat (behind, left shoulder)
-  poly([[1, 32], [3, 20], [5, 16], [7, 20], [11, 20], [13, 15], [14, 21], [15, 36], [8, 42], [2, 42]], '#8a7a62', (x, y) => ((x * 2 + y) % 5 === 0 ? '#4a3f33' : (x + y) % 7 === 0 ? '#b0a086' : '#8a7a62'));
-  px(4, 24, '#f0e6c8', 2, 2); px(9, 24, '#f0e6c8', 2, 2); px(5, 25, 'ol', 1, 1); px(10, 25, 'ol', 1, 1); px(7, 27, '#c07a7a', 2, 1);
-  px(2, 31, '#2a2024', 12, 2);                                                                   // collar
   neckShirt(P, SK2, 'blk2', 'black');
   headBase(P, SK2, { rx: 13.5, ry: 15 });
-  for (let y = 4; y <= 14; y++) for (let x = 11; x <= 37; x++) { const top = 6 + Math.floor(Math.abs(x - 26) / 6) - ((x * 5) % 3 === 0 ? 1 : 0), line = 13 + (x < 15 ? Math.floor((15 - x)) : 0) + (x > 34 ? Math.floor((x - 34)) : 0); if (y >= top && y <= line) px(x, y, (x * 2 + y * 3) % 6 < 1 ? 'brownLt' : 'brown'); }
-  px(11, 14, 'brown', 2, 8); px(36, 14, 'brown', 2, 8);
+  // very short, light brown hair (close crop, high hairline)
+  for (let y = 6; y <= 12; y++) for (let x = 11; x <= 37; x++) { const dx = Math.abs(x - 24), top = 6 + Math.floor(dx * dx / 55), line = 10 + (dx > 11 ? Math.floor(dx - 10) : 0); if (y >= top && y <= line) px(x, y, (x * 3 + y * 5) % 7 < 1 ? 'hairLt2' : 'hairLt'); }
+  px(11, 12, 'hairLt', 2, 5); px(36, 12, 'hairLt', 2, 5);
   // beard + moustache (dark, full)
-  for (let y = 27; y <= 41; y++) for (let x = 11; x <= 37; x++) { const cx = 24, d = ((x - cx) / 13) ** 2 + ((y - 29) / 12.5) ** 2; if (d <= 1 && y >= 27 + Math.max(0, 3 - Math.abs(x - cx) * 0.4)) px(x, y, (x * 3 + y * 5) % 9 < 1 ? 'brown' : 'brownDk'); }
-  px(19, 28, 'brownDk', 11, 2); px(17, 27, 'brownDk', 4, 1); px(27, 27, 'brownDk', 4, 1);   // moustache
+  for (let y = 27; y <= 41; y++) for (let x = 11; x <= 37; x++) { const cx = 24, d = ((x - cx) / 13) ** 2 + ((y - 29) / 12.5) ** 2; if (d <= 1 && y >= 27 + Math.max(0, 3 - Math.abs(x - cx) * 0.4)) px(x, y, (x * 3 + y * 5) % 9 < 1 ? 'beardLt2' : 'beardLt'); }
+  px(19, 28, 'beardLt', 11, 2); px(17, 27, 'beardLt', 4, 1); px(27, 27, 'beardLt', 4, 1);   // moustache
   px(21, 32, '#8a3b3b', 6, 1);                                                                    // mouth line in the beard
   talkAt(P, 21, 31, 6);
   // brows + eyes + glasses
-  for (const [bx, t] of [[16, 1], [27, -1]]) for (let i = 0; i < 7; i++) px(bx + i, 17 + (t > 0 ? (i < 3 ? 1 : 0) : (i > 3 ? 1 : 0)), 'brownDk', 1, 2);
+  for (const [bx, t] of [[16, 1], [27, -1]]) for (let i = 0; i < 7; i++) px(bx + i, 17 + (t > 0 ? (i < 3 ? 1 : 0) : (i > 3 ? 1 : 0)), 'beardLt', 1, 2);
   eyesAt(P, 20); noseAt(P, 21);
   for (const gx of [14, 26]) { px(gx, 18, 'black', 9, 1); px(gx, 25, 'black', 9, 1); px(gx, 18, 'black', 1, 8); px(gx + 8, 18, 'black', 1, 8); px(gx + 1, 19, 'glass', 7, 1); }
   px(23, 20, 'black', 3, 1); px(9, 20, 'black', 5, 1); px(35, 20, 'black', 4, 1);
@@ -174,13 +171,13 @@ export function paintDing(cv, st = {}) {
 export function paintDealone(cv, st = {}) {
   const P = PX(cv, st), { px, ell, poly } = P;
   // hair behind the head: long, to the shoulders, with a flyaway tuft up-left
-  poly([[8, 12], [10, 4], [16, 1], [24, 2], [33, 3], [39, 8], [41, 20], [42, 36], [36, 38], [12, 38], [6, 34], [6, 20]], null, (x, y) => ((x * 3 + y * 2) % 7 < 1 ? 'brownLt' : (x + y * 3) % 11 === 0 ? 'brownDk' : 'brown'));
+  poly([[10, 12], [11, 4], [16, 1], [24, 2], [32, 3], [37, 8], [38, 20], [38, 36], [34, 38], [14, 38], [10, 34], [9, 20]], null, (x, y) => ((x * 3 + y * 2) % 7 < 1 ? 'brownLt' : (x + y * 3) % 11 === 0 ? 'brownDk' : 'brown'));
   poly([[12, 4], [8, 0], [13, 2]], 'brownLt'); poly([[16, 2], [14, -1], [20, 1]], 'brown');
-  neckShirt(P, SK2, '#6b7078', '#4c5058');
-  for (let y = 36; y < 44; y++) for (let x = 14; x <= 36; x++) { const t = (x - 14) / 22; if (y - 36 < 3 + t * 5 && y - 36 > t * 2 - 1) px(x, y, (x + y) % 3 === 0 ? 'paisley2' : 'paisley'); }   // bandana knot
+  neckShirt(P, SK2, '#6b7078', '#4c5058', 38, 1.35, 10);   // narrower, athletic shoulders
+  for (let y = 36; y < 44; y++) for (let x = 16; x <= 32; x++) { const t = (x - 14) / 22; if (y - 36 < 3 + t * 5 && y - 36 > t * 2 - 1) px(x, y, (x + y) % 3 === 0 ? 'paisley2' : 'paisley'); }   // bandana knot
   px(20, 42, 'paisley', 3, 4);
-  headBase(P, SK2, { rx: 14, ry: 15.5 });
-  for (let y = 28; y <= 38; y++) for (let x = 11; x <= 37; x++) if (y <= 38 - Math.max(0, Math.abs(x - 24) - 11) * 1.6 && y >= 28) px(x, y, 'skin');   // broad, square jaw
+  headBase(P, SK2, { rx: 12, ry: 15.5 });                                                    // lean face
+  for (let y = 30; y <= 36; y++) for (let x = 14; x <= 34; x++) if (y <= 36 - Math.max(0, Math.abs(x - 24) - 7) * 1.1) px(x, y, 'skin');   // defined, angular jaw
   // hair on top / fringe falling to the sides, parted in the middle
   for (let y = 5; y <= 22; y++) for (let x = 9; x <= 39; x++) { const part = Math.abs(x - 24), line = 13 + Math.floor(part * 0.5) - (part < 2 ? 2 : 0), inner = part < 11 ? 0 : 1; if (y >= 5 + Math.floor(part / 5) && ((y <= line && part <= 15) || (part >= 12 && y <= 24 && part <= 16))) px(x, y, (x * 2 + y) % 6 < 1 ? 'brownLt' : (x + y) % 9 === 0 ? 'brownDk' : 'brown'); }
   // brows (relaxed, raised), eyes, thin glasses
@@ -190,8 +187,6 @@ export function paintDealone(cv, st = {}) {
   px(23, 19, '#6a7078', 3, 1); px(10, 19, '#6a7078', 4, 1); px(35, 19, '#6a7078', 4, 1);
   // big smile with teeth
   px(18, 30, 'ol', 13, 1); px(19, 31, 'tooth', 11, st.talk ? 1 : 2); if (st.talk) px(19, 32, 'mouth', 11, 2); px(20, 33, 'ol', 9, 1); px(17, 29, 'ol', 1, 1); px(31, 29, 'ol', 1, 1);
-  for (let y = 28; y <= 38; y++) for (let x = 12; x <= 36; x++) if ((((x * 73856093) ^ (y * 19349663)) >> 4) % 3 === 0 && !(y >= 30 && y <= 33 && x >= 17 && x <= 31)) px(x, y, 'stub');
-  px(17, 28, 'brownDk', 14, 1); px(19, 29, 'stub', 11, 1);   // moustache shadow
   talkAt(P, 19, 31, 11);
   P.outline();
 }
@@ -211,20 +206,17 @@ export function paintJimbo(cv, st = {}) {
   px(23, 18, '#3a3f48', 3, 1);
   px(20, 29, '#9a5a4a', 9, 1); px(21, 30, 'skinSh', 7, 1);                                         // serious mouth
   talkAt(P, 21, 29, 7);
-  // clasped hands under the chin: two fists with finger lines and knuckles
-  for (let y = 33; y <= 42; y++) for (let x = 16; x <= 32; x++) { const dx = Math.abs(x - 24); if (dx <= 8 - Math.max(0, y - 40) * 2 && y >= 33 + (dx > 6 ? 2 : 0)) px(x, y, y > 39 ? 'skinSh' : x < 24 ? 'skin' : 'skinLt'); }
-  px(23, 33, 'skinSh', 1, 9); for (const y of [35, 37, 39]) px(17, y, 'skinSh', 15, 1);
-  for (const x of [18, 21, 26, 29]) px(x, 34, 'skinDk', 1, 1);
-  px(19, 33, 'skinLt', 3, 1); px(26, 33, 'skinLt', 3, 1);
-  px(32, 41, 'black', 6, 2); px(33, 41, '#8a8f98', 4, 2);                                           // watch
+  // clean chin and neck: a soft shadow under the jaw, nothing else (the clasped hands from the photo were reading as a beard)
+  px(19, 37, 'skinSh', 11, 1); px(20, 38, 'skinDk', 9, 1);
+  px(32, 41, 'black', 6, 2); px(33, 41, '#8a8f98', 4, 2);
   P.outline();
 }
 
 // HELGA: long straight light-brown hair parted in the middle, calm slight smile, grey sweatshirt with a white collar.
 export function paintHelga(cv, st = {}) {
   const P = PX(cv, st), { px, poly } = P;
-  poly([[9, 10], [12, 3], [19, 0], [29, 0], [36, 3], [39, 10], [41, 26], [44, 47], [4, 47], [7, 26]], null, (x, y) => ((x * 2 + y) % 6 < 1 ? 'blondLt' : (x + y * 2) % 13 === 0 ? 'brown' : 'blond'));
-  neckShirt(P, SK2, '#7a7f88', '#5a5f69', 39);
+  poly([[9, 10], [12, 3], [19, 0], [29, 0], [36, 3], [39, 10], [40, 26], [40, 47], [8, 47], [8, 26]], null, (x, y) => ((x * 2 + y) % 6 < 1 ? 'blondLt' : (x + y * 2) % 13 === 0 ? 'brown' : 'blond'));
+  neckShirt(P, SK2, '#7a7f88', '#5a5f69', 39, 0.95, 9);
   px(18, 39, 'white', 5, 3); px(25, 39, 'white', 5, 3); px(22, 40, 'greyLt', 4, 2);
   // oval face with a narrow, slightly pointed chin and a long neck (no squared jaw)
   for (let y = 8; y <= 38; y++) { const t = Math.max(0, (y - 24) / 14), half = y < 24 ? 12 - Math.max(0, (14 - y)) * 0.18 : 12 - t * t * 8.5 - t * 3; for (let x = Math.ceil(24 - half); x <= 24 + half; x++) px(x, y, x < 24 - half + 2 || x > 24 + half - 2 ? SK2.skinSh : SK2.skin); }
@@ -240,7 +232,7 @@ export function paintHelga(cv, st = {}) {
 }
 
 // TILAH: seen from the side (facing left): shaved sides, tall spiky red mohawk, light stubble, black top.
-export function paintTilah(cv, st = {}) {
+export function paintTilahSide(cv, st = {}) {
   const P = PX(cv, st), { px, ell, poly } = P;
   // mohawk spikes (behind the head)
   const spikes = [[14, 12, 8, 2], [18, 8, 10, 1], [22, 5, 12, 0], [27, 4, 14, 0], [31, 5, 16, 1], [35, 9, 18, 2], [38, 14, 20, 3], [40, 20, 22, 3], [41, 26, 24, 4]];
@@ -260,5 +252,26 @@ export function paintTilah(cv, st = {}) {
   px(13, 31, '#a85a5a', 4, 1); px(14, 32, 'skinSh', 3, 1);
   if (st.talk) { px(13, 31, 'ol', 3, 3); px(14, 32, 'mouth', 2, 1); }
   px(15, 27, 'skinSh');
+  P.outline();
+}
+
+// TILAH (front view, turned ~45 degrees toward the camera): tall red mohawk strip on top, shaved sides, no beard, relaxed half-smile, black tee.
+export function paintTilah(cv, st = {}) {
+  const P = PX(cv, st), { px, ell, poly } = P;
+  // mohawk spikes (behind / above the head)
+  neckShirt(P, SK2, 'blk2', 'black', 39, 1.7, 11);
+  headBase(P, SK2, { rx: 13, ry: 15.5, cx: 24, cy: 22 });
+  // shaved sides: short dark stubble above and around the ears (no hair on the face)
+  for (let y = 8; y <= 20; y++) for (let x = 10; x <= 38; x++) { const dx = Math.abs(x - 24), inHead = ((x - 24) / 13.4) ** 2 + ((y - 22) / 15.7) ** 2 <= 1; if (!inHead) continue; if (y <= 12 + (dx > 9 ? 4 : 0) && dx >= 5 || (y <= 15 && dx >= 11)) px(x, y, (x * 3 + y * 5) % 4 === 0 ? 'brown' : 'brownDk'); }
+  // tall comb of red spikes: columns of alternating height with pointed tips, leaning slightly back
+  const H = [7, 5, 3, 1, 0, 1, 3, 5, 7], X0 = 20;
+  H.forEach((top, i) => { const x = X0 + i; for (let y = top + 3; y <= 15; y++) px(x, y, (i + y) % 3 === 0 ? 'redLt' : (i * 2 + y) % 5 === 0 ? 'redDk' : 'red'); px(x, top + 2, i % 2 ? 'red' : 'redLt'); px(x, top + 1, i % 2 ? 'redLt' : 'red'); if (i % 2 === 0) px(x, top, 'redLt'); });
+  for (const [x, y] of [[19, 9], [29, 9], [18, 11], [30, 11]]) px(x, y, 'red', 1, 5);
+  px(9, 20, 'skinSh', 2, 5); px(37, 20, 'skinSh', 2, 5); px(9, 21, 'skinDk', 1, 3); px(38, 21, 'skinDk', 1, 3);   // ears
+  // brows, eyes, nose, mouth
+  for (const [bx, t] of [[15, 1], [27, -1]]) for (let i = 0; i < 7; i++) px(bx + i, 17 + (t > 0 ? (i > 4 ? 0 : 0) : 0) + (t > 0 ? (i > 4 ? -0 : 0) : 0), 'brownDk', 1, 2);
+  eyesAt(P, 20); noseAt(P, 21);
+  px(20, 31, '#a85a5a', 9, 1); px(29, 30, '#a85a5a', 1, 1); px(21, 32, 'skinSh', 7, 1);   // easy half-smile
+  talkAt(P, 20, 30, 8);
   P.outline();
 }
