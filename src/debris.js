@@ -4,6 +4,7 @@ import { tex } from './textures.js';
 
 const lam = (color, extra = {}) => new THREE.MeshLambertMaterial({ color, ...extra });
 let KINDS = null;
+const tmpM = new THREE.Matrix4();
 function kinds() {
   if (KINDS) return KINDS;
   const box = new THREE.BoxGeometry(1, 1, 1);
@@ -49,8 +50,13 @@ export class Debris {
       d.vy -= 17 * dt;
       p.x += d.vx * dt; p.y += d.vy * dt; p.z += d.vz * dt;
       d.sound -= dt;
-      if (p.y < d.r) {
-        p.y = d.r;
+      let floor = d.r;
+      if (k.size) { // a tumbling box: rest on its lowest CORNER, so no part of it sinks into the ground
+        const te = tmpM.makeRotationFromEuler(d.m.rotation).elements, sc = d.m.scale;
+        floor = 0.5 * (Math.abs(te[1]) * sc.x + Math.abs(te[5]) * sc.y + (d.kind === 'glass' ? 0 : Math.abs(te[9]) * sc.z));
+      }
+      if (p.y < floor) {
+        p.y = floor;
         if (d.vy < -0.8) {
           if (k.sound && d.sound <= 0 && this.onSound) { this.onSound(k.sound, -d.vy, p); d.sound = 0.08; }
           d.vy = -d.vy * k.bounce; d.vx *= 0.7; d.vz *= 0.7; d.ax *= 0.6; d.ay *= 0.6; d.az *= 0.6;
