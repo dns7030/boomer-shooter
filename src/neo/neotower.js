@@ -30,7 +30,13 @@ addPainters({
   },
 });
 
-export function makeNeoTower({ w, d, h, rectPad = 2, build }) {
+// projectile hit shapes (tower-local x, y, z): the real silhouette, not the padded AI rectangle
+const sq = (x, z, half, rot = 0) => { if (rot) { const c = Math.cos(rot), n = Math.sin(rot), a = x * c - z * n, b = x * n + z * c; x = a; z = b; } return Math.abs(x) < half && Math.abs(z) < half; };
+const disc = (x, z, r) => x * x + z * z < r * r;
+function stepped(y0, tiers, top) {   // tiers: [height, half-width, rotation?] stacked from y0; `top(x,y,z)` handles whatever is above
+  return (x, y, z) => { let b = y0; for (const [hh, half, rot] of tiers) { if (y < b + hh) return sq(x, z, half + 0.15, rot); b += hh; } return top ? top(x, y, z) : false; };
+}
+export function makeNeoTower({ w, d, h, rectPad = 2, build, hit }) {
   const g = new THREE.Group(), cols = [], stagesHide = [], stagesShow = [], tops = [], spinners = [], wobblers = [], smokePoints = [];
   const glow = new THREE.MeshBasicMaterial({ color: new THREE.Color(NEO_GREEN) });
   const glowBase = new THREE.Color(0, 0.8, 0.45);                      // HDR green so bloom picks it up
@@ -104,7 +110,7 @@ export function makeNeoTower({ w, d, h, rectPad = 2, build }) {
     for (const w of wobblers) { const { amp, speed } = w.userData.wob; w.rotation.z = amp * Math.sin(t * speed); w.rotation.x = amp * 0.45 * Math.sin(t * speed * 0.7 + 1.3); }
   }
   setStage(0);
-  g.userData = { w, d, h, cols: cols.length ? cols : [[-w / 2, w / 2, -d / 2, d / 2, h]], rect: { w: w + rectPad * 2, d: d + rectPad * 2 }, setStage, update, smokePoints, glow };
+  g.userData = { w, d, h, cols: cols.length ? cols : [[-w / 2, w / 2, -d / 2, d / 2, h]], rect: { w: w + rectPad * 2, d: d + rectPad * 2 }, hit, setStage, update, smokePoints, glow };
   return g;
 }
 
@@ -112,6 +118,7 @@ export function makeNeoTower({ w, d, h, rectPad = 2, build }) {
 export function neoTowerMoscow() {
   return makeNeoTower({
     w: 30, d: 30, h: 66, rectPad: 3,
+    hit: stepped(0, [[2, 18], [27, 15], [17, 11], [13, 7.5]], (x, y, z) => y < 89 && disc(x, z, 4.2 * (1 - (y - 59) / 30))),
     build(T) {
       const conc = mat('concrete'), stalin = mat('stalin');
       // plinth + steps
@@ -151,6 +158,7 @@ export function neoTowerMoscow() {
 export function neoTowerDubai() {
   return makeNeoTower({
     w: 26, d: 26, h: 90, rectPad: 3,
+    hit: (x, y, z) => { let b = 1.8, i = 0; for (const [sz, hh] of [[26, 22], [22, 18], [18, 16], [14, 14], [10, 12], [6.5, 10]]) { if (y < b + hh + 0.2) return sq(x, z, sz / 2 + 0.15, i * 0.26); b += hh + 0.2; i++; } return y < 120 && disc(x, z, 1.1); },
     build(T) {
       const gold = mat('s5d_goldclad'), glass = mat('s5d_glass');
       T.cols.push([-13, 13, -13, 13, 90], [-16, 16, -16, 16, 1.9]);
@@ -183,6 +191,7 @@ export function neoTowerDubai() {
 export function neoTowerSeattle() {
   return makeNeoTower({
     w: 22, d: 22, h: 80,
+    hit: (x, y, z) => y < 59 ? disc(x, z, 3.4 + (y < 40 ? Math.max(0, 6 - y * 0.12) : 0)) : y < 66 ? disc(x, z, 11.2) : y < 82 && disc(x, z, 1),
     build(T) {
       const steel = color(0xd9dde0), dark = color(0x2a3236), glass = mat('s5d_glass');
       T.add(boxT(26, 0.8, 26, mat('granite'), 3)).position.set(0, 0.4, 0);
@@ -230,6 +239,7 @@ const flare = (x, y, z, ry, w, hh, T) => { const m = new THREE.Mesh(new THREE.Co
 export function neoTowerShanghai() {
   return makeNeoTower({
     w: 26, d: 26, h: 78, rectPad: 3,
+    hit: stepped(0, [[1.8, 18], [14.9, 11], [11.9, 10], [10.9, 9], [9.9, 8], [8.9, 7], [7.9, 6], [6.9, 5]], (x, y, z) => y < 96 && disc(x, z, 1)),
     build(T) {
       T.cols.push([-11, 11, -11, 11, 78], [-16.4, 16.4, -16.4, 16.4, 1.8]);
       T.add(boxT(32, 1.0, 32, mat('granite'), 3)).position.set(0, 0.5, 0);
@@ -263,6 +273,7 @@ export function neoTowerShanghai() {
 export function neoTowerTokyo() {
   return makeNeoTower({
     w: 14, d: 14, h: 72, rectPad: 8,
+    hit: (x, y, z) => y < 72 ? sq(x, z, 6.7) : y < 82 && disc(x, z, 1),
     build(T) {
       T.cols.push([-7, 7, -7, 7, 72], [-16.4, 16.4, -16.4, 16.4, 1.8]);
       T.add(boxT(32, 1.0, 32, mat('granite'), 3)).position.set(0, 0.5, 0);
@@ -295,6 +306,7 @@ export function neoTowerTokyo() {
 export function neoTowerSingapore() {
   return makeNeoTower({
     w: 26, d: 26, h: 64, rectPad: 3,
+    hit: (x, y, z) => y < 47.8 ? disc(x, z, 5.4 - 2 * Math.max(0, y - 1.8) / 46) : y < 54 && disc(x, z, Math.min(15, 3 + (y - 47.8) * 2)),
     build(T) {
       T.cols.push([-5, 5, -5, 5, 64], [-16.4, 16.4, -16.4, 16.4, 1.8]);
       T.add(boxT(32, 1.0, 32, mat('granite'), 3)).position.set(0, 0.5, 0);
@@ -319,6 +331,7 @@ export function neoTowerSingapore() {
 export function neoTowerRio() {
   return makeNeoTower({
     w: 26, d: 26, h: 52, rectPad: 3,
+    hit: (x, y, z) => y < 30.5 ? disc(x, z, 6.2 - 3.2 * Math.max(0, y - 1.8) / 30) : y < 35.5 ? disc(x, z, 3 + 12 * (y - 30.5) / 5) : y < 39.5 ? disc(x, z, 15.2 - 1.5 * (y - 35.5)) : y < 42 ? disc(x, z, 8.6) : y < 52 && disc(x, z, 1),
     build(T) {
       T.cols.push([-5.5, 5.5, -5.5, 5.5, 52], [-16.4, 16.4, -16.4, 16.4, 1.8]);
       T.add(boxT(32, 1.0, 32, mat('granite'), 3)).position.set(0, 0.5, 0);

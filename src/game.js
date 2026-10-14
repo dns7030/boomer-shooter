@@ -1245,6 +1245,12 @@ export class Game {
     const ux = d > 0.01 ? dx / d : 1, uz = d > 0.01 ? dz / d : 0;
     return { x: cx, z: cz, d: Math.max(0.01, d), lx: cx + ux * 1.0, lz: cz + uz * 1.0 };
   }
+  // projectile vs the node: the tower's real silhouette when it has one (the AI rectangle is padded and far too big for round / stepped towers)
+  hitsBase(x, y, z) {
+    const b = this.base, tw = b.tower, ud = tw && tw.userData;
+    if (ud && ud.hit) { const dx = x - b.x, dz = z - b.z, th = tw.rotation.y, c = Math.cos(th), n = Math.sin(th); return ud.hit(dx * c - dz * n, y, dx * n + dz * c); }
+    const r = b.rect; return x > r.x0 - 0.3 && x < r.x1 + 0.3 && z > r.z0 - 0.3 && z < r.z1 + 0.3 && y < b.h;
+  }
   damageBase(amount, x, y, z) {
     const b = this.base; if (!b || !b.alive || this.state !== 'playing') return;
     b.hp -= amount;
@@ -1350,8 +1356,13 @@ export class Game {
       q.x += q.vx * dt; q.y += q.vy * dt; q.z += q.vz * dt; q.life -= dt;
       q.sprite.position.set(q.x, q.y, q.z);
       let dead = q.life <= 0 || q.y < 0.05;
-      if (!dead && this.base && this.base.alive) { const r = this.base.rect; if (q.x > r.x0 - 0.3 && q.x < r.x1 + 0.3 && q.z > r.z0 - 0.3 && q.z < r.z1 + 0.3 && q.y < this.base.h) { this.damageBase(q.dmg || 12, q.x, q.y, q.z); dead = true; } }
-      if (!dead) for (const b of this.boxes) if (q.x > b.x0 && q.x < b.x1 && q.z > b.z0 && q.z < b.z1 && q.y < b.h) { dead = true; break; }
+      if (!dead && this.base && this.base.alive && this.hitsBase(q.x, q.y, q.z)) { this.damageBase(q.dmg || 12, q.x, q.y, q.z); dead = true; }
+      if (!dead) for (const b of this.boxes) if (q.x > b.x0 && q.x < b.x1 && q.z > b.z0 && q.z < b.z1 && q.y < b.h) {
+        dead = true;
+        // the tower's own (slightly larger) collision column counts as hitting the tower
+        if (this.base && this.base.alive && b.h > 4) { const r = this.base.rect, mx = (b.x0 + b.x1) / 2, mz = (b.z0 + b.z1) / 2; if (mx > r.x0 && mx < r.x1 && mz > r.z0 && mz < r.z1) this.damageBase(q.dmg || 12, q.x, q.y, q.z); }
+        break;
+      }
       if (!dead && Math.hypot(q.x - p.x, q.z - p.z) < 0.7 && q.y > p.y && q.y < p.y + 1.9) { this.hurt(q.dmg || 12); sfx.plasmaHit(); dead = true; }
       if (dead && q.fire) { this.burst(q.x, q.y, q.z, 'fire', 10, 4.5, 0.25); this.sparks(q.x, q.y, q.z, 8, 6, 0, 0.35, 0); this.flash(q.x, q.y, q.z, 0xff8a30, 160, 0.3); }
       if (dead && !q.fire) this.burst(q.x, q.y, q.z, 'plasma', 8, 3.5, 0.12);

@@ -2,7 +2,7 @@
 import { launch } from './shot.mjs';
 const { page, browser, srv, errors } = await launch('/neo.html');
 const n = await page.evaluate(() => window.__game.levels.length);
-for (let i = 0; i < n; i++) {
+for (const i of (process.argv[2] ? [Number(process.argv[2])] : [...Array(n).keys()])) {
   const r = await page.evaluate(async (i) => {
     const g = window.__game; g.loadLevel(i); g.begin(); g.p.health = 1e9;
     for (let k = 0; k < 60 * 400 && g.state === 'playing'; k++) { for (const e of g.enemies) { e.tgt = "base"; } g.p.health = 1e9; g.step(1 / 30); }
