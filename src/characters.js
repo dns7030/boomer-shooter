@@ -189,7 +189,7 @@ function paintDealoneFull(cv, st = {}) {
   for (const gx of [14, 26]) { px(gx, 18, '#6a7078', 9, 1); px(gx, 24, '#6a7078', 9, 1); px(gx, 18, '#6a7078', 1, 7); px(gx + 8, 18, '#6a7078', 1, 7); }
   px(23, 19, '#6a7078', 3, 1); px(10, 19, '#6a7078', 4, 1); px(35, 19, '#6a7078', 4, 1);
   // big smile with teeth
-  px(18, 30, 'ol', 13, 1); px(19, 31, 'tooth', 11, st.talk ? 1 : 2); if (st.talk) px(19, 32, 'mouth', 11, 2); px(19, 33, '#a24a52', 11, 2); px(20, 35, 'ol', 9, 1); px(18, 31, 'ol', 1, 3); px(30, 31, 'ol', 1, 3);   // upper line, teeth, then a lower lip so it reads as an open smile px(17, 29, 'ol', 1, 1); px(31, 29, 'ol', 1, 1);
+  px(18, 30, 'ol', 13, 1); px(19, 31, 'tooth', 11, st.talk ? 1 : 2); if (st.talk) px(19, 32, 'mouth', 11, 2); px(20, 33, 'ol', 9, 1); px(18, 31, 'ol', 1, 3); px(30, 31, 'ol', 1, 3);   // upper line, white teeth, dark line below, dark corners px(17, 29, 'ol', 1, 1); px(31, 29, 'ol', 1, 1);
   talkAt(P, 19, 31, 11);
   P.outline();
 }
