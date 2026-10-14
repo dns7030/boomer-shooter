@@ -120,8 +120,9 @@ function laundry(g, x, y, z0, L, seed) {
   const byCol = {};
   const n = 3 + ((r() * 2) | 0);
   for (let i = 0; i < n; i++) {
-    const t = (i + 0.7) / (n + 0.4), c = pick(r, cols), w = 0.45 + r() * 0.3, h = 0.7 + r() * 0.5;
-    (byCol[c] = byCol[c] || []).push(xf(new THREE.PlaneGeometry(w, h), x + 0.02, y + 0.35 * t - h / 2 - 0.02, z0 + L * t, 1, 1, 1, 0, Math.PI / 2, 0));
+    // each cloth is narrower than the spacing between pegs and sits in its own plane (x offset), so two cloths never overlap on the same plane (flicker)
+    const t = (i + 0.7) / (n + 0.4), c = pick(r, cols), w = Math.min(0.45 + r() * 0.3, (L / (n + 0.4)) * 0.8), h = 0.7 + r() * 0.5;
+    (byCol[c] = byCol[c] || []).push(xf(new THREE.PlaneGeometry(w, h), x + 0.02 + (i % 2 ? 0.04 : 0), y + 0.35 * t - h / 2 - 0.02, z0 + L * t, 1, 1, 1, 0, Math.PI / 2, 0));
   }
   for (const c of Object.keys(byCol)) mergedMesh(g, byCol[c], dbl(+c));
 }
