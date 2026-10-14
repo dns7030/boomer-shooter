@@ -53,9 +53,9 @@ export function paintAce(cv, st = {}) {
   px(23, 22, 'skinSh', 1, 6); px(22, 27, 'skinDk', 4, 1); px(21, 26, 'skinSh', 1, 1); px(26, 26, 'skinSh', 1, 1);
   // clean-shaven: no beard or stubble
   // mouth: calm half-smirk (right corner up)
-  px(20, 31, 'mouth', 9, 1); px(29, 30, 'mouth', 2, 1); px(20, 32, 'skinSh', 8, 1); px(24, 32, 'tooth', 3, 1);
+  px(20, 31, 'mouth', 9, 1); px(29, 30, 'mouth', 2, 1); px(20, 32, 'skinSh', 8, 1);
   px(23, 35, 'skinSh', 3, 1);
-  if (st.talk) { px(21, 31, 'ol', 7, 2); px(22, 32, 'mouth', 5, 1); px(22, 31, 'tooth', 5, 1); }
+  if (st.talk) { px(21, 31, 'ol', 7, 2); px(22, 32, 'mouth', 5, 1); px(22, 31, 'mouth', 5, 1); }
   // outline (1 px) around the head silhouette
   const id = g.getImageData(0, 0, N, N), d = id.data, o = new Uint8ClampedArray(d);
   const isSkin = (x, y) => { if (x < 0 || y < 0 || x >= N || y >= N) return false; const i = (y * N + x) * 4; return d[i] > 100 && d[i + 1] > 60 && d[i] > d[i + 2] + 40; };
