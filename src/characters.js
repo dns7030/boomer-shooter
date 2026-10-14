@@ -6,7 +6,7 @@ const PAL = {
   shirt: '#4f7183', shirtSh: '#355160', collar: '#2c4452', bg1: '#2a2f4a', bg2: '#3a4063',
 };
 
-// Man with short, swept dark hair, strong straight brows, light stubble and a calm half-smirk.
+// GYL: man with short, swept dark hair, strong straight brows, light stubble and a calm half-smirk.
 export function paintAce(cv) {
   const N = 48; cv.width = N; cv.height = N;
   const g = cv.getContext('2d'); g.imageSmoothingEnabled = false;
@@ -65,8 +65,8 @@ export function paintAce(cv) {
 }
 
 export const CHARACTERS = {
-  ace: {
-    name: 'ACE', paint: paintAce,
+  gyl: {
+    name: 'GYL', paint: paintAce,
     lines: {
       start: ['LIZARDS ON MY STREET. THIS WILL BE QUICK.', 'FIVE MINUTES TO SAVE THE CHAIN. I NEED FOUR.'],
       wave: ['MORE OF THEM. GOOD. I WAS WARMING UP.', 'THEY KEEP COMING. SO DO MY BULLETS.', 'EVERY WAVE THEY BRING LESS BRAIN AND MORE TEETH.'],
