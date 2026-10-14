@@ -6,6 +6,7 @@
 //   GET  /api/admin/summary?key=ADMIN_KEY                    -> totals, daily sessions, online now, per-level sessions
 import http from 'node:http';
 import fs from 'node:fs';
+import path from 'node:path';
 
 const PORT = Number(process.env.PORT || 3111);
 const ADMIN_KEY = process.env.ADMIN_KEY || '';
@@ -73,6 +74,25 @@ async function makeStore() {
 
 const store = await makeStore();
 
+// ---------------- the game itself (static files), so one Railway service hosts everything ----------------
+const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
+const WEB_FILES = new Set(['index.html', 'neo.html']), WEB_DIRS = ['src', 'vendor', 'assets'];
+const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.mjs': 'text/javascript; charset=utf-8', '.css': 'text/css', '.png': 'image/png', '.webp': 'image/webp', '.json': 'application/json', '.svg': 'image/svg+xml', '.ico': 'image/x-icon' };
+function serveStatic(u, res) {
+  let rel = decodeURIComponent(u.pathname).replace(/^\/+/, '');
+  if (rel === '') rel = 'index.html';
+  const top = rel.split('/')[0];
+  if (!(WEB_FILES.has(rel) || WEB_DIRS.includes(top))) return false;
+  const f = path.resolve(ROOT, rel);
+  if (!f.startsWith(ROOT + path.sep) || !fs.existsSync(f) || fs.statSync(f).isDirectory()) return false;
+  const headers = { 'content-type': MIME[path.extname(f)] || 'application/octet-stream', 'cache-control': 'no-cache' };   // always revalidate: players get new builds immediately
+  if (f.endsWith('.html')) {   // pages served by this server talk to this same server for stats
+    const html = fs.readFileSync(f, 'utf8').replace("window.STATS_URL = ''", 'window.STATS_URL = location.origin');
+    res.writeHead(200, headers); res.end(html); return true;
+  }
+  res.writeHead(200, headers); fs.createReadStream(f).pipe(res); return true;
+}
+
 // ---------------- tiny rate limit (per IP) ----------------
 const hits = new Map();
 function limited(ip, max = 120) {
@@ -90,7 +110,8 @@ http.createServer(async (req, res) => {
   try {
     if (req.method === 'OPTIONS') return send(res, 204, {});
     if (limited(ip)) return send(res, 429, { error: 'slow down' });
-    if (u.pathname === '/' || u.pathname === '/health') return send(res, 200, { ok: true });
+    if (u.pathname === '/health') return send(res, 200, { ok: true, service: 'neo-stats' });
+    if (req.method === 'GET' && !u.pathname.startsWith('/api/') && serveStatic(u, res)) return;
     if (req.method === 'POST' && u.pathname === '/api/ping') {
       const b = await readJson(req), game = GAMES.has(b.game) ? b.game : null, sid = clean(b.sid, 40);
       if (!game || !sid) return send(res, 400, { error: 'bad request' });
