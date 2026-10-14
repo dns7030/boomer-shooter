@@ -23,11 +23,11 @@ export function paintAce(cv, st = {}) {
   px(19, 37, 'skinDk', 11, 1);
   // head (slightly square jaw)
   for (let y = 9; y <= 36; y++) for (let x = 10; x <= 38; x++) {
-    const top = inEll(x, y, 24, 22, 12.2, 15.5), jaw = y > 27 && x >= 15 && x <= 33 && y <= 36 - Math.max(0, Math.abs(x - 24) - 6) * 0.9;   // narrower face
+    const top = inEll(x, y, 24, 22, 11.4, 15.5), jaw = y > 27 && x >= 15 && x <= 33 && y <= 36 - Math.max(0, Math.abs(x - 24) - 6) * 0.9;   // narrower face
     if (top || jaw) px(x, y, 'skin');   // one skin tone all over: no darker sides
   }
   // ears
-  for (const [ex, s] of [[10, -1], [36, 1]]) { px(ex, 21, 'skin', 2, 6); px(ex + (s > 0 ? 1 : 0), 22, 'skinSh', 1, 3); }
+  for (const [ex, s] of [[11, -1], [35, 1]]) { px(ex, 21, 'skin', 2, 6); px(ex + (s > 0 ? 1 : 0), 22, 'skinSh', 1, 3); }
   // forehead light, cheeks light
   px(18, 14, 'skinLt', 12, 3); px(17, 24, 'skinLt', 4, 3); px(28, 24, 'skinLt', 4, 3);
   // hair: tousled, swept to the right; irregular hairline and tufts so it reads as hair, not a cap
