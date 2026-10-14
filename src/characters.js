@@ -271,7 +271,8 @@ export function paintTilah(cv, st = {}) {
   for (let y = 8; y <= 20; y++) for (let x = 10; x <= 38; x++) { const dx = Math.abs(x - 24), inHead = ((x - 24) / 11.8) ** 2 + ((y - 22.5) / 17) ** 2 <= 1; if (!inHead) continue; if (y <= 12 + (dx > 9 ? 4 : 0) && dx >= 5 || (y <= 15 && dx >= 10)) px(x, y, (x * 3 + y * 5) % 4 === 0 ? 'brown' : 'brownDk'); }
   // tall comb of red spikes: columns of alternating height with pointed tips, leaning slightly back
   // flat-topped strip, slightly wider at the base (a trapezoid), filled solid so no skin shows at its corners
-  for (let y = 3; y <= 15; y++) { const hw = 4 + Math.floor((y - 3) / 5); for (let x = 24 - hw; x <= 24 + hw; x++) px(x, y, (x + y) % 3 === 0 ? 'redLt' : (x * 2 + y) % 5 === 0 ? 'redDk' : 'red'); }
+  for (let y = 3; y <= 11; y++) { const hw = 4 + Math.floor((y - 3) / 5);   // ends at the hairline (y 11), the forehead below it is bare skin
+    for (let x = 24 - hw; x <= 24 + hw; x++) px(x, y, (x + y) % 3 === 0 ? 'redLt' : (x * 2 + y) % 5 === 0 ? 'redDk' : 'red'); }
   // brows, eyes, nose, mouth
   for (const [bx, t] of [[15, 1], [27, -1]]) for (let i = 0; i < 7; i++) px(bx + i, 17 + (t > 0 ? (i > 4 ? 0 : 0) : 0) + (t > 0 ? (i > 4 ? -0 : 0) : 0), 'brownDk', 1, 2);
   eyesAt(P, 20); noseAt(P, 21);
