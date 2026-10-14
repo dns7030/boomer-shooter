@@ -107,7 +107,7 @@ export function createMusic(ctx, dest, { realtime = true } = {}) {
   function applyLayers(now) {
     const i = smooth;
     const tg = {
-      kick: 0.5 + 0.25 * i, hat: ramp(i, 0.1, 0.35) * 0.55, clap: ramp(i, 0.3, 0.55) * 0.6,
+      kick: 0.2 + 0.1 * i, hat: ramp(i, 0.1, 0.35) * 0.3, clap: ramp(i, 0.3, 0.55) * 0.3,   // beat much quieter (was 0.5-0.75 / 0.55 / 0.6); melody layers unchanged
       bass: 0.18 + ramp(i, 0.2, 0.45) * 0.55, arp: 0.3 + ramp(i, 0.35, 0.8) * 0.3, pad: 0.55 - 0.2 * i, stab: ramp(i, 0.65, 0.9) * 0.5,
     };
     for (const k of Object.keys(tg)) L[k].gain.setTargetAtTime(tg[k], now, 0.35);
