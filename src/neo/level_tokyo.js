@@ -66,7 +66,6 @@ export function buildNeoTokyo(scene) {
     decor(c) {
       const { scene, rnd, free, box, put, clip } = c;
       const drop = (g, x, z, rot, hw) => { g.position.set(x, 0, z); g.rotation.y = rot; scene.add(g); if (hw) box(x - hw, x + hw, z - hw, z + hw, 4); clip(g); };
-      for (const [x, z] of [[-14, -14], [14, -14], [-14, 14], [14, 14]]) drop(T.crossingLights(), x, z, 0, 0.5);
       for (let x = X0 + 10; x < X1; x += 16) for (const z of [-14.5, 14.5]) if (free(x, z, 1.5) && Math.abs(x) > 24) { if (rnd() < 0.5) drop(T.vendingMachine({ variant: (x | 0) % 4 }), x, z, z < 0 ? 0 : Math.PI, 0.6); else drop(T.paperLanternPost(), x, z, 0, 0.4); }
       // utility poles: contiguous runs along the avenue edges, 16 m apart, wires joined pole to pole (isolated poles are skipped)
       for (const x of [-14.5, 14.5]) {
