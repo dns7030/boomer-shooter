@@ -846,9 +846,6 @@ export function goldPalaceHotel() {
     box(a, 1.6, 2.6, 1.2, gold, 0, 1.3, 0, 1); box(a, 1.8, 0.3, 1.4, gold2, 0, 2.7, 0, 1); box(a, 1.0, 0.8, 0.06, NEO(), 0, 1.75, 0.63, 1); box(a, 1.1, 0.5, 0.3, gold2, 0, 1.1, 0.7, 1);
     const as = sign('GOLD ATM', 1.7, 0.5, { bg: '#1a1208', fg: '#ffd84a' }); as.position.set(0, 3.1, 0.62); a.add(as); box(a, 0.7, 0.18, 0.08, color(0x101010), 0, 0.85, 0.82, 1);
     g.add(a); cols.push([ax - 0.9, ax + 0.9, az - 0.7, az + 0.7, 3.6]); }
-  // glitter: sparkles
-  const spk = color(0xfffbe0, { emissive: 0xfff4b0 });
-  for (const [x, y, z] of [[-22, 24, 15], [22, 24, 15], [0, 44.5, -8], [-8, 36, -2], [9, 34, -2], [-27, 14, 4], [27, 14, 4], [-3, 31, 14]]) { const a = box(g, 1.3, 0.1, 0.1, spk, x, y, z, 1); box(g, 0.1, 1.3, 0.1, spk, x, y, z, 1); a.rotation.z = 0; }
   // utility on the back
   for (const x of [-12, 4, 14]) cyl(g, 0.2, 0.2, 18, 5, gold2, x, 9, -21.5, 1);
   box(g, 3, 2.4, 1.6, gold2, -3, 1.2, -22.2, 1); box(g, 2.4, 2, 1.4, gold2, 12, 1, -22, 1);
