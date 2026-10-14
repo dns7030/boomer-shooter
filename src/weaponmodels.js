@@ -124,7 +124,7 @@ function buildPistol(M) {
   g.add(at(box(0.004, 0.02, 0.003, M.poly), 0, -0.028, -0.078));
   // (no hand or arm on the pistol: the gun is simply held low at the edge of the screen)
   const muzzle = new THREE.Object3D(); muzzle.position.set(0, 0.014, -0.225); g.add(muzzle);
-  return { group: g, muzzle, flash: 0.12, tint: 'orange', tip: [0.14, -0.29], rot: [0.4, 0.07, 0], recoil: 1 };
+  return { group: g, muzzle, flash: 0.12, tint: 'orange', tip: [0.14, -0.39], rot: [0.4, 0.07, 0], recoil: 1 };
 }
 
 function buildShotgun(M) {

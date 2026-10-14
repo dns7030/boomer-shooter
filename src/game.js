@@ -198,7 +198,7 @@ export class Game {
     this.p = {
       x: st.x, y: 0, z: st.z, vx: 0, vz: 0, vy: 0, yaw: st.yaw || 0, pitch: 0, grounded: true,
       health: 100, ammo: Object.fromEntries(Object.entries(AMMO).map(([k, v]) => [k, v.start])),
-      has: Object.fromEntries(L.startWeapons.map((id) => [id, true])), weapon: WEAPON_INDEX.pistol, cd: 0, since: 10, firing: false,
+      has: Object.fromEntries(L.startWeapons.map((id) => [id, true])), weapon: L.startWeapons.includes('shotgun') ? WEAPON_INDEX.shotgun : WEAPON_INDEX.pistol, cd: 0, since: 10, firing: false,
       switching: 0, switchTo: 1, flash: 0, swing: -1, pendingMelee: 0, shotN: 0,
       bob: 0, bobAmp: 0, kick: 0, hurt: 0, roll: 0, spin: 0, spinV: 0,
     };
