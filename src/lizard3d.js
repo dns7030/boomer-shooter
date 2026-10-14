@@ -2,6 +2,7 @@
 // The game then shows the right frame for the angle you view the lizard from, Doom-style, but with real 3D shading.
 import * as THREE from 'three';
 import { makeCanvas, toTexture, mulberry } from './textures.js';
+import { DEMO, greenToBlue } from './demo.js';
 const tilt = (m, axis, v) => { m.rotation[axis] = v; return m; };   // (Object3D.add returns the parent, so tilt the child first)
 
 export const FRAME = 128;                 // px per frame
@@ -59,6 +60,7 @@ export function buildLizard(kind) {
     armor: std(0x2a2e36, { metalness: 0.7, roughness: 0.4 }),
     glow: new THREE.MeshBasicMaterial({ color: 0x58e078 }),
   };
+  if (DEMO) for (const m of [M.skin, M.belly, M.dark, M.glow]) greenToBlue(m.color);   // temporary demo look: blue lizards
   const ell = (rx, ry, rz, m) => { const o = new THREE.Mesh(new THREE.SphereGeometry(1, 18, 12), m); o.scale.set(rx, ry, rz); return o; };
   const cone = (r, h, m, seg = 6) => new THREE.Mesh(new THREE.ConeGeometry(r, h, seg), m);
   const at = (o, x, y, z) => { o.position.set(x, y, z); return o; };

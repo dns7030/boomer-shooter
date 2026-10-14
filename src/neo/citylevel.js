@@ -14,6 +14,7 @@ import { color } from '../geo.js';
 import { tex, mulberry, addPainters } from '../textures.js';
 import { makeKit } from '../levelkit.js';
 import { addSun, addSunlight } from '../sky.js';
+import { DEMO } from '../demo.js';
 
 // skies for the new cities (512x256, painted like skyBlue: upper 62 % is the sky, the rest is the horizon band)
 const R = (g, x, y, w, h, c) => { g.fillStyle = c; g.fillRect(x, y, w, h); };
@@ -53,8 +54,8 @@ addPainters({
 export function buildCity(scene, S) {
   const { X0, X1, ZN, ZS } = S, FOG = S.fog[0];
   if (S.painters) addPainters(S.painters, S.painterSizes || {});
-  scene.background = new THREE.Color(FOG);
-  scene.fog = new THREE.Fog(FOG, S.fog[1], S.fog[2]);
+  scene.background = new THREE.Color(DEMO ? 0xf2a8c4 : FOG);
+  scene.fog = new THREE.Fog(DEMO ? 0xf2a8c4 : FOG, S.fog[1], S.fog[2]);
   scene.add(new THREE.HemisphereLight(S.hemi[0], S.hemi[1], S.hemi[2]));
   addSunlight(scene, S.sun[0], S.sun[1]);
   const sunDisc = S.sunDisc ? addSun(scene, 1700, S.sunSize || 700) : null;
