@@ -179,7 +179,7 @@ function paintDealoneFull(cv, st = {}) {
   neckShirt(P, SK2, '#6b7078', '#4c5058', 38, 1.35, 10);   // narrower, athletic shoulders
   for (let y = 36; y < 44; y++) for (let x = 16; x <= 32; x++) { const t = (x - 14) / 22; if (y - 36 < 3 + t * 5 && y - 36 > t * 2 - 1) px(x, y, (x + y) % 3 === 0 ? 'paisley2' : 'paisley'); }   // bandana knot
   px(20, 42, 'paisley', 3, 4);
-  headBase(P, SK2, { rx: 12, ry: 15.5, jaw: false });                                       // lean face
+  headBase(P, SK2, { rx: 10.6, ry: 15.5, jaw: false });                                     // lean, narrow face
   for (let y = 29; y <= 36; y++) for (let x = 16; x <= 32; x++) if (y <= 36 - Math.max(0, Math.abs(x - 24) - 4) * 1.3) px(x, y, 'skin');   // narrower jaw tapering to the chin
   // hair on top / fringe falling to the sides, parted in the middle
   for (let y = 5; y <= 22; y++) for (let x = 9; x <= 39; x++) { const part = Math.abs(x - 24), line = 13 + Math.floor(part * 0.5) - (part < 2 ? 2 : 0), inner = part < 11 ? 0 : 1; if (y >= 5 + Math.floor(part / 5) && ((y <= line && part <= 15) || (part >= 12 && y <= 24 && part <= 16))) px(x, y, (x * 2 + y) % 6 < 1 ? 'brownLt' : (x + y) % 9 === 0 ? 'brownDk' : 'brown'); }
