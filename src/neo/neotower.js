@@ -212,7 +212,7 @@ export function neoTowerShanghai() {
   return makeNeoTower({
     w: 26, d: 26, h: 78, rectPad: 3,
     build(T) {
-      T.cols.push([-11, 11, -11, 11, 78], [-16, 16, -16, 16, 1.8]);
+      T.cols.push([-11, 11, -11, 11, 78], [-16.4, 16.4, -16.4, 16.4, 1.8]);
       T.add(boxT(32, 1.0, 32, mat('granite'), 3)).position.set(0, 0.5, 0);
       T.add(boxT(29, 0.8, 29, mat('granite'), 3)).position.set(0, 1.4, 0);
       const glass = mat('neo_glass'), red = color(0x8a1f1a), dark = color(0x1a2a28);
@@ -245,7 +245,7 @@ export function neoTowerTokyo() {
   return makeNeoTower({
     w: 14, d: 14, h: 72, rectPad: 8,
     build(T) {
-      T.cols.push([-7, 7, -7, 7, 72], [-15, 15, -15, 15, 1.8]);
+      T.cols.push([-7, 7, -7, 7, 72], [-16.4, 16.4, -16.4, 16.4, 1.8]);
       T.add(boxT(32, 1.0, 32, mat('granite'), 3)).position.set(0, 0.5, 0);
       T.add(boxT(29, 0.8, 29, mat('granite'), 3)).position.set(0, 1.4, 0);
       const redM = color(0xd8321e), whiteM = color(0xf0eee8);
@@ -277,7 +277,7 @@ export function neoTowerSingapore() {
   return makeNeoTower({
     w: 26, d: 26, h: 64, rectPad: 3,
     build(T) {
-      T.cols.push([-5, 5, -5, 5, 64], [-16, 16, -16, 16, 1.8]);
+      T.cols.push([-5, 5, -5, 5, 64], [-16.4, 16.4, -16.4, 16.4, 1.8]);
       T.add(boxT(32, 1.0, 32, mat('granite'), 3)).position.set(0, 0.5, 0);
       T.add(boxT(29, 0.8, 29, mat('granite'), 3)).position.set(0, 1.4, 0);
       const trunk = new THREE.Mesh(new THREE.CylinderGeometry(3.2, 5.2, 46, 14), mat('concrete')); trunk.position.y = 1.8 + 23; T.add(trunk);
@@ -301,7 +301,7 @@ export function neoTowerRio() {
   return makeNeoTower({
     w: 26, d: 26, h: 52, rectPad: 3,
     build(T) {
-      T.cols.push([-5.5, 5.5, -5.5, 5.5, 52], [-16, 16, -16, 16, 1.8]);
+      T.cols.push([-5.5, 5.5, -5.5, 5.5, 52], [-16.4, 16.4, -16.4, 16.4, 1.8]);
       T.add(boxT(32, 1.0, 32, mat('granite'), 3)).position.set(0, 0.5, 0);
       T.add(boxT(29, 0.8, 29, mat('granite'), 3)).position.set(0, 1.4, 0);
       const white = color(0xf4f1ea), blue = color(0x1f6fd0);

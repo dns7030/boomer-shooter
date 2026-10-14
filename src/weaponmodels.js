@@ -28,7 +28,7 @@ function makeMaterials() {
     brass: S(0xd9ad45, 1.0, 0.28),
     copper: S(0xc0693a, 1.0, 0.3),
     olive: S(0x59673f, 0.25, 0.55, scuff),
-    skin: S(0xc29478, 0.0, 0.62),
+    skin: S(0xb98b6c, 0.0, 0.62),
     sleeve: new THREE.MeshLambertMaterial({ color: 0x4a563d }),
     cuff: new THREE.MeshLambertMaterial({ color: 0x232a1c }),
     blade: S(0xc8d0da, 1.0, 0.16),
@@ -117,11 +117,28 @@ function buildPistol(M) {
   g.add(at(rbox(0.032, 0.024, 0.17, 0.004, M.poly), 0, -0.012, -0.09));
   g.add(at(box(0.004, 0.012, 0.055, M.poly), 0, -0.03, -0.12));
   g.add(at(box(0.004, 0.012, 0.004, M.poly), 0, -0.022, -0.095));
-  const grip = rbox(0.036, 0.1, 0.052, 0.006, M.poly); grip.position.set(0, -0.078, -0.012); grip.rotation.x = -0.2; g.add(grip);
-  g.add(hand(M, 0.004, -0.05, 0.026, 0.06, 0.046, 0.09));
+  // grip: starts inside the frame (overlaps it) and leans back; a backstrap block bridges slide, frame and grip so nothing floats
+  const grip = rbox(0.036, 0.1, 0.052, 0.006, M.poly); grip.position.set(0, -0.066, -0.016); grip.rotation.x = -0.2; g.add(grip);
+  g.add(at(rbox(0.034, 0.034, 0.05, 0.005, M.poly), 0, -0.012, -0.012));
+  g.add(at(box(0.004, 0.003, 0.04, M.poly), 0, -0.036, -0.058));           // trigger guard
+  g.add(at(box(0.004, 0.02, 0.003, M.poly), 0, -0.028, -0.078));
+  // the hand: back of the hand with the thumb along the left, the index finger along the frame, three fingers wrapped round the grip
+  const H = new THREE.Group(); H.userData.skip = true; g.add(H);
+  const skin = M.skin, add = (o, x, y, z) => { o.position.set(x, y, z); H.add(o); return o; };
+  const palm = add(rbox(0.05, 0.05, 0.06, 0.014, skin), 0.004, -0.058, 0.03); palm.rotation.x = -0.3;
+  add(sphere(0.0105, skin, 0, 0, 0), -0.02, -0.036, 0.012); add(sphere(0.0105, skin, 0, 0, 0), 0.028, -0.04, 0.004);   // knuckles
+  add(zcyl(0.0092, 0.0085, 0.062, skin, 8), -0.026, -0.032, -0.012);                                              // thumb
+  add(rbox(0.012, 0.006, 0.012, 0.002, M.cuff), -0.026, -0.0245, -0.044);                                         // thumbnail
+  add(zcyl(0.0085, 0.0078, 0.058, skin, 8), 0.027, -0.03, -0.016);                                               // index finger, laid along the frame
+  add(sphere(0.0078, skin, 0, 0, 0), 0.027, -0.03, -0.045);
+  for (let i = 0; i < 3; i++) {                                                                                   // curled fingers on the grip's right face
+    const f = add(rbox(0.012, 0.016, 0.048, 0.004, skin), 0.026, -0.052 - i * 0.017, -0.004); f.rotation.x = -0.2;
+    add(sphere(0.0085, skin, 0, 0, 0), 0.026, -0.052 - i * 0.017, -0.03);
+  }
+  add(box(0.06, 0.001, 0.001, M.dark), 0.002, -0.07, 0.0).visible = false;
   g.add(arm(M, [0.006, -0.065, 0.06], [0.03, -0.28, 0.96], 0.5, 0.03));
   const muzzle = new THREE.Object3D(); muzzle.position.set(0, 0.014, -0.225); g.add(muzzle);
-  return { group: g, muzzle, flash: 0.12, tint: 'orange', tip: [0.14, -0.18], rot: [0.4, 0.07, 0], recoil: 1 };
+  return { group: g, muzzle, flash: 0.12, tint: 'orange', tip: [0.14, -0.235], rot: [0.4, 0.07, 0], recoil: 1 };
 }
 
 function buildShotgun(M) {

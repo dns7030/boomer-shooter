@@ -30,14 +30,17 @@ export function paintAce(cv) {
   for (const [ex, s] of [[9, -1], [38, 1]]) { px(ex, 21, 'skinSh', 2, 6); px(ex + (s > 0 ? 1 : 0), 22, 'skinDk', 1, 3); }
   // forehead light, cheeks light
   px(18, 14, 'skinLt', 12, 3); px(17, 24, 'skinLt', 4, 3); px(28, 24, 'skinLt', 4, 3);
-  // hair: swept to the right, short sides
-  for (let y = 4; y <= 17; y++) for (let x = 8; x <= 40; x++) {
-    const cap = inEll(x, y, 24, 16, 16.5, 12.5) && !inEll(x, y, 25, 21, 12.2, 8.6) ; // hairline arc
-    const fringe = y <= 14 && x >= 13 && x <= 37 && y <= 9 + Math.floor((x - 13) * 0.18);
-    if (cap && y <= 17 || fringe) px(x, y, (x + y * 2) % 7 === 0 ? 'hairHi' : 'hair');
+  // hair: tousled, swept to the right; irregular hairline and tufts so it reads as hair, not a cap
+  const tufts = [0, 1, 0, 2, 1, 0, 3, 1, 2, 0, 1, 2, 0, 3, 1, 0, 2, 1, 0, 1, 3, 0, 2, 1, 0, 2, 1, 0, 1];
+  for (let x = 9; x <= 39; x++) {
+    const topY = 6 - tufts[(x - 9) % tufts.length] + Math.floor(Math.abs(x - 24) / 8) + (x > 28 ? -1 : 0);   // ragged top edge
+    const lineY = 13 + ((x * 7) % 5 === 0 ? 1 : 0) + (x < 16 ? Math.floor((16 - x) * 0.9) : 0) + (x > 31 ? Math.floor((x - 31) * 0.9) : 0);   // hairline
+    for (let y = topY; y <= lineY; y++) { if (y < 4) continue; const edge = (x < 12 && y < 9) || (x > 36 && y < 9); if (edge) continue; px(x, y, (x * 2 + y * 3) % 6 < 1 ? 'hairHi' : (x + y) % 11 === 0 ? 'brow' : 'hair'); }
   }
-  for (let y = 12; y <= 22; y++) { px(9 + (y > 18 ? 1 : 0), y, 'hair'); px(38 - (y > 18 ? 1 : 0), y, 'hair'); }
-  px(14, 8, 'hairHi', 8, 1); px(21, 6, 'hairHi', 10, 1); px(27, 5, 'hairHi', 8, 1);
+  for (let y = 12; y <= 21; y++) { px(10, y, 'hair'); px(11, y + (y > 19 ? 0 : 0), 'hair'); px(37, y, 'hair'); px(38, y, 'hair'); }
+  for (let i = 0; i < 9; i++) px(14 + i * 2, 12 + (i % 3), 'hairHi');            // loose strands over the forehead
+  px(17, 14, 'hair', 2, 1); px(23, 14, 'hair', 3, 1); px(30, 14, 'hair', 2, 1);
+  px(11, 22, 'hair'); px(37, 22, 'hair');                                          // sideburns
   // brows: heavy, slightly furrowed
   for (const [bx, tilt] of [[15, 1], [27, -1]]) for (let i = 0; i < 8; i++) px(bx + i, 18 + (tilt > 0 ? (i > 4 ? 0 : 0) : 0) + (tilt > 0 ? Math.floor((7 - i) / 4) : Math.floor(i / 4)), 'brow', 1, 2);
   // eyes

@@ -64,7 +64,7 @@ export function buildNeoShanghai(scene) {
       const { scene, rnd, free, box, put, clip } = c;
       const gate = SH.nanjingGate(); put(gate, -62, 0, 'E', { s: 0.8 }); clip(gate);
       const tram = SH.touristTram(); put(tram, -22, 4.2, 'S', { solid: false }); clip(tram);
-      const bull = SH.bundBull(); put(bull, 64, -14, 'W', { s: 1 }); clip(bull);
+      const bull = SH.bundBull(); put(bull, 72, -30, 'W', { s: 1 }); clip(bull);
       for (let z = ZN + 10; z < ZS; z += 20) { const r = SH.promenadeRail(); put(r, 91.2, z, 'E', {}); clip(r); }
       for (let z = ZN + 10; z < ZS; z += 16) { if (Math.abs(z) < 10) continue; const l = SH.bundLamp(); l.position.set(88, 0, z); scene.add(l); box(87.8, 88.2, z - 0.2, z + 0.2, 5); }
       for (let z = ZN + 8; z < ZS; z += 13) for (const x of [43, 59]) { if (Math.abs(z) < 11 || !free(x, z, 1.2)) continue; const t = SH.planeTree(); t.position.set(x, 0, z); t.rotation.y = rnd() * 6; scene.add(t); box(x - 0.4, x + 0.4, z - 0.4, z + 0.4, 6); }
