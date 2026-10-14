@@ -1185,7 +1185,7 @@ export class Game {
             else if (e.atk === 'drop') this.dropEgg(e, TX, TZ);
             else {
               const fire = cfg.shot === 'fire', sx = e.x, sy = e.y + 1.5, sz = e.z, spd = fire ? 17 : 14;
-              const tx = TX - sx, ty = (atBase ? 6 : p.y + 1.3) - sy, tz = TZ - sz, l = Math.hypot(tx, ty, tz) || 1;
+              const tx = (atBase ? this.base.x : TX) - sx, ty = (atBase ? 8 : p.y + 1.3) - sy, tz = (atBase ? this.base.z : TZ) - sz, l = Math.hypot(tx, ty, tz) || 1;   // at the node: straight at the tower's axis (the rect edge point could miss its real shape)
               const sprite = new THREE.Sprite(fire ? this.fireballMat : this.plasmaMat); const sc = fire ? 2.0 : 1.1; sprite.scale.set(sc, sc, sc); sprite.position.set(sx, sy, sz);
               this.scene.add(sprite);
               this.projectiles.push({ sprite, x: sx, y: sy, z: sz, vx: (tx / l) * spd, vy: (ty / l) * spd, vz: (tz / l) * spd, life: 6, fire, dmg: fire ? 14 : 12 });

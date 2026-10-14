@@ -272,7 +272,7 @@ export function neoTowerShanghai() {
 // ---------- Tokyo: a red-white-and-green lattice tower with glowing observation decks ----------
 export function neoTowerTokyo() {
   return makeNeoTower({
-    w: 14, d: 14, h: 72, rectPad: 8,
+    w: 14, d: 14, h: 72, rectPad: 10,   // rect must reach the plinth edge (±16.4), or lizards stall against the plinth before they are "at the base"
     hit: (x, y, z) => y < 72 ? sq(x, z, 6.7) : y < 82 && disc(x, z, 1),
     build(T) {
       T.cols.push([-7, 7, -7, 7, 72], [-16.4, 16.4, -16.4, 16.4, 1.8]);
