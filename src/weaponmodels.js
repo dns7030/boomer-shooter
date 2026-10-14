@@ -516,7 +516,7 @@ export class WeaponView {
       });
       const away = ease(clamp((t - 0.2) / 0.28)) * (1 - ease(clamp((t - 0.84) / 0.1)));   // slower approach from the left (total reload time is unchanged)
       // the hand slides out to the LEFT of the gun, rises beside it, then moves in over the top (never through the barrels / forend)
-      const tx = 0, ty = my + 0.034, tz = mz + 0.03;                              // above the shells
+      const tx = 0, ty = my + 0.034, tz = mz + 0.09;                              // above the shells
       const side = ease(clamp(away / 0.4)), up = ease(clamp((away - 0.35) / 0.4)), over = ease(clamp((away - 0.75) / 0.25));
       const hx = -0.085 * side * (1 - over) + tx * over;
       const hy0 = -0.05 - 0.033 * o * (1 - away), hy = hy0 + (ty - hy0) * up + 0.022 * Math.sin(Math.PI * Math.min(1, up)) ;   // a touch higher in flight so wrist and forearm clear the gun
