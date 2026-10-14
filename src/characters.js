@@ -32,15 +32,15 @@ export function paintAce(cv, st = {}) {
   px(18, 14, 'skinLt', 12, 3); px(17, 24, 'skinLt', 4, 3); px(28, 24, 'skinLt', 4, 3);
   // hair: tousled, swept to the right; irregular hairline and tufts so it reads as hair, not a cap
   const tufts = [0, 1, 0, 2, 1, 0, 3, 1, 2, 0, 1, 2, 0, 3, 1, 0, 2, 1, 0, 1, 3, 0, 2, 1, 0, 2, 1, 0, 1];
-  for (let x = 9; x <= 39; x++) {
-    const topY = 6 - tufts[(x - 9) % tufts.length] + Math.floor(Math.abs(x - 24) / 8) + (x > 28 ? -1 : 0);   // ragged top edge
-    const lineY = 13 + ((x * 7) % 5 === 0 ? 1 : 0) + (x < 16 ? Math.floor((16 - x) * 0.9) : 0) + (x > 31 ? Math.floor((x - 31) * 0.9) : 0);   // hairline
-    for (let y = topY; y <= lineY; y++) { if (y < 4) continue; const edge = (x < 12 && y < 9) || (x > 36 && y < 9); if (edge) continue; px(x, y, (x * 2 + y * 3) % 6 < 1 ? 'hairHi' : (x + y) % 11 === 0 ? 'brow' : 'hair'); }
+  for (let x = 12; x <= 36; x++) {
+    const dx = Math.abs(x - 24);
+    const topY = 5 - (tufts[(x - 9) % tufts.length] >> 1) + Math.floor(dx / 6) + (x > 26 ? -1 : 0);   // short top, swept up and to the right
+    const lineY = 11 + ((x * 7) % 5 === 0 ? 1 : 0) + (dx > 7 ? 2 : 0) + (dx > 10 ? 2 : 0);              // receding temples: forehead is high in the middle
+    for (let y = topY; y <= lineY; y++) { if (y < 4) continue; px(x, y, (x * 2 + y * 3) % 6 < 1 ? 'hairHi' : (x + y) % 11 === 0 ? 'brow' : 'hair'); }
   }
-  for (let y = 12; y <= 21; y++) { px(11, y, 'hair'); px(12, y, 'hair'); px(35, y, 'hair'); px(36, y, 'hair'); }
-  for (let i = 0; i < 9; i++) px(14 + i * 2, 12 + (i % 3), 'hairHi');            // loose strands over the forehead
-  px(17, 14, 'hair', 2, 1); px(23, 14, 'hair', 3, 1); px(30, 14, 'hair', 2, 1);
-  px(12, 22, 'hair'); px(35, 22, 'hair');                                          // sideburns
+  for (let y = 14; y <= 20; y++) { px(12, y, 'hair'); px(35, y, 'hair'); }                  // short tapered sides (no big side hair)
+  for (let i = 0; i < 6; i++) px(19 + i * 2, 10 + (i % 2), 'hairHi');                        // a few swept strands at the front
+  px(18, 9, 'skinSh', 1, 1); px(19, 8, 'skinSh', 1, 1); px(20, 7, 'skinSh', 1, 1);            // side parting
   // brows: heavy, slightly furrowed
   for (const [bx, tilt] of [[15, 1], [27, -1]]) for (let i = 0; i < 8; i++) px(bx + i, 18 + (tilt > 0 ? (i > 4 ? 0 : 0) : 0) + (tilt > 0 ? Math.floor((7 - i) / 4) : Math.floor(i / 4)), 'brow', 1, 2);
   // eyes
@@ -143,6 +143,42 @@ const eyesAt = (P, y, o = {}) => {
 };
 const talkAt = (P, x, y, w) => { if (!P.st.talk) return; const { px } = P; px(x, y, 'ol', w, 3); px(x + 1, y + 1, 'mouth', w - 2, 1); };
 const noseAt = (P, y) => { const { px } = P; px(23, y, 'skinSh', 1, 5); px(22, y + 5, 'skinDk', 4, 1); px(21, y + 4, 'skinSh', 1, 1); px(26, y + 4, 'skinSh', 1, 1); };
+
+// GIL (new, drawn from the reference photo): short dark side-swept hair with receding temples, a trimmed dark beard with a grey chin patch and a
+// moustache, a calm closed-mouth smile, fair skin, a black zip hoodie.
+export function paintGilNew(cv, st = {}) {
+  const P = PX(cv, st), { px, ell, poly } = P;
+  poly([[9, 37], [14, 33], [19, 36], [29, 36], [34, 33], [39, 37], [41, 48], [7, 48]], 'blk2');            // hood behind the neck
+  neckShirt(P, SK2, 'black', 'blk2', 39, 1.7, 11);
+  px(21, 39, 'blk2', 7, 5); px(22, 38, 'blk2', 5, 1);                                                    // black tee in the open collar
+  px(22, 41, 'greyLt', 1, 7); for (let y = 42; y < 48; y += 2) px(21, y, 'greyDk', 1, 1);                // zip
+  px(17, 40, 'greyDk', 1, 7); px(30, 40, 'greyDk', 1, 7);                                                // drawstrings
+  headBase(P, SK2, { rx: 11.4, ry: 15, cy: 22.5 });
+  px(12, 21, 'skinSh', 1, 4); px(35, 21, 'skinSh', 1, 4);                                                // ears
+  // hair: tapered short sides, a swept-up top, side parting, receding temples
+  for (let x = 12; x <= 36; x++) {
+    const dx = Math.abs(x - 24);
+    const topY = 4 + Math.floor(dx * dx / 38) - (x > 22 && x < 33 ? 1 : 0);
+    const lineY = 10 + (dx > 6 ? 2 : 0) + (dx > 9 ? 2 : 0) + ((x * 5) % 7 === 0 ? 1 : 0);
+    for (let y = topY; y <= lineY; y++) px(x, y, (x * 2 + y * 3) % 6 < 1 ? 'hairHi' : (x + y) % 9 === 0 ? 'brow' : 'hair');
+  }
+  for (let y = 13; y <= 19; y++) { px(12, y, 'hair'); px(35, y, 'hair'); if (y < 17) { px(13, y, 'brownDk'); px(34, y, 'brownDk'); } }
+  for (let i = 0; i < 7; i++) px(18 + i * 2, 8 + (i % 2), 'hairHi');
+  px(17, 9, 'skinSh'); px(18, 8, 'skinSh'); px(19, 7, 'skinSh'); px(20, 6, 'skinSh');
+  // brows, eyes, nose
+  for (const bx of [16, 27]) for (let i = 0; i < 7; i++) px(bx + i, 17 - (i > 1 && i < 5 ? 1 : 0), 'hair', 1, 2);
+  eyesAt(P, 20); noseAt(P, 21);
+  // beard: dark brown over the cheeks and jaw, a moustache, grey on the chin
+  for (let y = 26; y <= 38; y++) for (let x = 13; x <= 35; x++) {
+    const d = ((x - 24) / 10.6) ** 2 + ((y - 28) / 10.2) ** 2; if (d > 1 || (y < 28 && Math.abs(x - 24) < 7)) continue;
+    const grey = y >= 35 && Math.abs(x - 24) < 3.2 && (x + y) % 3 !== 0;
+    px(x, y, grey ? ((x + y) % 2 === 0 ? 'greyLt' : '#7d7f84') : ((x * 3 + y * 5) % 8 < 1 ? 'brownDk' : (x + y) % 6 === 0 ? 'hairHi' : 'hair'));
+  }
+  px(19, 28, 'hair', 11, 2); px(20, 27, 'hair', 9, 1);                                                   // moustache
+  px(21, 30, 'mouth', 7, 1); px(20, 29, 'mouth', 1, 1); px(28, 29, 'mouth', 1, 1); px(22, 31, 'tooth', 5, 1); px(22, 32, 'mouth', 5, 1);   // a calm smile with a little teeth
+  talkAt(P, 21, 31, 7);
+  P.outline();
+}
 
 // DING: thick dark beard, black rectangular glasses, short tousled brown hair, black tee, a tabby cat on his shoulder.
 export function paintDing(cv, st = {}) {
