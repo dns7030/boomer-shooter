@@ -46,6 +46,9 @@ export function buildNeoRio(scene) {
       ['stand', () => R.sambadromeStand(), -67, 8, 'S', 0.7],
       ['colA', () => R.colonialRow({ variant: 0 }), -24, 17, 'S', 0.75],
       ['colB', () => R.colonialRow({ variant: 1 }), 22, 17, 'S', 0.75],
+      // the same rows again, back to back with the sea-facing ones, so the side that looks at the Neo tower is a lively facade too
+      ['colAt', () => R.colonialRow({ variant: 1 }), -26.5, 9.2, 'N', 0.55],
+      ['colBt', () => R.colonialRow({ variant: 0 }), 26.5, 9.2, 'N', 0.55],
       ['kioskA', () => R.copacabanaKiosk(), -40, 62, 'N', 1],
       ['kioskB', () => R.copacabanaKiosk(), 40, 66, 'N', 1],
       ['fruit', () => R.fruitStand(), 20, 36, 'N', 1],
