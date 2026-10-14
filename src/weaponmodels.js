@@ -190,7 +190,7 @@ function buildSSG(M) {
   const spent = [shellMesh(M), shellMesh(M)], fresh = [shellMesh(M), shellMesh(M)];
   for (const sh of [...spent, ...fresh]) g.add(sh);
   const muzzle = new THREE.Object3D(); muzzle.position.set(0, 0.012, -0.69); g.add(muzzle);
-  return { group: g, muzzle, flash: 0.34, tint: 'orange', tip: [0.16, -0.18], rot: [0.3, 0.04, 0], recoil: 3, ssg: { hinge, spent, fresh, lh: lhGrp, armDyn, ARM_W0, ARM_DIR, ARM_ANCHOR } };
+  return { group: g, muzzle, flash: 0.34, tint: 'orange', tip: [0.16, -0.18], rot: [0.3, 0.04, 0], recoil: 3, ssg: { hinge, PIV, spent, fresh, lh: lhGrp, armDyn, ARM_W0, ARM_DIR, ARM_ANCHOR } };
 }
 
 function buildChaingun(M) {
@@ -495,7 +495,7 @@ export class WeaponView {
     const t = st.since;
     if (cur.pump) { const u = Math.min(1, Math.max(0, (t - 0.1) / 0.26)); cur.pump.position.z = cur.pumpZ + Math.sin(u * Math.PI) * 0.12; }
     if (cur.ssg) {
-      const { hinge, spent, fresh, lh, armDyn, ARM_W0, ARM_DIR, ARM_ANCHOR } = cur.ssg, clamp = (v) => Math.min(1, Math.max(0, v)), ease = (u) => u * u * (3 - 2 * u);
+      const { hinge, PIV, spent, fresh, lh, armDyn, ARM_W0, ARM_DIR, ARM_ANCHOR } = cur.ssg, clamp = (v) => Math.min(1, Math.max(0, v)), ease = (u) => u * u * (3 - 2 * u);
       const open = ease(clamp((t - 0.14) / 0.2)), shut = ease(clamp((t - 0.9) / 0.08));
       const o = open * (1 - shut);
       hinge.rotation.x = -0.3 * o;
@@ -512,7 +512,13 @@ export class WeaponView {
       fresh.forEach((sh, i) => {
         const sd = i ? 1 : -1;
         sh.visible = t > 0.46 && t < 0.8;
-        if (sh.visible) { sh.position.set(sd * (0.012 + 0.0065 * carry), my, mz); sh.rotation.set(-0.8 * (1 - carry), 0, 0); }
+        if (sh.visible) {
+          // on the way in the shells take the angle of the opened barrels (they pivot on the hinge) and aim at the chambers' real position
+          const a = hinge.rotation.x, dy = my - PIV[1], dz = mz - PIV[2];
+          const ry = PIV[1] + dy * Math.cos(a) - dz * Math.sin(a), rz = PIV[2] + dy * Math.sin(a) + dz * Math.cos(a);
+          sh.position.set(sd * (0.012 + 0.0065 * carry), my + (ry - my) * carry, mz + (rz - mz) * carry);
+          sh.rotation.set(-0.8 * (1 - carry) + a * carry, 0, 0);
+        }
       });
       const away = ease(clamp((t - 0.2) / 0.28)) * (1 - ease(clamp((t - 0.84) / 0.1)));   // slower approach from the left (total reload time is unchanged)
       // the hand slides out to the LEFT of the gun, rises beside it, then moves in over the top (never through the barrels / forend)
