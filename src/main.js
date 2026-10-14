@@ -163,6 +163,7 @@ async function checkLatest() {
 let checked = false;
 // ---- companion character: portrait top-left, speech bubble with one-liners ----
 const CHAR = CFG.character && CHARACTERS[CFG.character], charEl = $('char');
+const face = { look: 0, up: false, blink: false, talk: false, nextLook: 0, nextBlink: 0, blinkUntil: 0, hurtUntil: 0, hp: 100, key: '' };
 const talk = { next: 0, hideAt: 0, recent: [], wave: -1, boss: false, low: false, stage: 0, lvl: -1 };
 function say(kind) {
   if (!CHAR || !charEl) return;
@@ -175,10 +176,19 @@ function say(kind) {
 }
 function charUpdate() {
   if (!CHAR || !charEl) return;
-  if (!charEl.dataset.ready) { CHAR.paint($('char-face')); $('char-name').textContent = CHAR.name; charEl.dataset.ready = '1'; }
+  if (!charEl.dataset.ready) { CHAR.paint($('char-face'), face); $('char-name').textContent = CHAR.name; charEl.dataset.ready = '1'; }
   const on = game.state === 'playing'; charEl.style.display = on ? 'flex' : 'none';
   if (!on) { if (game.state === 'title') talk.lvl = -1; return; }
   const now = game.time, b = $('char-bubble');
+  // Doom-style face animation: glances around (left, right, up-left toward the fight), blinks, moves the mouth while talking, winces when hurt
+  const t = performance.now() / 1000;
+  if (t > face.nextLook) { const r = Math.random(); face.look = r < 0.4 ? 0 : r < 0.65 ? -1 : r < 0.85 ? 1 : -1; face.up = r >= 0.85; face.nextLook = t + 0.8 + Math.random() * 2.2; }
+  if (t > face.nextBlink) { face.blinkUntil = t + 0.13; face.nextBlink = t + 2.5 + Math.random() * 3.5; }
+  const hp0 = game.p.health; if (hp0 < face.hp - 0.5) face.hurtUntil = t + 0.35; face.hp = hp0;
+  const nb = t < face.blinkUntil || t < face.hurtUntil, nt = b.classList.contains('on') && Math.floor(t * 7) % 2 === 0;
+  const key = `${face.look}${face.up}${nb}${nt}`;
+  face.blink = nb; face.talk = nt;
+  if (key !== face.key) { face.key = key; CHAR.paint($('char-face'), face); }
   if (talk.lvl !== game.levelIndex || now < talk.lastT) { talk.lvl = game.levelIndex; talk.wave = -1; talk.boss = false; talk.low = false; talk.stage = 0; talk.next = now + 4; setTimeout(() => say('start'), 1200); }
   talk.lastT = now;
   if (now > talk.hideAt) b.classList.remove('on');

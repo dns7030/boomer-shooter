@@ -7,7 +7,7 @@ const PAL = {
 };
 
 // GYL: man with short, swept dark hair, strong straight brows, light stubble and a calm half-smirk.
-export function paintAce(cv) {
+export function paintAce(cv, st = {}) {
   const N = 48; cv.width = N; cv.height = N;
   const g = cv.getContext('2d'); g.imageSmoothingEnabled = false;
   const px = (x, y, c, w = 1, h = 1) => { g.fillStyle = PAL[c] || c; g.fillRect(x, y, w, h); };
@@ -44,7 +44,11 @@ export function paintAce(cv) {
   // brows: heavy, slightly furrowed
   for (const [bx, tilt] of [[15, 1], [27, -1]]) for (let i = 0; i < 8; i++) px(bx + i, 18 + (tilt > 0 ? (i > 4 ? 0 : 0) : 0) + (tilt > 0 ? Math.floor((7 - i) / 4) : Math.floor(i / 4)), 'brow', 1, 2);
   // eyes
-  for (const ex of [17, 28]) { px(ex, 21, 'eyeW', 5, 2); px(ex + 1 + (ex > 24 ? 1 : 0), 21, 'iris', 2, 2); px(ex, 20, 'ol', 5, 1); px(ex, 23, 'skinSh', 5, 1); }
+  for (const ex of [17, 28]) {
+    if (st.blink) { px(ex, 21, 'skinSh', 5, 2); px(ex, 22, 'ol', 5, 1); continue; }
+    const lx = Math.max(0, Math.min(3, 1 + (ex > 24 ? 1 : 0) + (st.look || 0))), ly = st.up ? 0 : 1;
+    px(ex, 21, 'eyeW', 5, 2); px(ex + lx, 21 + (ly ? 0 : 0), 'iris', 2, st.up ? 1 : 2); px(ex, 20, 'ol', 5, 1); px(ex, 23, 'skinSh', 5, 1);
+  }
   // nose
   px(23, 22, 'skinSh', 1, 6); px(22, 27, 'skinDk', 4, 1); px(21, 26, 'skinSh', 1, 1); px(26, 26, 'skinSh', 1, 1);
   // stubble: dithered across jaw, chin and upper lip
@@ -53,6 +57,7 @@ export function paintAce(cv) {
   // mouth: calm half-smirk (right corner up)
   px(20, 31, 'mouth', 9, 1); px(29, 30, 'mouth', 2, 1); px(20, 32, 'skinSh', 8, 1); px(24, 32, 'tooth', 3, 1);
   px(23, 35, 'skinSh', 3, 1);
+  if (st.talk) { px(21, 31, 'ol', 7, 2); px(22, 32, 'mouth', 5, 1); px(22, 31, 'tooth', 5, 1); }
   // outline (1 px) around the head silhouette
   const id = g.getImageData(0, 0, N, N), d = id.data, o = new Uint8ClampedArray(d);
   const isSkin = (x, y) => { if (x < 0 || y < 0 || x >= N || y >= N) return false; const i = (y * N + x) * 4; return d[i] > 100 && d[i + 1] > 60 && d[i] > d[i + 2] + 40; };
@@ -89,7 +94,7 @@ export const CHARACTERS = {
 };
 
 // ---------------- more portraits (transparent background, same pixel style) ----------------
-const PX = (cv) => {
+const PX = (cv, st = {}) => {
   const N = 48; cv.width = N; cv.height = N;
   const g = cv.getContext('2d'); g.clearRect(0, 0, N, N); g.imageSmoothingEnabled = false;
   const px = (x, y, c, w = 1, h = 1) => { g.fillStyle = PAL[c] || c; g.fillRect(x | 0, y | 0, w, h); };
@@ -107,7 +112,7 @@ const PX = (cv) => {
       for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const xx = x + dx, yy = y + dy; if (xx < 0 || yy < 0 || xx >= N || yy >= N) continue; if (d[(yy * N + xx) * 4 + 3] > 0) { o[i] = 21; o[i + 1] = 13; o[i + 2] = 18; o[i + 3] = 255; break; } } }
     id.data.set(o); g.putImageData(id, 0, 0);
   };
-  return { N, g, px, ell, poly, outline };
+  return { N, g, px, ell, poly, outline, st };
 };
 const SK = { skin: '#e2a977', skinLt: '#f3cc9f', skinSh: '#b87a56', skinDk: '#86503a' };
 const SK2 = { skin: '#eab98e', skinLt: '#f8d8b4', skinSh: '#c58c66', skinDk: '#93603f' };   // paler
@@ -124,12 +129,20 @@ function neckShirt(P, sk, shirt, shirtSh, y0 = 38) {
   for (let y = 33; y < y0 + 3; y++) for (let x = 19; x <= 29; x++) px(x, y, x < 22 ? sk.skinSh : sk.skin);
   for (let y = y0; y < 48; y++) { const half = 12 + (y - y0) * 2.3; for (let x = 0; x < 48; x++) if (Math.abs(x - 24) <= half) px(x, y, x < 24 - half * 0.45 && (x + y) % 3 ? shirtSh : shirt); }
 }
-const eyesAt = (P, y, o = {}) => { const { px } = P, gap = o.gap || 11; for (const ex of [18, 18 + gap - 1]) { px(ex, y, 'eyeW', 4, 2); px(ex + 1 + (ex > 24 ? 1 : 0), y, o.iris || 'iris', 2, 2); px(ex, y - 1, 'ol', 4, 1); } };
+const eyesAt = (P, y, o = {}) => {
+  const { px, st } = P, gap = o.gap || 11;
+  for (const ex of [18, 18 + gap - 1]) {
+    if (st.blink) { px(ex, y, o.lid || 'skinSh', 4, 2); px(ex, y + 1, 'ol', 4, 1); continue; }
+    const lx = Math.max(0, Math.min(2, 1 + (ex > 24 ? 1 : 0) - (ex > 24 ? 1 : 0) + (st.look || 0) + (ex > 24 ? 1 : 0) - (ex > 24 ? 1 : 0)));
+    px(ex, y, 'eyeW', 4, 2); px(ex + Math.max(0, Math.min(2, 1 + (st.look || 0))), y + (st.up ? 0 : 0), o.iris || 'iris', 2, st.up ? 1 : 2); px(ex, y - 1, 'ol', 4, 1);
+  }
+};
+const talkAt = (P, x, y, w) => { if (!P.st.talk) return; const { px } = P; px(x, y, 'ol', w, 3); px(x + 1, y + 1, 'mouth', w - 2, 1); };
 const noseAt = (P, y) => { const { px } = P; px(23, y, 'skinSh', 1, 5); px(22, y + 5, 'skinDk', 4, 1); px(21, y + 4, 'skinSh', 1, 1); px(26, y + 4, 'skinSh', 1, 1); };
 
 // DING: thick dark beard, black rectangular glasses, short tousled brown hair, black tee, a tabby cat on his shoulder.
-export function paintDing(cv) {
-  const P = PX(cv), { px, ell, poly } = P;
+export function paintDing(cv, st = {}) {
+  const P = PX(cv, st), { px, ell, poly } = P;
   // cat (behind, left shoulder)
   poly([[1, 32], [3, 20], [5, 16], [7, 20], [11, 20], [13, 15], [14, 21], [15, 36], [8, 42], [2, 42]], '#8a7a62', (x, y) => ((x * 2 + y) % 5 === 0 ? '#4a3f33' : (x + y) % 7 === 0 ? '#b0a086' : '#8a7a62'));
   px(4, 24, '#f0e6c8', 2, 2); px(9, 24, '#f0e6c8', 2, 2); px(5, 25, 'ol', 1, 1); px(10, 25, 'ol', 1, 1); px(7, 27, '#c07a7a', 2, 1);
@@ -142,6 +155,7 @@ export function paintDing(cv) {
   for (let y = 27; y <= 41; y++) for (let x = 11; x <= 37; x++) { const cx = 24, d = ((x - cx) / 13) ** 2 + ((y - 29) / 12.5) ** 2; if (d <= 1 && y >= 27 + Math.max(0, 3 - Math.abs(x - cx) * 0.4)) px(x, y, (x * 3 + y * 5) % 9 < 1 ? 'brown' : 'brownDk'); }
   px(19, 28, 'brownDk', 11, 2); px(17, 27, 'brownDk', 4, 1); px(27, 27, 'brownDk', 4, 1);   // moustache
   px(21, 32, '#8a3b3b', 6, 1);                                                                    // mouth line in the beard
+  talkAt(P, 21, 31, 6);
   // brows + eyes + glasses
   for (const [bx, t] of [[16, 1], [27, -1]]) for (let i = 0; i < 7; i++) px(bx + i, 17 + (t > 0 ? (i < 3 ? 1 : 0) : (i > 3 ? 1 : 0)), 'brownDk', 1, 2);
   eyesAt(P, 20); noseAt(P, 21);
@@ -151,31 +165,34 @@ export function paintDing(cv) {
 }
 
 // DEALONE: long windswept brown hair, thin round-rectangular glasses, big open smile, light stubble, paisley bandana, grey jacket.
-export function paintDealone(cv) {
-  const P = PX(cv), { px, ell, poly } = P;
+export function paintDealone(cv, st = {}) {
+  const P = PX(cv, st), { px, ell, poly } = P;
   // hair behind the head: long, to the shoulders, with a flyaway tuft up-left
   poly([[8, 12], [10, 4], [16, 1], [24, 2], [33, 3], [39, 8], [41, 20], [42, 36], [36, 38], [12, 38], [6, 34], [6, 20]], null, (x, y) => ((x * 3 + y * 2) % 7 < 1 ? 'brownLt' : (x + y * 3) % 11 === 0 ? 'brownDk' : 'brown'));
   poly([[12, 4], [8, 0], [13, 2]], 'brownLt'); poly([[16, 2], [14, -1], [20, 1]], 'brown');
   neckShirt(P, SK2, '#6b7078', '#4c5058');
   for (let y = 36; y < 44; y++) for (let x = 14; x <= 36; x++) { const t = (x - 14) / 22; if (y - 36 < 3 + t * 5 && y - 36 > t * 2 - 1) px(x, y, (x + y) % 3 === 0 ? 'paisley2' : 'paisley'); }   // bandana knot
   px(20, 42, 'paisley', 3, 4);
-  headBase(P, SK2, { rx: 13, ry: 15 });
+  headBase(P, SK2, { rx: 14, ry: 15.5 });
+  for (let y = 28; y <= 38; y++) for (let x = 11; x <= 37; x++) if (y <= 38 - Math.max(0, Math.abs(x - 24) - 11) * 1.6 && y >= 28) px(x, y, 'skin');   // broad, square jaw
   // hair on top / fringe falling to the sides, parted in the middle
   for (let y = 5; y <= 22; y++) for (let x = 9; x <= 39; x++) { const part = Math.abs(x - 24), line = 13 + Math.floor(part * 0.5) - (part < 2 ? 2 : 0), inner = part < 11 ? 0 : 1; if (y >= 5 + Math.floor(part / 5) && ((y <= line && part <= 15) || (part >= 12 && y <= 24 && part <= 16))) px(x, y, (x * 2 + y) % 6 < 1 ? 'brownLt' : (x + y) % 9 === 0 ? 'brownDk' : 'brown'); }
   // brows (relaxed, raised), eyes, thin glasses
-  for (const bx of [16, 27]) px(bx, 17, 'brownDk', 6, 1);
-  eyesAt(P, 20); noseAt(P, 21);
+  for (const [bx, t] of [[15, 1], [27, -1]]) for (let i = 0; i < 8; i++) px(bx + i, 17 + (t > 0 ? (i < 3 ? 1 : 0) : (i > 4 ? 1 : 0)), 'brownDk', 1, 2);   // heavy brows
+  eyesAt(P, 20); noseAt(P, 21); px(21, 26, 'skinDk', 1, 1); px(27, 26, 'skinDk', 1, 1);
   for (const gx of [14, 26]) { px(gx, 18, '#6a7078', 9, 1); px(gx, 24, '#6a7078', 9, 1); px(gx, 18, '#6a7078', 1, 7); px(gx + 8, 18, '#6a7078', 1, 7); }
   px(23, 19, '#6a7078', 3, 1); px(10, 19, '#6a7078', 4, 1); px(35, 19, '#6a7078', 4, 1);
   // big smile with teeth
-  px(18, 30, 'ol', 13, 1); px(19, 31, 'tooth', 11, 2); px(20, 33, 'ol', 9, 1); px(17, 29, 'ol', 1, 1); px(31, 29, 'ol', 1, 1);
-  for (let y = 33; y <= 37; y++) for (let x = 15; x <= 33; x++) if (((x * 3 + y * 5) % 8 < 1) && y > 33) px(x, y, 'stub');
+  px(18, 30, 'ol', 13, 1); px(19, 31, 'tooth', 11, st.talk ? 1 : 2); if (st.talk) px(19, 32, 'mouth', 11, 2); px(20, 33, 'ol', 9, 1); px(17, 29, 'ol', 1, 1); px(31, 29, 'ol', 1, 1);
+  for (let y = 28; y <= 38; y++) for (let x = 12; x <= 36; x++) if ((((x * 73856093) ^ (y * 19349663)) >> 4) % 3 === 0 && !(y >= 30 && y <= 33 && x >= 17 && x <= 31)) px(x, y, 'stub');
+  px(17, 28, 'brownDk', 14, 1); px(19, 29, 'stub', 11, 1);   // moustache shadow
+  talkAt(P, 19, 31, 11);
   P.outline();
 }
 
 // JIMBO: short black hair, thin rectangular glasses, calm serious look, clean-shaven, black polo, hands clasped in front of the chin.
-export function paintJimbo(cv) {
-  const P = PX(cv), { px, ell, poly } = P;
+export function paintJimbo(cv, st = {}) {
+  const P = PX(cv, st), { px, ell, poly } = P;
   neckShirt(P, SK2, 'blk2', 'black', 40);
   px(22, 40, 'black', 4, 3); px(23, 42, 'blk2', 1, 6);
   headBase(P, SK2, { rx: 13.5, ry: 15.5, cy: 21 });
@@ -187,6 +204,7 @@ export function paintJimbo(cv) {
   for (const gx of [14, 26]) { px(gx, 17, '#3a3f48', 9, 1); px(gx, 23, '#3a3f48', 9, 1); px(gx, 17, '#3a3f48', 1, 7); px(gx + 8, 17, '#3a3f48', 1, 7); px(gx + 1, 18, 'glass', 6, 1); }
   px(23, 18, '#3a3f48', 3, 1);
   px(20, 29, '#9a5a4a', 9, 1); px(21, 30, 'skinSh', 7, 1);                                         // serious mouth
+  talkAt(P, 21, 29, 7);
   // clasped hands under the chin: two fists with finger lines and knuckles
   for (let y = 33; y <= 42; y++) for (let x = 16; x <= 32; x++) { const dx = Math.abs(x - 24); if (dx <= 8 - Math.max(0, y - 40) * 2 && y >= 33 + (dx > 6 ? 2 : 0)) px(x, y, y > 39 ? 'skinSh' : x < 24 ? 'skin' : 'skinLt'); }
   px(23, 33, 'skinSh', 1, 9); for (const y of [35, 37, 39]) px(17, y, 'skinSh', 15, 1);
@@ -197,23 +215,27 @@ export function paintJimbo(cv) {
 }
 
 // HELGA: long straight light-brown hair parted in the middle, calm slight smile, grey sweatshirt with a white collar.
-export function paintHelga(cv) {
-  const P = PX(cv), { px, poly } = P;
+export function paintHelga(cv, st = {}) {
+  const P = PX(cv, st), { px, poly } = P;
   poly([[9, 10], [12, 3], [19, 0], [29, 0], [36, 3], [39, 10], [41, 26], [44, 47], [4, 47], [7, 26]], null, (x, y) => ((x * 2 + y) % 6 < 1 ? 'blondLt' : (x + y * 2) % 13 === 0 ? 'brown' : 'blond'));
   neckShirt(P, SK2, '#7a7f88', '#5a5f69', 39);
   px(18, 39, 'white', 5, 3); px(25, 39, 'white', 5, 3); px(22, 40, 'greyLt', 4, 2);
-  headBase(P, SK2, { rx: 12, ry: 15.5, cx: 24, cy: 22 });
+  // oval face with a narrow, slightly pointed chin and a long neck (no squared jaw)
+  for (let y = 8; y <= 38; y++) { const t = Math.max(0, (y - 24) / 14), half = y < 24 ? 12 - Math.max(0, (14 - y)) * 0.18 : 12 - t * t * 8.5 - t * 3; for (let x = Math.ceil(24 - half); x <= 24 + half; x++) px(x, y, x < 24 - half + 2 || x > 24 + half - 2 ? SK2.skinSh : SK2.skin); }
+  px(18, 14, 'skinLt', 12, 3); px(16, 24, 'skinLt', 4, 3); px(28, 24, 'skinLt', 4, 3); px(16, 26, '#e8a08e', 3, 2); px(29, 26, '#e8a08e', 3, 2);   // forehead light + soft blush
   // hair framing the face, parted in the middle
   for (let y = 5; y <= 26; y++) for (let x = 9; x <= 39; x++) { const dx = Math.abs(x - 24), part = dx < 1; const edge = 12 - (y > 18 ? 0 : 0); if (!part && dx >= (y < 12 ? 11 - Math.floor((12 - y) * 0.1) : 12) && y <= 26 + (dx > 12 ? 8 : 0)) px(x, y, (x * 2 + y) % 6 < 1 ? 'blondLt' : 'blond'); if (y < 12 && dx < 12 && y >= 5 + Math.floor(dx * 0.25) && y <= 11 + Math.floor(dx * 0.35) && !part) px(x, y, (x + y * 2) % 7 < 1 ? 'blondLt' : 'blond'); }
   for (const bx of [16, 27]) px(bx, 17, 'brown', 6, 1);
   eyesAt(P, 20, { iris: 'brownDk', gap: 10 }); noseAt(P, 22);
-  px(20, 31, '#b0585a', 9, 1); px(29, 30, '#b0585a', 1, 1); px(19, 30, '#b0585a', 1, 1); px(22, 32, 'skinSh', 5, 1);   // gentle smile
+  for (const [lx, d] of [[17, -1], [29, 1]]) { px(lx - 1 + (d > 0 ? 4 : 0), 19, 'ol', 1, 1); px(lx + (d > 0 ? 4 : 0), 19, 'ol', 1, 1); }   // lashes
+  px(20, 31, '#b0585a', 9, 1); px(29, 30, '#b0585a', 1, 1); px(19, 30, '#b0585a', 1, 1); px(21, 32, '#c4747a', 7, 1); px(22, 33, 'skinSh', 5, 1);   // gentle smile, fuller lips
+  talkAt(P, 21, 31, 7);
   P.outline();
 }
 
 // TILAH: seen from the side (facing left): shaved sides, tall spiky red mohawk, light stubble, black top.
-export function paintTilah(cv) {
-  const P = PX(cv), { px, ell, poly } = P;
+export function paintTilah(cv, st = {}) {
+  const P = PX(cv, st), { px, ell, poly } = P;
   // mohawk spikes (behind the head)
   const spikes = [[14, 12, 8, 2], [18, 8, 10, 1], [22, 5, 12, 0], [27, 4, 14, 0], [31, 5, 16, 1], [35, 9, 18, 2], [38, 14, 20, 3], [40, 20, 22, 3], [41, 26, 24, 4]];
   for (const [x, y, len, k] of spikes) poly([[x - 3, y + 8], [x - 1 + (k - 1) * 0.5, y - 1 + (k > 2 ? 3 : 0)], [x + 3, y + 8]], null, (xx, yy) => ((xx + yy) % 4 === 0 ? 'redLt' : (xx * 2 + yy) % 5 === 0 ? 'redDk' : 'red'));
@@ -223,13 +245,14 @@ export function paintTilah(cv) {
   for (let y = 40; y < 48; y++) for (let x = 10; x < 48; x++) px(x, y, (x + y) % 5 === 0 ? 'blk2' : 'black');
   // cranium (shaved sides: dark stubble) + face profile polygon (nose pointing left)
   ell(27, 20, 12.5, 14, null, (x, y) => (y < 12 || x > 28 ? ((x * 3 + y * 5) % 4 === 0 ? 'brown' : 'brownDk') : '#7a5a4a'));
-  poly([[16, 15], [15, 20], [11, 25], [13, 27], [15, 28], [14, 31], [16, 33], [17, 36], [22, 38], [28, 36], [30, 28], [24, 15]], null, (x, y) => (y >= 27 && (x * 3 + y * 7) % 5 < 1 ? 'stub' : y < 20 ? 'skinLt' : x > 24 ? 'skin' : 'skinLt'));
+  poly([[16, 15], [15, 20], [11, 25], [13, 27], [15, 28], [14, 31], [16, 33], [17, 36], [22, 38], [28, 36], [30, 28], [24, 15]], null, (x, y) => (y < 20 ? 'skinLt' : x > 24 ? 'skin' : 'skinLt'));
   poly([[15, 17], [13, 19], [14, 22]], 'skinLt');
   // ear
   ell(31, 24, 3, 4.5, null, (x, y) => ((x + y) % 4 === 0 ? 'skinDk' : 'skinSh')); px(30, 23, 'skinDk', 1, 3);
   // brow, eye, mouth, stubble
   px(14, 19, 'brownDk', 6, 1); px(15, 20, 'brownDk', 4, 1); px(17, 22, 'eyeW', 3, 2); px(17, 22, 'iris', 2, 2); px(16, 21, 'ol', 4, 1);
   px(13, 31, '#a85a5a', 4, 1); px(14, 32, 'skinSh', 3, 1);
+  if (st.talk) { px(13, 31, 'ol', 3, 3); px(14, 32, 'mouth', 2, 1); }
   px(15, 27, 'skinSh');
   P.outline();
 }

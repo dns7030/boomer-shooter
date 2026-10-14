@@ -52,16 +52,35 @@ export function makeNeoTower({ w, d, h, rectPad = 2, build }) {
   const crackM = new THREE.MeshBasicMaterial({ map: mat('neo_crack').map, transparent: true, alphaTest: 0.3, side: THREE.DoubleSide, depthWrite: false });
   const scorchM = new THREE.MeshBasicMaterial({ map: mat('neo_scorch').map, transparent: true, alphaTest: 0.05, side: THREE.DoubleSide, depthWrite: false });
   const holeM = new THREE.MeshBasicMaterial({ map: mat('neo_hole').map, transparent: true, alphaTest: 0.3, side: THREE.DoubleSide });
+  // Damage marks are placed on the tower AS BUILT: rays are shot at the real meshes (stepped tiers, legs, drums ...) and every mark sits on the
+  // surface that was hit, facing along its normal. A mark is only kept if the surface under all four of its corners is flat and at the same depth.
+  g.updateMatrixWorld(true);
+  const solids = []; g.traverse((o) => { if (o.isMesh && o.visible && !(o.material && o.material.transparent) && !stagesHide.some(([m]) => m === o)) solids.push(o); });
+  const rc = new THREE.Raycaster(), reach = Math.max(w, d) + 40, Y = new THREE.Vector3(0, 1, 0);
+  const probe = (px, py, pz, dir) => { rc.set(new THREE.Vector3(px, py, pz).addScaledVector(dir, -reach), dir); rc.far = reach * 2; const h = rc.intersectObjects(solids, false)[0]; if (!h || !h.face) return null; const n = h.face.normal.clone().transformDirection(h.object.matrixWorld); return { p: h.point.clone(), n, dist: h.distance }; };
+  const place = (mt, sz0, tall0, f) => {
+    for (let attempt = 0; attempt < 26; attempt++) {
+      const small = attempt >= 12, sz = small ? sz0 * 0.4 : sz0, tall = small ? tall0 * 0.4 : tall0, tolD = small ? 0.45 : 0.3, tolN = small ? 0.84 : 0.95;   // curved cores: fall back to small marks
+      const u = (rnd() - 0.5) * f.len * 0.9, y = h * (0.06 + rnd() * 0.6), dir = f.ax === 'z' ? new THREE.Vector3(0, 0, -f.s) : new THREE.Vector3(-f.s, 0, 0);
+      const base = f.ax === 'z' ? [u, y, 0] : [0, y, u], hw = sz / 2, hh = (tall || sz) / 2, side = f.ax === 'z' ? [1, 0, 0] : [0, 0, 1];
+      const c = probe(...base, dir); if (!c || Math.abs(c.n.y) > 0.4 || c.n.dot(dir) > -0.7) continue;
+      let ok = true;
+      for (const [du, dv] of [[-hw, -hh], [hw, -hh], [-hw, hh], [hw, hh]]) { const q = probe(base[0] + side[0] * du, base[1] + dv, base[2] + side[2] * du, dir); if (!q || Math.abs(q.dist - c.dist) > tolD || q.n.dot(c.n) < tolN) { ok = false; break; } }
+      if (!ok) continue;
+      const m = new THREE.Mesh(new THREE.PlaneGeometry(sz, tall || sz), mt);
+      m.position.copy(c.p).addScaledVector(c.n, 0.1); m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), c.n);
+      m.userData.noHit = true; return m;
+    }
+    return null;
+  };
   for (const f of faces) {
     for (let stage = 1; stage <= 4; stage++) {
       const n = [0, 2, 3, 4, 5][stage];
       for (let k = 0; k < n; k++) {
-        const kind = rnd(); const mt = kind < 0.45 ? crackM : kind < 0.75 ? scorchM : holeM, sz = mt === crackM ? 5 + rnd() * 6 : mt === scorchM ? 4 + rnd() * 5 : 2.6 + rnd() * 2.4;
+        const kind = rnd(); const mt = kind < 0.45 ? crackM : kind < 0.75 ? scorchM : holeM, sz = mt === crackM ? 3.5 + rnd() * 3 : mt === scorchM ? 3 + rnd() * 3 : 2 + rnd() * 1.8;
         if (mt === holeM && stage < 2) continue;
-        const m = new THREE.Mesh(new THREE.PlaneGeometry(sz, mt === crackM ? sz * 1.6 : sz), mt);
-        const u = (rnd() - 0.5) * f.len * 0.9, y = h * (0.1 + rnd() * 0.5);
-        if (f.ax === 'z') { m.position.set(u, y, f.s * (d / 2 + 0.12)); m.rotation.y = f.s > 0 ? 0 : Math.PI; } else { m.position.set(f.s * (w / 2 + 0.12), y, u); m.rotation.y = f.s > 0 ? Math.PI / 2 : -Math.PI / 2; }
-        T.broken(m, stage);
+        const m = place(mt, sz, mt === crackM ? sz * 1.5 : sz, f);
+        if (m) T.broken(m, stage);
       }
     }
   }
