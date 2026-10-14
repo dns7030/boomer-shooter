@@ -283,8 +283,9 @@ export function neoTowerTokyo() {
       // four tapering legs (slim boxes) with cross braces
       const legH = 56;
       for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
-        const leg = new THREE.Mesh(new THREE.BoxGeometry(1.4, legH, 1.4), redM);
-        leg.position.set(sx * 9.5, 1.8 + legH / 2, sz * 9.5); leg.rotation.set(sz * -0.14, 0, sx * 0.14); T.add(leg);
+        const leg = new THREE.Mesh(new THREE.BoxGeometry(1.4, legH, 1.4), redM); leg.position.y = legH / 2 - 0.2;
+        const pivot = new THREE.Group(); pivot.add(leg);   // tilt about the FOOT, so every leg starts on the ground
+        pivot.position.set(sx * 9.5, 1.8, sz * 9.5); pivot.rotation.set(sz * -0.14, 0, sx * 0.14); T.add(pivot);
       }
       for (let i = 0; i < 6; i++) {
         const k = i / 6, hw = 9.5 * (1 - k * 0.8), yy = 4 + k * 50;
