@@ -16,6 +16,10 @@ export function buildNeoSingapore(scene) {
       ['pavingDark', -6, X0, X1, -44, -36, 4],
       ['water', -7, -900, 900, -900, WATER, 8],
       ['grass', -6, -108, -66, 44, 52, 6],
+      // the island in the bay (far skyline): a seawall rim, a lawn and a plaza, with rounded-off corners
+      ['pavingDark', -5, -52, 106, -150, -114, 4], ['pavingDark', -5, -40, 94, -174, -94, 4],
+      ['grass', -4, -49, 103, -148, -116, 6], ['grass', -4, -37, 91, -171, -97, 6],
+      ['paving', -3, -30, 80, -126, -106, 5],
     ],
     base: { x: -15, z: -22 }, tower: neoTowerSingapore, start: { x: -15, z: 6, yaw: 0 },
     bossType: 'merlizard',
@@ -41,10 +45,12 @@ export function buildNeoSingapore(scene) {
       ['reg1', () => SG.merlionRegDesk(), 38, 1, 'N', 1], ['reg2', () => SG.merlionRegDesk(), 62, 1, 'N', 1],
     ],
     skyline: [
-      [() => SG.singaporeFlyer(), -100, -150, 'S', 1], [() => SG.helixBridge(), 10, -62, 'S', 1.1],
+      // everything that used to float in the sea now stands on the island (x -52..106, z -174..-94)
+      [() => SG.fullertonHotel(), -8, -122, 'S', 1.1], [() => SG.helixBridge(), 48, -103, 'S', 1.1],
+      [() => SG.singaporeFlyer(), 72, -134, 'S', 1], [() => SG.superTree({ variant: 1 }), 30, -152, 'S', 1.3],
+      [() => SG.financeTower({ variant: 2 }), -12, -158, 'S', 1], [() => SG.financeTower({ variant: 0 }), 62, -162, 'S', 1],
       [() => SG.financeTower({ variant: 0 }), 140, -50, 'W', 1], [() => SG.financeTower({ variant: 1 }), 150, 10, 'W', 1], [() => SG.financeTower({ variant: 2 }), 140, 70, 'W', 1],
-      [() => SG.financeTower({ variant: 3 }), -150, 40, 'E', 1], [() => SG.financeTower({ variant: 1 }), -150, -20, 'E', 1], [() => SG.fullertonHotel(), 20, -120, 'S', 1.1],
-      [() => SG.financeTower({ variant: 2 }), 60, -150, 'S', 1], [() => SG.superTree({ variant: 1 }), 120, -100, 'S', 1.3], [() => SG.financeTower({ variant: 0 }), -40, 130, 'N', 1],
+      [() => SG.financeTower({ variant: 3 }), -150, 40, 'E', 1], [() => SG.financeTower({ variant: 1 }), -150, -20, 'E', 1], [() => SG.financeTower({ variant: 0 }), -40, 130, 'N', 1],
       [() => SG.dragonBoat(), -40, -70, 'S', 1], [() => SG.bumboat(), 40, -80, 'E', 1], [() => SG.bumboat(), -80, -100, 'S', 1],
     ],
     halls: [{ name: 'conf', W: 60, D: 36, H: 18, items: [[0, 10, 'w_plasma'], [0, -10, 'neo'], [-4, 0, 'gas'], [5, 0, 'cells'], [-6, 12, 'neo'], [6, -12, 'gas']] }],
