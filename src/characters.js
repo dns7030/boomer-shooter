@@ -179,8 +179,8 @@ function paintDealoneFull(cv, st = {}) {
   neckShirt(P, SK2, '#6b7078', '#4c5058', 38, 1.35, 10);   // narrower, athletic shoulders
   for (let y = 36; y < 44; y++) for (let x = 16; x <= 32; x++) { const t = (x - 14) / 22; if (y - 36 < 3 + t * 5 && y - 36 > t * 2 - 1) px(x, y, (x + y) % 3 === 0 ? 'paisley2' : 'paisley'); }   // bandana knot
   px(20, 42, 'paisley', 3, 4);
-  headBase(P, SK2, { rx: 12, ry: 15.5 });                                                    // lean face
-  for (let y = 30; y <= 36; y++) for (let x = 14; x <= 34; x++) if (y <= 36 - Math.max(0, Math.abs(x - 24) - 7) * 1.1) px(x, y, 'skin');   // defined, angular jaw
+  headBase(P, SK2, { rx: 12, ry: 15.5, jaw: false });                                       // lean face
+  for (let y = 29; y <= 36; y++) for (let x = 16; x <= 32; x++) if (y <= 36 - Math.max(0, Math.abs(x - 24) - 4) * 1.3) px(x, y, 'skin');   // narrower jaw tapering to the chin
   // hair on top / fringe falling to the sides, parted in the middle
   for (let y = 5; y <= 22; y++) for (let x = 9; x <= 39; x++) { const part = Math.abs(x - 24), line = 13 + Math.floor(part * 0.5) - (part < 2 ? 2 : 0), inner = part < 11 ? 0 : 1; if (y >= 5 + Math.floor(part / 5) && ((y <= line && part <= 15) || (part >= 12 && y <= 24 && part <= 16))) px(x, y, (x * 2 + y) % 6 < 1 ? 'brownLt' : (x + y) % 9 === 0 ? 'brownDk' : 'brown'); }
   // brows (relaxed, raised), eyes, thin glasses
@@ -189,7 +189,7 @@ function paintDealoneFull(cv, st = {}) {
   for (const gx of [14, 26]) { px(gx, 18, '#6a7078', 9, 1); px(gx, 24, '#6a7078', 9, 1); px(gx, 18, '#6a7078', 1, 7); px(gx + 8, 18, '#6a7078', 1, 7); }
   px(23, 19, '#6a7078', 3, 1); px(10, 19, '#6a7078', 4, 1); px(35, 19, '#6a7078', 4, 1);
   // big smile with teeth
-  px(18, 30, 'ol', 13, 1); px(19, 31, 'tooth', 11, st.talk ? 1 : 2); if (st.talk) px(19, 32, 'mouth', 11, 2); px(20, 33, 'ol', 9, 1); px(17, 29, 'ol', 1, 1); px(31, 29, 'ol', 1, 1);
+  px(18, 30, 'ol', 13, 1); px(19, 31, 'tooth', 11, st.talk ? 1 : 2); if (st.talk) px(19, 32, 'mouth', 11, 2); px(19, 33, '#a24a52', 11, 2); px(20, 35, 'ol', 9, 1); px(18, 31, 'ol', 1, 3); px(30, 31, 'ol', 1, 3);   // upper line, teeth, then a lower lip so it reads as an open smile px(17, 29, 'ol', 1, 1); px(31, 29, 'ol', 1, 1);
   talkAt(P, 19, 31, 11);
   P.outline();
 }
