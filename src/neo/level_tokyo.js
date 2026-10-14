@@ -1,9 +1,13 @@
 // Neo level: Tokyo at dusk. A Shibuya-style scramble crossing with the Neo tower in the middle, neon towers, izakaya rows, a
 // pachinko parlour you can walk into, Godzilla hotel, pagoda, Kaminarimon gate, elevated railway. Tokyo Tower and Skytree far away.
 import * as THREE from 'three';
-import * as T from '../buildings6tk.js';
+import * as RAW from '../buildings6tk.js';
+import { makeTone } from './tone.js';
 import { buildCity } from './citylevel.js';
 import { neoTowerTokyo } from './neotower.js';
+
+// softer neon: less saturated, dimmer glow and lower contrast in the sign textures (no harsh flicker-like patterns)
+const T = makeTone({ sat: 0.72, light: 0.9, glow: 0.62, contrast: 0.68 })(RAW);
 
 export function buildNeoTokyo(scene) {
   const X0 = -110, X1 = 110, ZN = -87.5, ZS = 87.5;
@@ -22,7 +26,7 @@ export function buildNeoTokyo(scene) {
       // north-east block (fronts face the east-west avenue, i.e. south)
       ['pachinko', () => T.pachinkoParlor(), 38, -28, 'S', 0.9],
       ['neonA', () => T.neonTower({ variant: 0 }), 68, -25, 'S', 0.9],
-      ['neonB', () => T.neonTower({ variant: 1 }), 92, -25, 'S', 0.9],
+      ['hotelB', () => T.capsuleHotel(), 92, -26, 'S', 0.8],
       ['izakayaA', () => T.izakayaRow(), 38, -52, 'S', 0.9],
       ['godzilla', () => T.godzillaHotel(), 72, -58, 'S', 0.7],
       ['mall', () => T.cylinderMall(), 98, -58, 'S', 0.7],
@@ -35,13 +39,13 @@ export function buildNeoTokyo(scene) {
       ['izakayaB', () => T.izakayaRow(), -76, -52, 'S', 0.9],
       // south-east (fronts face north)
       ['izakayaC', () => T.izakayaRow(), 38, 24, 'N', 0.9],
-      ['neonD', () => T.neonTower({ variant: 1 }), 64, 26, 'N', 0.9],
+      ['houses2', () => T.japaneseHouseRow(), 68, 24, 'N', 0.8],
       ['konbiniB', () => T.konbini(), 88, 22, 'N', 0.9],
       ['capsuleB', () => T.capsuleHotel(), 45, 56, 'N', 0.9],
-      ['neonE', () => T.neonTower({ variant: 0 }), 76, 58, 'N', 0.9],
+      ['konbiniC', () => T.konbini(), 76, 56, 'N', 0.9],
       ['housesB', () => T.japaneseHouseRow(), 100, 56, 'N', 0.7],
       // south-west
-      ['neonF', () => T.neonTower({ variant: 0 }), -26, 28, 'N', 0.9],
+      ['izakayaE', () => T.izakayaRow(), -26, 24, 'N', 0.9],
       ['godzilla2', () => T.godzillaHotel(), -52, 40, 'N', 0.6],
       ['mallB', () => T.cylinderMall(), -80, 40, 'N', 0.65],
       ['izakayaD', () => T.izakayaRow(), -98, 18, 'N', 0.8],

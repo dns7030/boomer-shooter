@@ -150,10 +150,8 @@ function cellArt(g, x, y, w, h, kind, c, c2, r) {
     const n = Math.max(3, Math.floor(w / 9)); for (let i = 0; i < n; i++) { const bh = (0.25 + r() * 0.7) * (h - 10); R(g, x + 5 + i * ((w - 10) / n), y + h - 5 - bh, (w - 10) / n - 2, bh, i % 2 ? c : c2); }
   } else if (kind === 5) {          // star
     g.fillStyle = c; g.beginPath(); for (let j = 0; j < 10; j++) { const a = j * 0.628 - 1.571, rr = j % 2 ? m * 0.42 : m; g.lineTo(cx + Math.cos(a) * rr, cy + Math.sin(a) * rr); } g.fill();
-  } else {                          // diagonal stripes
-    g.save(); g.beginPath(); g.rect(x + 3, y + 3, w - 6, h - 6); g.clip();
-    for (let i = -h; i < w + h; i += 9) { g.fillStyle = (i / 9) % 2 ? c : c2; g.beginPath(); g.moveTo(x + i, y + h); g.lineTo(x + i + 5, y + h); g.lineTo(x + i + 5 + h, y); g.lineTo(x + i + h, y); g.fill(); }
-    g.restore();
+  } else {                          // calm solid panel with a thin inner frame (stripes removed: harsh high-contrast patterns)
+    g.fillStyle = 'rgba(255,255,255,0.10)'; g.fillRect(x + 4, y + 4, w - 8, h - 8); g.strokeStyle = c; g.lineWidth = 1.5; g.strokeRect(x + 6, y + 6, w - 12, h - 12);
   }
 }
 function neonPanel(g, w, h, seed, vert) {

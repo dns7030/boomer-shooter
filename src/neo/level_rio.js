@@ -3,33 +3,12 @@
 import * as THREE from 'three';
 import { addPainters } from '../textures.js';
 import * as RAW from '../buildings6rj.js';
+import { makeTone } from './tone.js';
 import { buildCity } from './citylevel.js';
 import { neoTowerRio } from './neotower.js';
 
-// Rio's builders use very saturated colours and bright unlit lights; calm them down: less saturation, a bit darker, dimmer glow.
-const SAT = 0.6, LIGHT = 0.93, GLOW = 0.62;
-const _mat = new Map(), _tex = new Map();
-function calmTexture(t) {
-  if (!t || !t.image || !t.image.getContext) return t;
-  if (_tex.has(t.uuid)) return _tex.get(t.uuid);
-  const src = t.image, c = document.createElement('canvas'); c.width = src.width; c.height = src.height;
-  const g = c.getContext('2d'), d = (g.drawImage(src, 0, 0), g.getImageData(0, 0, c.width, c.height)), a = d.data;
-  for (let i = 0; i < a.length; i += 4) { const l = 0.3 * a[i] + 0.59 * a[i + 1] + 0.11 * a[i + 2]; for (let k = 0; k < 3; k++) a[i + k] = (l + (a[i + k] - l) * SAT) * LIGHT; }
-  g.putImageData(d, 0, 0);
-  const n = new THREE.CanvasTexture(c); n.wrapS = t.wrapS; n.wrapT = t.wrapT; n.magFilter = t.magFilter; n.minFilter = t.minFilter; n.repeat.copy(t.repeat); n.offset.copy(t.offset); n.colorSpace = t.colorSpace; n.anisotropy = t.anisotropy; n.generateMipmaps = t.generateMipmaps;
-  _tex.set(t.uuid, n); return n;
-}
-function calmMaterial(m) {
-  if (_mat.has(m.uuid)) return _mat.get(m.uuid);
-  const c = m.clone(), hsl = {};
-  const calm = (col, lf) => { col.getHSL(hsl); col.setHSL(hsl.h, hsl.s * SAT, Math.min(1, hsl.l * lf)); };
-  if (c.color) calm(c.color, c.isMeshBasicMaterial ? GLOW + 0.2 : LIGHT);
-  if (c.emissive && c.emissive.getHex() !== 0) { calm(c.emissive, GLOW); if (c.emissiveIntensity) c.emissiveIntensity *= GLOW; }
-  if (c.map) c.map = calmTexture(c.map);
-  _mat.set(m.uuid, c); return c;
-}
-const tone = (root) => { root.traverse((o) => { if (o.isMesh && o.material && !o.isInstancedMesh) o.material = Array.isArray(o.material) ? o.material.map(calmMaterial) : calmMaterial(o.material); }); return root; };
-const R = {}; for (const [k, fn] of Object.entries(RAW)) if (typeof fn === 'function') R[k] = (...a) => tone(fn(...a));
+// Rio's builders use very saturated colours and bright unlit lights; calm them down.
+const R = makeTone({ sat: 0.6, light: 0.93, glow: 0.62 })(RAW);
 
 const P = {
   rj_sand(g) { g.fillStyle = '#efd9a0'; g.fillRect(0, 0, 64, 64); let s = 7; const r = () => (s = (s * 16807) % 2147483647) / 2147483647; for (let i = 0; i < 140; i++) { g.fillStyle = r() < 0.5 ? 'rgba(255,245,210,0.35)' : 'rgba(190,150,90,0.25)'; g.fillRect(r() * 64, r() * 64, 1 + r() * 2, 1); } },
