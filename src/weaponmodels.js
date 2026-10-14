@@ -124,7 +124,7 @@ function buildPistol(M) {
   g.add(at(box(0.004, 0.02, 0.003, M.poly), 0, -0.028, -0.078));
   // (no hand or arm on the pistol: the gun is simply held low at the edge of the screen)
   const muzzle = new THREE.Object3D(); muzzle.position.set(0, 0.014, -0.225); g.add(muzzle);
-  return { group: g, muzzle, flash: 0.12, tint: 'orange', tip: [0.14, -0.39], rot: [0.4, 0.07, 0], recoil: 1 };
+  return { group: g, muzzle, flash: 0.12, tint: 'orange', tip: [0.14, -0.49], rot: [0.4, 0.07, 0], recoil: 1 };
 }
 
 function buildShotgun(M) {
@@ -521,7 +521,7 @@ export class WeaponView {
       const hx = -0.085 * side * (1 - over) + tx * over;
       const hy0 = -0.05 - 0.033 * o * (1 - away), hy = hy0 + (ty - hy0) * up + 0.022 * Math.sin(Math.PI * Math.min(1, up)) ;   // a touch higher in flight so wrist and forearm clear the gun
       const hz = -0.31 + (tz + 0.31) * ease(away);
-      lh.position.set(ARM_W0.x + hx, ARM_W0.y + hy + 0.05, ARM_W0.z + hz + 0.31);   // wrist position (rest: ARM_W0)
+      lh.position.set(ARM_W0.x + hx - 0.045 * ease(clamp(away / 0.4)), ARM_W0.y + hy + 0.05, ARM_W0.z + hz + 0.31);   // wrist position (rest: ARM_W0)
       { const w = lh.position, v = ARM_ANCHOR.clone().sub(w).normalize();
         armDyn.position.copy(w); armDyn.quaternion.setFromUnitVectors(ARM_DIR, v);
         // the wrist continues the forearm: while the hand is away from the gun it points exactly along the arm's line

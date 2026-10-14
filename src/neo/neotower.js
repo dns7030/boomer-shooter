@@ -298,7 +298,7 @@ export function neoTowerTokyo() {
       T.top(crown);
       beam(T, 80);
       entrance(T, 14.8);
-      T.smoke(-6, 14, 12); T.smoke(8, 30, -7); T.smoke(0, 50, 4);
+      T.smoke(-3, 14, 6.9); T.smoke(6.9, 30, -3); T.smoke(2, 50, 6.9);   // on the glass faces (box is ±6.5)
     },
   });
 }
@@ -353,7 +353,7 @@ export function neoTowerRio() {
       for (let i = 0; i < 14; i++) { const a = i * 0.45, k = i / 14, seg = new THREE.Mesh(new THREE.BoxGeometry(5, 0.5, 2.4), blue); seg.position.set(Math.cos(a) * (9 - k * 3), 2.4 + k * 26, Math.sin(a) * (9 - k * 3)); seg.rotation.y = -a; T.add(seg); }
       beam(T, 60);
       entrance(T, 14.8);
-      T.smoke(-6, 12, 7); T.smoke(6, 28, -5); T.smoke(0, 40, 3);
+      T.smoke(-3.3, 12, 3.5); T.smoke(2.5, 26, -2.5); T.smoke(0, 40, 3);   // on the pedestal surface
     },
   });
 }
