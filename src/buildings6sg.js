@@ -738,10 +738,6 @@ export function shophouseRow(opts = {}) {
     const gf = new THREE.Mesh(uvPlane(gw, HG, gu, 1 - gu), mat(`s6sg_shG${k}`)); gf.position.set(cx, HG / 2, 3.66); g.add(gf);
     if (w > 9) for (const s of [-1, 1]) Bx(g, (w - 9) / 2, HG, 0.1, C(trim), cx + s * (4.5 + (w - 9) / 4), HG / 2, 3.64, 1);
     const up = new THREE.Mesh(uvPlane(w, HU, 0, w / 9), mat(`s6sg_shU${k}`)); up.position.set(cx, HG + HU / 2, 6.06); g.add(up);
-    for (let b = 0; b < w / 3; b++) {
-      const bx = x0 + b * 3 + 1.5;
-      const ar = new THREE.Mesh(new THREE.PlaneGeometry(3, 4), tintA('s6sg_archBay', trim)); ar.position.set(bx, 2.2, 5.74); g.add(ar);
-    }
     for (let b = 0; b <= w / 3; b++) posts.add((x0 + b * 3).toFixed(2));
     Bx(g, w - 0.04, 1.5, 0.5, C(trim), cx, EV + 0.75, 5.85, 1);
     Bx(g, w - 0.04, 0.35, 12.5, C(trim), cx, EV + 0.17, 0, 2);
@@ -810,7 +806,6 @@ function veranda(g, cols, x, z, ry, L, floors = 2) {
   for (let f = 0; f < floors; f++) {
     Bx(grp, L, 0.3, D_, white, 0, f * FH + FH, D_ / 2, 2);
     Bx(grp, L, 0.9, 0.14, white, 0, f * FH + FH + 0.75, D_ - 0.25, 1);
-    for (let b = 0; b < n; b++) { const ar = new THREE.Mesh(new THREE.PlaneGeometry(3, FH - 0.3), tintA('s6sg_archBay', 0xfaf8f0)); ar.position.set(-L / 2 + b * 3 + 1.5, f * FH + (FH - 0.3) / 2, D_ - 0.05); grp.add(ar); }
   }
   for (let b = 0; b <= n; b++) Bx(grp, 0.4, floors * FH, 0.4, white, -L / 2 + b * 3, floors * FH / 2, D_ - 0.4, 1);
   for (let b = 0; b < n; b++) for (let f = 0; f < floors; f++) { win(grp, 1.4, 2.5, -L / 2 + b * 3 + 1.5, f * FH + 2.2, 0.07, 0, { c: '#ffffff' }); if (f === 0 && b % 2 === 0) door(grp, 1.5, 2.7, -L / 2 + b * 3 + 1.5, 1.4, 0.08, 0, '#e8e4d8'); }
