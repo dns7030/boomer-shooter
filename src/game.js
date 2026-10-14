@@ -565,7 +565,7 @@ export class Game {
     if (WEAPONS[p.weapon].id === 'ssg') for (const [th, name] of [[0.3, 'ssgOpen'], [0.5, 'shellIn'], [0.67, 'shellIn'], [0.9, 'ssgClose']]) if (prevSince < th && p.since >= th) sfx[name]();
     p.flash = Math.max(0, p.flash - dt * 12);
     p.firing = p.firing && p.since < 0.12;
-    if (p.swing >= 0) { p.swing += dt / 0.38; if (p.swing >= 1) p.swing = -1; }
+    if (p.swing >= 0) { p.swing += dt / 0.27; if (p.swing >= 1) p.swing = -1; }
     if (p.pendingMelee > 0) { p.pendingMelee -= dt; if (p.pendingMelee <= 0) this.meleeHit(); }
     if (p.switching > 0) {
       p.switching += dt / 0.16;
@@ -591,7 +591,7 @@ export class Game {
     const p = this.p, w = WEAPONS[p.weapon];
     if (this.state !== 'playing' || p.cd > 0 || p.switching > 0) return false;
     if (w.melee) {
-      p.cd = w.cooldown; p.swing = 0; p.pendingMelee = 0.14; p.since = 0; sfx.sabre(); return true;
+      p.cd = w.cooldown; p.swing = 0; p.pendingMelee = 0.1; p.since = 0; sfx.sabre(); return true;
     }
     if (p.ammo[w.ammo] < w.use) {
       sfx.empty(); p.cd = 0.3;

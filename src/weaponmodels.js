@@ -122,23 +122,9 @@ function buildPistol(M) {
   g.add(at(rbox(0.034, 0.034, 0.05, 0.005, M.poly), 0, -0.012, -0.012));
   g.add(at(box(0.004, 0.003, 0.04, M.poly), 0, -0.036, -0.058));           // trigger guard
   g.add(at(box(0.004, 0.02, 0.003, M.poly), 0, -0.028, -0.078));
-  // the hand: back of the hand with the thumb along the left, the index finger along the frame, three fingers wrapped round the grip
-  const H = new THREE.Group(); H.userData.skip = true; g.add(H);
-  const skin = M.skin, add = (o, x, y, z) => { o.position.set(x, y, z); H.add(o); return o; };
-  const palm = add(rbox(0.05, 0.05, 0.06, 0.014, skin), 0.004, -0.058, 0.03); palm.rotation.x = -0.3;
-  add(sphere(0.0105, skin, 0, 0, 0), -0.02, -0.036, 0.012); add(sphere(0.0105, skin, 0, 0, 0), 0.028, -0.04, 0.004);   // knuckles
-  add(zcyl(0.0092, 0.0085, 0.062, skin, 8), -0.026, -0.032, -0.012);                                              // thumb
-  add(rbox(0.012, 0.006, 0.012, 0.002, M.cuff), -0.026, -0.0245, -0.044);                                         // thumbnail
-  add(zcyl(0.0085, 0.0078, 0.058, skin, 8), 0.027, -0.03, -0.016);                                               // index finger, laid along the frame
-  add(sphere(0.0078, skin, 0, 0, 0), 0.027, -0.03, -0.045);
-  for (let i = 0; i < 3; i++) {                                                                                   // curled fingers on the grip's right face
-    const f = add(rbox(0.012, 0.016, 0.048, 0.004, skin), 0.026, -0.052 - i * 0.017, -0.004); f.rotation.x = -0.2;
-    add(sphere(0.0085, skin, 0, 0, 0), 0.026, -0.052 - i * 0.017, -0.03);
-  }
-  add(box(0.06, 0.001, 0.001, M.dark), 0.002, -0.07, 0.0).visible = false;
-  g.add(arm(M, [0.006, -0.065, 0.06], [0.03, -0.28, 0.96], 0.5, 0.03));
+  // (no hand or arm on the pistol: the gun is simply held low at the edge of the screen)
   const muzzle = new THREE.Object3D(); muzzle.position.set(0, 0.014, -0.225); g.add(muzzle);
-  return { group: g, muzzle, flash: 0.12, tint: 'orange', tip: [0.14, -0.235], rot: [0.4, 0.07, 0], recoil: 1 };
+  return { group: g, muzzle, flash: 0.12, tint: 'orange', tip: [0.14, -0.29], rot: [0.4, 0.07, 0], recoil: 1 };
 }
 
 function buildShotgun(M) {
@@ -194,7 +180,7 @@ function buildSSG(M) {
   lhGrp.add(hand(M, 0, -0.05, -0.31, 0.058, 0.034, 0.09));
   // the forearm is a separate piece anchored at a fixed point off-screen (lower left); the wrist follows the hand, so the arm always bends
   // at its own angle (between the gun's direction and the hand's) instead of staying parallel to the gun
-  const ARM_W0 = new THREE.Vector3(0, -0.07, -0.26), ARM_DIR = new THREE.Vector3(-0.5, -0.4, 0.77).normalize(), ARM_ANCHOR = ARM_W0.clone().addScaledVector(ARM_DIR, 0.56);
+  const ARM_W0 = new THREE.Vector3(0, -0.07, -0.26), ARM_ANCHOR = new THREE.Vector3(-0.40, -0.12, 0.30), ARM_DIR = ARM_ANCHOR.clone().sub(ARM_W0).normalize();   // far to the left (and not below the gun), so the forearm never crosses the barrels
   const armDyn = new THREE.Group(); armDyn.userData.skip = true; armDyn.add(arm(M, [0, 0, 0], [ARM_DIR.x, ARM_DIR.y, ARM_DIR.z], 0.55, 0.024)); armDyn.position.copy(ARM_W0); g.add(armDyn);
   const grip = rbox(0.042, 0.1, 0.05, 0.01, M.wood); grip.position.set(0, -0.075, 0.02); grip.rotation.x = -0.3; g.add(grip);
   g.add(at(box(0.004, 0.012, 0.05, M.poly), 0, -0.04, -0.03));
@@ -502,8 +488,8 @@ export class WeaponView {
     r.rotation.set(rx + k * 0.12 + st.lower * 0.5, ry, rz);
     if (cur.sabre && st.swing >= 0) {
       const sw = st.swing, e = 1 - (1 - sw) * (1 - sw);
-      r.position.set(px + 0.06 - 0.15 * e, py + 0.09 - 0.14 * e - st.lower * 0.3, pz - Math.sin(sw * Math.PI) * 0.08);
-      r.rotation.set(rx + 0.2 - 0.6 * e, ry + 0.1 * e, rz - 0.45 + 0.85 * e);
+      r.position.set(px + 0.13 - 0.34 * e, py + 0.11 - 0.17 * e - st.lower * 0.3, pz - Math.sin(sw * Math.PI) * 0.1);   // starts further right, ends well to the left
+      r.rotation.set(rx + 0.25 - 0.7 * e, ry + 0.14 * e, rz - 0.7 + 1.3 * e);
     }
     const t = st.since;
     if (cur.pump) { const u = Math.min(1, Math.max(0, (t - 0.1) / 0.26)); cur.pump.position.z = cur.pumpZ + Math.sin(u * Math.PI) * 0.12; }
@@ -532,7 +518,7 @@ export class WeaponView {
       const tx = 0, ty = my + 0.034, tz = mz + 0.03;                              // above the shells
       const side = ease(clamp(away / 0.4)), up = ease(clamp((away - 0.35) / 0.4)), over = ease(clamp((away - 0.75) / 0.25));
       const hx = -0.085 * side * (1 - over) + tx * over;
-      const hy0 = -0.05 - 0.033 * o * (1 - away), hy = hy0 + (ty - hy0) * up;
+      const hy0 = -0.05 - 0.033 * o * (1 - away), hy = hy0 + (ty - hy0) * up + 0.022 * Math.sin(Math.PI * Math.min(1, up)) ;   // a touch higher in flight so wrist and forearm clear the gun
       const hz = -0.31 + (tz + 0.31) * ease(away);
       lh.position.set(hx, hy + 0.05, hz + 0.31);                                  // offsets from the resting hand (0, -0.05, -0.31)
       { const w = ARM_W0.clone().add(lh.position), v = ARM_ANCHOR.clone().sub(w).normalize();
