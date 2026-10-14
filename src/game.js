@@ -722,8 +722,8 @@ export class Game {
     if (tint === 'boom') for (let i = 0; i < 12; i++) this.emit(x + (Math.random() - 0.5), y + 0.4, z + (Math.random() - 0.5), 'smoke', (Math.random() - 0.5) * R, 1 + Math.random() * 2, (Math.random() - 0.5) * R, 1.4 + Math.random() * 0.7, 1.0 + Math.random() * 0.7, -0.5);
     this.flash(x, y + 0.6, z, tint === 'boomBlue' ? 0x70b8ff : tint === 'boomGreen' ? 0x70ff90 : 0xffa040, tint === 'boomBlue' ? 110 : 300, 0.45);
     // scorch marks on the ground and on the wall that was hit
-    if (y < R * 1.2) this.markGround('scorch', x, y + 0.5, z, Math.min(8, R * 1.7), R * 1.3 + 1.5);
-    this.markWall('scorch', x, y + 0.4, z, R * 1.3 + 0.5, Math.min(6, R * 1.3));
+    if (y < R * 1.2) this.markGround('scorch', x, y + 0.5, z, Math.min(8, R * 1.7) * 0.8, R * 1.3 + 1.5);   // 20 % smaller marks
+    this.markWall('scorch', x, y + 0.4, z, R * 1.3 + 0.5, Math.min(6, R * 1.3) * 0.8);
     this.p.kick += Math.max(0, 0.06 * (1 - Math.hypot(x - this.p.x, z - this.p.z) / (R * 5)));
     for (const e of this.enemies) {
       if (!ALIVE.has(e.state) && (e.state === 'dying' || e.state === 'dead')) {   // corpses get flung about
