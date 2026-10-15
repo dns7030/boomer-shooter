@@ -45,6 +45,8 @@
 
   #ov-menu { font: inherit; font-size:16px; letter-spacing:3px; padding: 8px 26px; margin-top:10px; background: transparent; color: var(--cream); border: 2px solid var(--gold); cursor:pointer; }
   #ov-menu:hover { background:rgba(255,255,255,.12); }
+  #ov-resume { font: inherit; font-size:16px; letter-spacing:3px; padding: 8px 26px; margin-top:10px; background: transparent; color: var(--cream); border: 2px solid var(--gold); cursor:pointer; }
+  #ov-resume:hover { background:rgba(255,255,255,.12); }
   #levels { display:flex; gap:12px; margin-top:20px; flex-wrap:wrap; justify-content:center; }
   .lvl { font: inherit; background: rgba(26,18,16,.85); color: var(--cream); border: 2px solid #6a5a30; padding: 10px 16px; cursor:pointer; text-align:left; min-width: 230px; }
   .lvl b { display:block; font-size:16px; letter-spacing:1px; } .lvl small { opacity:.7; font-size:12px; }
@@ -75,6 +77,7 @@
   <div class="keys"><span><b>WASD</b> move</span><span><b>MOUSE</b> look</span><span><b>CLICK</b> fire / swing</span><span><b>SPACE</b> jump</span><span><b>1–9 / WHEEL / Q</b> weapons (press a number again to cycle)</span><span><b>SHIFT</b> run</span><span><b>M</b> music on / off</span><span><b>G</b> graphics quality</span><span><b>L</b> lizard look (3D / pixel)</span></div>
   <div id="profile"><input id="nick" maxlength="16" placeholder="ENTER YOUR NICKNAME" autocomplete="off" spellcheck="false"><div id="mystats"></div></div>
   <button id="ov-btn">PLAY</button>
+  <button id="ov-resume" style="display:none">KEEP EXPLORING</button>
   <button id="ov-menu" style="display:none">MAIN MENU</button>
   <div id="settings"><button class="set" id="set-gfx"></button><button class="set" id="set-liz"></button></div>
   <div id="levels"></div>

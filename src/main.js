@@ -23,6 +23,7 @@ const game = new Game({
   ui: {
     radar: $('radar'), uptime: $('uptime'), uptimeBar: $('uptime-bar'), uptimeLabel: $('uptime-label'), boss: $('boss'), bossLabel: $('boss-label'), bossBar: $('bossbar'), hp: $('hp'), hpBar: $('hpbar'), ammo: $('ammo'), weapon: $('wname'), wave: $('wave'), msg: $('msg'), hurt: $('hurt'), slots,
     onState(s) { showOverlay(s); },
+    onCleared() { if (music) music.setMode('win'); },
     onStat(kind, run) { profile.event(kind, run); const st = profile.stats(); if (online.enabled && st) online.sendStats(profile.nick, st); },
   },
 });
@@ -76,7 +77,14 @@ function showOverlay(s) {
   $('profile').style.display = s === 'paused' ? 'none' : 'block'; if ($('chars')) { $('chars').style.display = $('chars-label').style.display = s === 'paused' || !CFG.character ? 'none' : ''; $('chars').style.display = s === 'paused' || !CFG.character ? 'none' : 'flex'; }
   $('ov-menu').style.display = s === 'paused' ? 'inline-block' : 'none';
   if (music) music.setMode(s === 'playing' ? 'play' : s === 'paused' ? 'pause' : s === 'won' ? 'win' : s === 'dead' ? 'dead' : 'pause');
-  if (s === 'paused') { title.textContent = 'PAUSED'; body.textContent = 'Click to resume.  (P = developer freeze)'; btn.textContent = 'RESUME'; }
+  $('ov-resume').style.display = s === 'paused' && game.cleared ? 'inline-block' : 'none';
+  if (s === 'paused' && game.cleared) {   // level cleared earlier: the pause menu offers the next level
+    const t = Math.round(game.stats.time);
+    title.textContent = 'LEVEL CLEARED';
+    body.textContent = `${L.name}: all lizards slain (${game.stats.kills}) in ${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}.`;
+    btn.textContent = game.nextLevel() !== null ? 'NEXT LEVEL' : 'PLAY AGAIN';
+  }
+  else if (s === 'paused') { title.textContent = 'PAUSED'; body.textContent = 'Click to resume.  (P = developer freeze)'; btn.textContent = 'RESUME'; }
   else if (s === 'dead' && game.failReason === 'chain') { title.textContent = 'YOU’VE BEEN DEFEATED'; body.textContent = `Neo went offline. Lizards slain: ${game.stats.kills}.`; btn.textContent = 'TRY AGAIN'; }
   else if (s === 'dead') { title.textContent = 'YOU DIED'; body.textContent = `Lizards slain: ${game.stats.kills}. The invaders win this round.`; btn.textContent = 'TRY AGAIN'; }
   else if (s === 'won') {
@@ -98,6 +106,7 @@ function start(levelIndex) {
   if (typeof levelIndex !== 'number') {
     levelIndex = undefined;
     if (game.state === 'won' && game.nextLevel() !== null) levelIndex = game.nextLevel();
+    if (game.state === 'paused' && game.cleared) levelIndex = game.nextLevel() !== null ? game.nextLevel() : game.levelIndex;   // NEXT LEVEL / PLAY AGAIN
   }
   if (levelIndex !== undefined && (levelIndex !== game.levelIndex || game.state !== 'title')) game.loadLevel(levelIndex);
   game.begin();
@@ -106,7 +115,9 @@ function start(levelIndex) {
 }
 $('ov-btn').addEventListener('click', () => start());
 $('ov-menu').addEventListener('click', (ev) => { ev.stopPropagation(); game.toMenu(); });
-overlay.addEventListener('click', (e) => { if (e.target === overlay) start(); });
+function resumeRun() { initAudio(); game.begin(); if (canvas.requestPointerLock) { try { const r = canvas.requestPointerLock(); if (r && r.catch) r.catch(() => {}); } catch (e) { /* ignore */ } } }
+$('ov-resume').addEventListener('click', (ev) => { ev.stopPropagation(); resumeRun(); });   // keep walking around a cleared level
+overlay.addEventListener('click', (e) => { if (e.target !== overlay) return; if (game.state === 'paused' && game.cleared) resumeRun(); else start(); });
 
 // re-capture the mouse: any click on the game while it is running but unlocked (e.g. Esc-resume refused by the browser) locks it again
 function lockMouse() {

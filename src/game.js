@@ -183,7 +183,7 @@ export class Game {
   reset() {
     for (const q of this.eggs || []) { this.scene.remove(q.obj); q.obj.material.dispose(); }
     this.eggs = [];
-    this.failReason = null;
+    this.failReason = null; this.cleared = false;
     if (this.level.base) {
       const b = this.level.base; this.base = { ...b, maxHp: b.hp, hp: b.hp, stage: 0, alive: true, hitT: 0 };
       if (b.tower && b.tower.userData.setStage) b.tower.userData.setStage(0);
@@ -830,7 +830,7 @@ export class Game {
   // knock a lizard back (it slides and decays)
   knock(e, dx, dz, power) {
     if (e.frozen > 0) return;   // frozen solid: nothing moves them
-    if (e.cfg.boss) power *= 0.1;
+    if (e.cfg.boss && ALIVE.has(e.state)) power *= 0.1;   // a living boss shrugs shots off; its corpse is shoved around like any other
     const l = Math.hypot(dx, dz) || 1;
     e.kx = (e.kx || 0) + (dx / l) * power; e.kz = (e.kz || 0) + (dz / l) * power;
   }
@@ -913,7 +913,7 @@ export class Game {
     }
     if (corpses) for (const e of this.enemies) {
       if (e.state !== 'dying' && e.state !== 'dead') continue;
-      const t = rayCyl(o, d, e.x, e.z, 0.9, 0, 0.9 + (e.cy || 0));
+      const t = rayCyl(o, d, e.x, e.z, e.cfg.boss ? Math.max(0.9, hitR(e)) : 0.9, 0, 0.9 + (e.cy || 0));
       if (t < best.t) best = { t, enemy: null, corpse: e, n: null, ground: false, invisible: false };
     }
     return best;
@@ -1004,7 +1004,7 @@ export class Game {
     for (let k = 0; k < 3; k++) this.markGround('blood', e.x + (Math.random() - 0.5) * 2.6, (e.y || 0) + 1, e.z + (Math.random() - 0.5) * 2.6, 0.5 + Math.random() * 0.7, (e.y || 0) + 2.5);
     this.burst(e.x, 1.2 + e.y, e.z, 'green', 14, 4.5, 0.16);
     e.shadow.visible = false;
-    e.cvy = e.cfg.boss ? 0 : 2.8 + Math.random() * 1.5; e.spin = (Math.random() < 0.5 ? -1 : 1) * (4 + Math.random() * 4);
+    e.cvy = 2.8 + Math.random() * 1.5; e.spin = (Math.random() < 0.5 ? -1 : 1) * (4 + Math.random() * 4);
     if (e.cfg.boss) { this.setMessage(`${e.cfg.name.toUpperCase()} FALLS!`, 4); sfx.explosion(); this.flash(e.x, 3, e.z, 0xffd060, 400, 0.8); for (let k = 0; k < 7; k++) this.addPickup([this.healType(), 'powder', 'shot', 'rockets', 'cells'][k % 5], e.x, e.z, true); }
     else if (Math.random() < 0.4) {
       const r = Math.random();
@@ -1384,7 +1384,13 @@ export class Game {
     this.queue(this.level.waves[i]);
     this.setMessage(`WAVE ${i + 1} / ${this.level.waves.length}`, 3); sfx.wave();
   }
-  win() { this.waveCleared(); this.wave.phase = 'done'; this.stats.time = this.time; sfx.win(); this.setState('won'); }
+  // level cleared: no menu pops up. The player keeps walking around; Esc opens the pause menu, which then offers NEXT LEVEL.
+  win() {
+    if (this.cleared) return;
+    this.waveCleared(); this.wave.phase = 'done'; this.stats.time = this.time; this.cleared = true; sfx.win();
+    this.setMessage('LEVEL CLEARED — WALK AROUND, PRESS ESC FOR THE MENU', 10);
+    if (this.ui.onCleared) this.ui.onCleared();
+  }
   waveCleared() { this.stats.waves++; if (this.ui.onStat) this.ui.onStat('wave', this.stats); }
   trySpawn(dt) {
     const w = this.wave;
@@ -1393,6 +1399,7 @@ export class Game {
   }
   updateWaves(dt) {
     const w = this.wave, L = this.level, p = this.p;
+    if (this.cleared) return;
     if (L.mode === 'advance') {
       // lizards drop in as the player passes each trigger line
       while (w.enc < L.encounters.length && p.z < L.encounters[w.enc].z) {

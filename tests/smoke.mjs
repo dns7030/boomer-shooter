@@ -77,7 +77,7 @@ const run = await page.evaluate(() => {
   for (const w of W) p.has[w.id] = true;
   let steps = 0;
   const idx = (id) => W.findIndex((w) => w.id === id);
-  while (g.state === 'playing' && steps < 60 * 400) {
+  while (g.state === 'playing' && !g.cleared && steps < 60 * 400) {
     steps++;
     p.health = Math.max(p.health, 50);
     for (const k of Object.keys(p.ammo)) p.ammo[k] = Math.max(p.ammo[k], 60);
@@ -93,7 +93,7 @@ const run = await page.evaluate(() => {
     }
     g.step(1 / 60);
   }
-  return { state: g.state, steps, kills: g.stats.kills, wave: g.wave.index, left: g.enemies.filter((e) => ['spawn', 'move', 'attack', 'pain'].includes(e.state)).length };
+  return { state: g.cleared ? 'won' : g.state, steps, kills: g.stats.kills, wave: g.wave.index, left: g.enemies.filter((e) => ['spawn', 'move', 'attack', 'pain'].includes(e.state)).length };
 });
 check('bot clears all waves of level 1', run.state === 'won', JSON.stringify(run));
 
@@ -105,7 +105,7 @@ const run2 = await page.evaluate(() => {
   for (const w of W) p.has[w.id] = true;
   const idx = (id) => W.findIndex((w) => w.id === id);
   let steps = 0, maxAlive = 0, lastZ = p.z;
-  while (g.state === 'playing' && steps < 60 * 600) {
+  while (g.state === 'playing' && !g.cleared && steps < 60 * 600) {
     steps++;
     if (steps % 90 === 0) { if (Math.abs(p.z - lastZ) < 1) p.x += (Math.random() < 0.5 ? -1 : 1) * 6; lastZ = p.z; } // sidestep a prop if stuck
     p.health = Math.max(p.health, 50);
@@ -124,7 +124,7 @@ const run2 = await page.evaluate(() => {
     if (!alive.some((e) => Math.hypot(e.x - p.x, e.z - p.z) < 25)) { p.z -= 7.5 / 60; if (Math.abs(p.x) > 7) p.x *= 0.97; }
     g.step(1 / 60);
   }
-  return { state: g.state, steps, kills: g.stats.kills, z: +p.z.toFixed(1), maxAlive, enc: g.wave.enc, left: g.aliveCount() };
+  return { state: g.cleared ? 'won' : g.state, steps, kills: g.stats.kills, z: +p.z.toFixed(1), maxAlive, enc: g.wave.enc, left: g.aliveCount() };
 });
 check('bot fights down the Soviet avenue to the goal', run2.state === 'won', JSON.stringify(run2));
 
@@ -145,7 +145,7 @@ const run3 = await page.evaluate(() => {
   for (const w of W) p.has[w.id] = true;
   const idx = (id) => W.findIndex((w) => w.id === id);
   let steps = 0;
-  while (g.state === 'playing' && steps < 60 * 900) {
+  while (g.state === 'playing' && !g.cleared && steps < 60 * 900) {
     steps++;
     p.health = Math.max(p.health, 50);
     for (const k of Object.keys(p.ammo)) p.ammo[k] = Math.max(p.ammo[k], 60);
@@ -165,7 +165,7 @@ const run3 = await page.evaluate(() => {
     }
     g.step(1 / 60);
   }
-  return { state: g.state, steps, kills: g.stats.kills, wave: g.wave.index, left: g.remaining() };
+  return { state: g.cleared ? 'won' : g.state, steps, kills: g.stats.kills, wave: g.wave.index, left: g.remaining() };
 });
 check('bot holds St. Petersburg through every wave', run3.state === 'won', JSON.stringify(run3));
 
@@ -190,7 +190,7 @@ const run4 = await page.evaluate(() => {
   for (const w of W) p.has[w.id] = true;
   const idx = (id) => W.findIndex((w) => w.id === id);
   let steps = 0;
-  while (g.state === 'playing' && steps < 60 * 1100) {
+  while (g.state === 'playing' && !g.cleared && steps < 60 * 1100) {
     steps++;
     p.health = Math.max(p.health, 50);
     for (const k of Object.keys(p.ammo)) p.ammo[k] = Math.max(p.ammo[k], 60);
@@ -210,7 +210,7 @@ const run4 = await page.evaluate(() => {
     }
     g.step(1 / 60);
   }
-  return { state: g.state, steps, kills: g.stats.kills, wave: g.wave.index, left: g.remaining() };
+  return { state: g.cleared ? 'won' : g.state, steps, kills: g.stats.kills, wave: g.wave.index, left: g.remaining() };
 });
 check('bot holds the Soviet metropolis through every wave (incl. the Tsar)', run4.state === 'won', JSON.stringify(run4));
 
