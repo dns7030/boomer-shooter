@@ -43,7 +43,8 @@ export class Decals {
     const T = textures();
     this.scene = scene; this.max = max; this.i = 0;
     this.geo = new THREE.PlaneGeometry(1, 1);
-    const mat = (map) => new THREE.MeshLambertMaterial({ map, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -3 });
+    const GROUND = [new THREE.Plane(new THREE.Vector3(0, 1, 0), 0.005)];   // a mark stuck to a wall near the floor must not dip below it: cut off everything under y = 0
+    const mat = (map) => new THREE.MeshLambertMaterial({ map, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -3, clippingPlanes: GROUND });
     this.mats = { bullet: T.bullet.map(mat), scorch: T.scorch.map(mat), blood: T.blood.map(mat) };
     this.meshes = [];
     for (let k = 0; k < max; k++) {
