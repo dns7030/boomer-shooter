@@ -633,17 +633,7 @@ export function artScienceMuseum() {
   sgn(g, 'DIGITAL LIGHT', 6.4, 0.9, 0, 3.9, zc + 11.96, 0, { bg: '#0e2a4a', fg: '#ffffff', border: '#00E599' });
   door(g, 2.6, 3.2, 0, 1.6, zc + 11.95, 0, '#4a5a68');
   cols.push([-10.5, 10.5, zc - 10.5, zc + 10.5, 26]);
-  // reflecting pool and bridge
-  const pz0 = 7.6, pz1 = 17.6, pxx = 14.6, wm = mat('water');
-  for (const s of [-1, 1]) {
-    const w = new THREE.Mesh(new THREE.PlaneGeometry(pxx - 3.2, pz1 - pz0), wm); w.rotation.x = -Math.PI / 2; w.position.set(s * (pxx + 3.2) / 2, 0.3, (pz0 + pz1) / 2); g.add(w);
-    cols.push([s > 0 ? 3.2 : -pxx, s > 0 ? pxx : -3.2, pz0, pz1, 0.5]);
-    Bx(g, 0.5, 0.5, pz1 - pz0, cap, s * pxx, 0.25, (pz0 + pz1) / 2, 2);
-    Bx(g, 0.5, 0.5, pz1 - pz0, cap, s * 3.2, 0.25, (pz0 + pz1) / 2, 2);
-  }
-  Bx(g, pxx * 2 + 0.5, 0.5, 0.5, cap, 0, 0.25, pz1, 2); Bx(g, pxx * 2 + 0.5, 0.5, 0.5, cap, 0, 0.25, pz0, 2);
-  Bx(g, 6.0, 0.3, pz1 - pz0 + 0.2, mat('s6sg_paver'), 0, 0.16, (pz0 + pz1) / 2, 3);
-  for (const s of [-1, 1]) { Bx(g, 0.1, 0.9, pz1 - pz0, glassM(0xcfe8f0, 0.6), s * 2.9, 0.85, (pz0 + pz1) / 2, 1); Bx(g, 0.14, 0.06, pz1 - pz0, C(0x2a2e34), s * 2.9, 1.32, (pz0 + pz1) / 2, 1); }
+  // (the reflecting pools and the little paved bridge in front of the door were removed: lizards got lost on the narrow path between them)
   return size(g, 36, 36, 26, cols);
 }
 
