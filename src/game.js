@@ -707,7 +707,7 @@ export class Game {
     this.scene.add(mesh);
     this.fx.push({ obj: mesh, t: 0.4, dur: 0.4, kind: 'beam' });
     for (let i = 0; i < 14; i++) { const q = a.clone().lerp(end, Math.random()); this.emit(q.x, q.y, q.z, 'blue', (Math.random() - 0.5) * 2, Math.random() * 2, (Math.random() - 0.5) * 2, 0.4, 0.08, 0); }
-    if (wall < 200) { this.burst(end.x, end.y, end.z, 'blue', 8, 4, 0.12); this.sparks(end.x, end.y, end.z, 14, 7, 0, 0.4, 0); const h = this.hitscan(eye, dir, 200); if (h.n && !h.invisible) this.markAlong('scorch', end, dir, 1.3); }
+    if (wall < 200) { this.hitProps({ x: end.x + dir.x * 0.1, y: end.y + dir.y * 0.1, z: end.z + dir.z * 0.1 }, w.damage); this.burst(end.x, end.y, end.z, 'blue', 8, 4, 0.12); this.sparks(end.x, end.y, end.z, 14, 7, 0, 0.4, 0); const h = this.hitscan(eye, dir, 200); if (h.n && !h.invisible) this.markAlong('scorch', end, dir, 1.3); }
     this.flash(a.x + dir.x * 3, a.y + dir.y * 3, a.z + dir.z * 3, 0x7ad0ff, 90, 0.18);
   }
 
